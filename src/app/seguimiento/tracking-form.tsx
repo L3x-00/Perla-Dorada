@@ -1,0 +1,369 @@
+"use client";
+
+import {
+  FormEvent,
+  useState,
+} from "react";
+
+type PurchaseRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired";
+
+type TrackingResult = {
+  requestId: string;
+  raffleName: string;
+  status: PurchaseRequestStatus;
+  expiresAt: string;
+  reviewedAt: string | null;
+  rejectionReason:
+    | string
+    | null;
+  ticketNumbers: number[];
+};
+
+type TrackingResponse = {
+  request?: TrackingResult;
+  error?: string;
+};
+
+const STATUS_LABELS: Record<
+  PurchaseRequestStatus,
+  string
+> = {
+  pending:
+    "Pendiente de revisión",
+  approved: "Aprobada",
+  rejected: "Rechazada",
+  expired: "Expirada",
+};
+
+function formatDate(
+  value: string | null,
+) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(
+    "es-PE",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ).format(date);
+}
+
+export function TrackingForm() {
+  const [dni, setDni] =
+    useState("");
+
+  const [
+    trackingCode,
+    setTrackingCode,
+  ] = useState("");
+
+  const [result, setResult] =
+    useState<TrackingResult | null>(
+      null,
+    );
+
+  const [error, setError] =
+    useState<string | null>(
+      null,
+    );
+
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
+
+  async function submit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setSubmitting(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response =
+        await fetch(
+          "/api/tracking",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              dni,
+              trackingCode,
+            }),
+          },
+        );
+
+      const body =
+        (await response.json()) as TrackingResponse;
+
+      if (
+        !response.ok ||
+        !body.request
+      ) {
+        throw new Error(
+          body.error ??
+            "No se pudo consultar la solicitud.",
+        );
+      }
+
+      setResult(
+        body.request,
+      );
+    } catch (
+      caughtError
+    ) {
+      setError(
+        caughtError instanceof
+          Error
+          ? caughtError.message
+          : "Ocurrió un error inesperado.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const expiresAt =
+    result?.expiresAt
+      ? formatDate(
+          result.expiresAt,
+        )
+      : null;
+
+  const reviewedAt =
+    result?.reviewedAt
+      ? formatDate(
+          result.reviewedAt,
+        )
+      : null;
+
+  return (
+    <div className="mx-auto max-w-lg">
+      <form
+        onSubmit={submit}
+        className="space-y-5 rounded-2xl border border-neutral-800 bg-neutral-950 p-6"
+      >
+        <div>
+          <label
+            htmlFor="tracking-dni"
+            className="mb-2 block text-sm font-medium"
+          >
+            DNI
+          </label>
+
+          <input
+            id="tracking-dni"
+            name="dni"
+            value={dni}
+            onChange={(
+              event,
+            ) =>
+              setDni(
+                event.target
+                  .value,
+              )
+            }
+            required
+            minLength={6}
+            maxLength={20}
+            autoComplete="off"
+            inputMode="numeric"
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="tracking-code"
+            className="mb-2 block text-sm font-medium"
+          >
+            Código de seguimiento
+          </label>
+
+          <input
+            id="tracking-code"
+            name="trackingCode"
+            value={
+              trackingCode
+            }
+            onChange={(
+              event,
+            ) =>
+              setTrackingCode(
+                event.target.value.toUpperCase(),
+              )
+            }
+            required
+            minLength={6}
+            maxLength={40}
+            autoComplete="off"
+            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 font-mono uppercase text-white outline-none focus:border-amber-500"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={
+            submitting
+          }
+          className="w-full rounded-lg bg-amber-500 px-4 py-3 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting
+            ? "Consultando..."
+            : "Consultar estado"}
+        </button>
+      </form>
+
+      {error ? (
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-900 bg-red-950 p-4 text-sm text-red-200"
+        >
+          {error}
+        </div>
+      ) : null}
+
+      {result ? (
+        <section className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+          <header>
+            <p className="text-sm text-neutral-400">
+              Rifa
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold">
+              {
+                result.raffleName
+              }
+            </h2>
+          </header>
+
+          <dl className="mt-6 space-y-5">
+            <div>
+              <dt className="text-sm text-neutral-400">
+                Estado
+              </dt>
+
+              <dd className="mt-1 text-lg font-semibold">
+                {
+                  STATUS_LABELS[
+                    result.status
+                  ]
+                }
+              </dd>
+            </div>
+
+            {result.status ===
+              "pending" &&
+            expiresAt ? (
+              <div>
+                <dt className="text-sm text-neutral-400">
+                  Reserva válida
+                  hasta
+                </dt>
+
+                <dd className="mt-1">
+                  {expiresAt}
+                </dd>
+              </div>
+            ) : null}
+
+            {result.status ===
+              "approved" ? (
+              <div>
+                <dt className="text-sm text-neutral-400">
+                  Tickets
+                  asignados
+                </dt>
+
+                {result
+                  .ticketNumbers
+                  .length >
+                0 ? (
+                  <dd className="mt-3 flex flex-wrap gap-3">
+                    {result.ticketNumbers.map(
+                      (
+                        ticketNumber,
+                      ) => (
+                        <span
+                          key={
+                            ticketNumber
+                          }
+                          className="rounded-xl border border-emerald-700 bg-emerald-950 px-4 py-3 text-xl font-bold tabular-nums text-emerald-200"
+                        >
+                          {String(
+                            ticketNumber,
+                          ).padStart(
+                            4,
+                            "0",
+                          )}
+                        </span>
+                      ),
+                    )}
+                  </dd>
+                ) : (
+                  <dd className="mt-2 text-sm text-neutral-400">
+                    La solicitud
+                    está aprobada,
+                    pero todavía no
+                    aparecen tickets
+                    asignados.
+                  </dd>
+                )}
+              </div>
+            ) : null}
+
+            {result.status ===
+              "rejected" &&
+            result.rejectionReason ? (
+              <div>
+                <dt className="text-sm text-neutral-400">
+                  Motivo
+                </dt>
+
+                <dd className="mt-1">
+                  {
+                    result.rejectionReason
+                  }
+                </dd>
+              </div>
+            ) : null}
+
+            {reviewedAt ? (
+              <div>
+                <dt className="text-sm text-neutral-400">
+                  Fecha de revisión
+                </dt>
+
+                <dd className="mt-1">
+                  {reviewedAt}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        </section>
+      ) : null}
+    </div>
+  );
+}
