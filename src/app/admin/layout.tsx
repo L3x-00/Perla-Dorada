@@ -38,6 +38,13 @@ export default function AdminLayout({
           >
             Buscar
           </Link>
+
+          <Link
+            href="/admin/settings"
+            className="text-sm text-neutral-300 hover:text-white"
+          >
+            Configuración
+          </Link>
         </nav>
       </header>
 

@@ -144,6 +144,40 @@ export async function POST(
   }
 
   try {
+    const supabase = createAdminClient();
+
+    /*
+     * Enforcement de mantenimiento.
+     *
+     * Si el modo mantenimiento está activo, el portal deja de aceptar
+     * solicitudes incluso ante envíos directos al endpoint (la landing
+     * pública solo lo oculta visualmente).
+     */
+    const { data: settings, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("maintenance_mode")
+      .eq("id", true)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error(
+        "Error consultando configuración:",
+        settingsError,
+      );
+
+      return errorResponse(
+        "El servicio no está disponible temporalmente.",
+        503,
+      );
+    }
+
+    if (settings?.maintenance_mode) {
+      return errorResponse(
+        "El portal está en mantenimiento. Vuelve a intentarlo más tarde.",
+        503,
+      );
+    }
+
     const formData = await request.formData();
 
     const parsedInput = purchaseRequestSchema.parse({
@@ -167,8 +201,6 @@ export async function POST(
 
     const validatedFile =
       await validatePaymentProof(paymentProof);
-
-    const supabase = createAdminClient();
 
     /*
      * Esta consulta solo se utiliza para construir una ruta

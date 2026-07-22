@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -11,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -42,6 +67,7 @@ export type Database = {
         Row: {
           created_at: string
           id: boolean
+          maintenance_message: string | null
           maintenance_mode: boolean
           max_reprints: number
           reservation_minutes: number
@@ -50,6 +76,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: boolean
+          maintenance_message?: string | null
           maintenance_mode?: boolean
           max_reprints?: number
           reservation_minutes?: number
@@ -58,10 +85,41 @@ export type Database = {
         Update: {
           created_at?: string
           id?: boolean
+          maintenance_message?: string | null
           maintenance_mode?: boolean
           max_reprints?: number
           reservation_minutes?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          metadata: Json
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          metadata?: Json
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          metadata?: Json
         }
         Relationships: []
       }
@@ -448,6 +506,40 @@ export type Database = {
         }
       }
       expire_purchase_requests: { Args: never; Returns: number }
+      get_public_ticket_document: {
+        Args: { p_dni: string; p_tracking_code: string }
+        Returns: {
+          dni: string
+          draw_at: string
+          full_name: string
+          raffle_description: string
+          raffle_name: string
+          ticket_numbers: number[]
+          ticket_price: number
+          tracking_code: string
+        }[]
+      }
+      register_raffle_winner: {
+        Args: {
+          p_admin_user_id: string
+          p_raffle_id: string
+          p_ticket_number: number
+        }
+        Returns: {
+          confirmed_at: string
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          raffle_id: string
+          ticket_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "raffle_winners"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_ticket_print: {
         Args: {
           p_admin_user_id: string
@@ -673,6 +765,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       purchase_request_status: ["pending", "approved", "rejected", "expired"],
