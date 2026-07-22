@@ -305,12 +305,64 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_raffle: {
+        Args: { p_admin_user_id: string; p_raffle_id: string }
+        Returns: {
+          closed_at: string | null
+          closes_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          draw_at: string | null
+          id: string
+          name: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["raffle_status"]
+          ticket_price: number
+          total_tickets: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "raffles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_purchase_request: {
         Args: { p_admin_user_id: string; p_purchase_request_id: string }
         Returns: {
           ticket_id: string
           ticket_number: number
         }[]
+      }
+      assert_active_admin: {
+        Args: { p_admin_user_id: string }
+        Returns: undefined
+      }
+      cancel_raffle: {
+        Args: { p_admin_user_id: string; p_raffle_id: string }
+        Returns: {
+          closed_at: string | null
+          closes_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          draw_at: string | null
+          id: string
+          name: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["raffle_status"]
+          ticket_price: number
+          total_tickets: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "raffles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       check_purchase_request_rate_limit: {
         Args: { p_fingerprint_hash: string }
@@ -320,6 +372,30 @@ export type Database = {
           retry_after_seconds: number
           short_window_count: number
         }[]
+      }
+      close_raffle: {
+        Args: { p_admin_user_id: string; p_raffle_id: string }
+        Returns: {
+          closed_at: string | null
+          closes_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          draw_at: string | null
+          id: string
+          name: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["raffle_status"]
+          ticket_price: number
+          total_tickets: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "raffles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_purchase_request: {
         Args: {
@@ -337,6 +413,39 @@ export type Database = {
           request_id: string
           tracking_code: string
         }[]
+      }
+      create_raffle: {
+        Args: {
+          p_admin_user_id: string
+          p_closes_at: string
+          p_description: string
+          p_draw_at: string
+          p_name: string
+          p_starts_at: string
+          p_ticket_price: number
+          p_total_tickets: number
+        }
+        Returns: {
+          closed_at: string | null
+          closes_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          draw_at: string | null
+          id: string
+          name: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["raffle_status"]
+          ticket_price: number
+          total_tickets: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "raffles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       expire_purchase_requests: { Args: never; Returns: number }
       register_ticket_print: {
@@ -399,6 +508,40 @@ export type Database = {
           reviewed_at: string
           ticket_numbers: number[]
         }[]
+      }
+      update_raffle: {
+        Args: {
+          p_admin_user_id: string
+          p_closes_at: string
+          p_description: string
+          p_draw_at: string
+          p_name: string
+          p_raffle_id: string
+          p_starts_at: string
+          p_ticket_price: number
+          p_total_tickets: number
+        }
+        Returns: {
+          closed_at: string | null
+          closes_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          draw_at: string | null
+          id: string
+          name: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["raffle_status"]
+          ticket_price: number
+          total_tickets: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "raffles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
