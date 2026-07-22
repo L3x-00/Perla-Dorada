@@ -19,6 +19,13 @@ export default function AdminLayout({
           </Link>
 
           <Link
+            href="/admin/raffles"
+            className="text-sm text-neutral-300 hover:text-white"
+          >
+            Rifas
+          </Link>
+
+          <Link
             href="/admin/tickets"
             className="text-sm text-neutral-300 hover:text-white"
           >
