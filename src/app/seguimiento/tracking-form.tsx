@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import {
   FormEvent,
   useState,
 } from "react";
+
+import { Countdown } from "@/app/countdown";
 
 type PurchaseRequestStatus =
   | "pending"
@@ -286,6 +289,14 @@ export function TrackingForm() {
                 <dd className="mt-1">
                   {expiresAt}
                 </dd>
+
+                <dd className="mt-1 text-sm">
+                  <Countdown
+                    expiresAt={
+                      result.expiresAt
+                    }
+                  />
+                </dd>
               </div>
             ) : null}
 
@@ -331,6 +342,20 @@ export function TrackingForm() {
                     asignados.
                   </dd>
                 )}
+
+                {result
+                  .ticketNumbers
+                  .length > 0 ? (
+                  <dd className="mt-4">
+                    <Link
+                      href="/seguimiento/tickets"
+                      className="inline-flex rounded-lg border border-amber-500 px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/10"
+                    >
+                      Descargar / imprimir
+                      mis tickets
+                    </Link>
+                  </dd>
+                ) : null}
               </div>
             ) : null}
 
