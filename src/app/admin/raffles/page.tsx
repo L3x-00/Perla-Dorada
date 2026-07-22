@@ -244,11 +244,20 @@ export default async function RafflesPage() {
                       </dl>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="flex shrink-0 flex-col items-stretch gap-3">
                       <RaffleActions
                         raffleId={raffle.id}
                         status={raffle.status}
                       />
+
+                      {raffle.status === "closed" ? (
+                        <Link
+                          href={`/admin/raffles/${raffle.id}/winner`}
+                          className="inline-flex h-10 items-center justify-center rounded-lg border border-amber-500 px-4 text-sm font-semibold text-amber-400 transition hover:bg-amber-500/10"
+                        >
+                          Ganador
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
                 </article>
