@@ -50,7 +50,10 @@ ERR-05 — 🟢 Corregido — 3 RPC sin GRANT EXECUTE explícito a service_role
 - Fix aplicado 22 jul 2026: migración `20260722170000_grant_execute_status_functions.sql` con los GRANT explícitos (aplicada al remoto). Elimina la dependencia del comportamiento implícito y alinea con el resto del proyecto.
 - Detectado: 22 jul 2026. Corregido: 22 jul 2026.
 
-ERR-09 — 🟡 Alto (setup de datos, no código) — admin_profiles vacío → aprobación/rechazo inoperantes
+ERR-09 — 🟢 Resuelto (23 jul 2026) — admin_profiles vacío → aprobación/rechazo inoperantes
+- Sembrado el 23 jul 2026 con el único usuario real de Auth: `ronla.angarita31@gmail.com` (user_id baf9ff81-419f-44e5-aa8a-72e92c7c50f0, display_name "ronla.angarita31", is_active=true). Verificado: approve_purchase_request ya NO responde "no es un administrador activo".
+- ⚠️ Los documentos mencionan 2 cuentas administrativas, pero en Auth solo existe 1. Si se crea la segunda, hay que insertar también su fila en admin_profiles (mismo procedimiento) o no podrá aprobar/rechazar/imprimir.
+- Detalle original abajo.
 - Área: tabla `public.admin_profiles` en el remoto (proyecto iewcowhkfsywdiyligsq)
 - Causa: la tabla tiene 0 filas. `approve_purchase_request` y `reject_purchase_request` exigen que el usuario exista en admin_profiles con is_active=true; con la tabla vacía, TODO intento de aprobar/rechazar falla con "El usuario no es un administrador activo" (42501), aunque el admin pueda iniciar sesión por Supabase Auth. Las migraciones crean la tabla pero no la siembran (por diseño: "2 cuentas admin creadas manualmente").
 - Fix: paso de setup manual (no código). Por cada usuario admin de auth.users, insertar una fila en admin_profiles (user_id = id del usuario auth, display_name, is_active=true). Se puede hacer con service_role o desde el dashboard. Requiere conocer los user_id reales de los admins.
