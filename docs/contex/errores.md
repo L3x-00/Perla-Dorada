@@ -86,6 +86,14 @@ ERR-10 — 🟢 Corregido (código) / ⚠️ requiere rotación de claves — Va
 - Verificado: con la variable malformada, el log muestra el mensaje explicativo y 0 apariciones del secreto; la landing degrada con "No pudimos cargar la rifa".
 - ⚠️ ACCIÓN PENDIENTE DEL USUARIO: rotar `SUPABASE_SERVICE_ROLE_KEY` y `RATE_LIMIT_SECRET` (quedaron expuestas en logs), y actualizarlas en Render y `.env.local`.
 
+ERR-11 — 🟢 Corregido — Rate limit eludible rotando el User-Agent
+- Área: `src/lib/security/request-fingerprint.ts`, `rate-limit.ts`
+- Causa: la huella era HMAC(IP + User-Agent). El User-Agent lo controla el cliente, así que rotándolo desde la misma IP se obtenía un cubo de conteo nuevo cada vez y el límite quedaba anulado. Confirmado en producción durante Fase 7: tras recibir 429 con un UA, bastó cambiarlo para volver a pasar.
+- Fix aplicado 23 jul 2026: se evalúan DOS cubos por petición — el de IP+User-Agent (tope estricto) y uno nuevo de IP sola (tope más alto). Basta que uno se exceda para bloquear. El cubo de IP sola corta la rotación sin castigar a usuarios legítimos que comparten IP (NAT, operadores móviles). Topes: alta de solicitudes 5/15min y 20/día por IP+UA, 15/15min y 60/día por IP; consultas públicas 20/100 por IP+UA, 60/300 por IP.
+- Verificado: con User-Agent distinto en cada petición, las 15 primeras pasan y desde la 16ª devuelve 429 (antes pasaban todas).
+- Nota: `check_purchase_request_rate_limit` (RPC con topes fijos en SQL) queda sin uso; el código emplea ahora el RPC genérico `check_rate_limit`.
+- Detectado y corregido: 23 jul 2026, durante Fase 7.
+
 3. Decisiones pendientes (no son bugs, requieren definición del cliente)
 
 DEC-01 — ⚪ src/components/{public,admin}/ no existe

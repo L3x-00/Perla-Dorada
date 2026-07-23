@@ -52,7 +52,9 @@ Migraciones aplicadas al remoto (proyecto iewcowhkfsywdiyligsq): `20260722160000
 
 **Bloque G (endurecimiento) completado el 23 jul 2026**, verificado E2E. Rate limiting en consultas públicas (`/api/tracking` + `/api/tickets`, ámbito compartido 20/15min · 100/día, ERR-06 cerrado), cabeceras seguras en `next.config.ts` (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS en prod), Zod compartido en lookups públicos, Next 16.2.10 → 16.2.11, y auditoría de secretos/sesiones (limpia). Patrón sin-RLS documentado como diseño aceptado (DEC-03).
 
-**Bloques A–G completos y verificados.** Queda solo despliegue/aceptación (Fase 7) y los pendientes del usuario listados abajo.
+**Bloques A–G completos y verificados. Fase 7 ejecutada el 23 jul 2026:** desplegado en **https://perla-dorada.onrender.com** y batería crítica completa (PF-01…PR-01, PC-01/02, PS-01) **PASA** contra producción, con limpieza total de datos de prueba. Durante la campaña se detectó y corrigió **ERR-11** (el rate limit era eludible rotando el User-Agent; ahora se evalúa también un cubo por IP sola).
+
+Pendiente: aceptación del cliente, los 2 Render Cron Jobs, rotar las claves expuestas por ERR-10, y el rediseño visual del portal (decidido: se queda en Render; migrar a Vercel NO requiere reestructurar nada, es solo cuestión de costo/plan).
 
 **Despliegue: el proyecto va en RENDER (no Vercel).** El `vercel.json` con crons NO aplica en Render. Hay DOS tareas programadas, cada una como un Render Cron Job que hace curl con `Authorization: Bearer <CRON_SECRET>`:
 - `/api/cron/expire-requests` — cada ~15 min (marca solicitudes vencidas).

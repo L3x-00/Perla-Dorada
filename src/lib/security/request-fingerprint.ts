@@ -61,3 +61,30 @@ export function createRequestFingerprint(
     .update(payload)
     .digest("hex");
 }
+
+/*
+ * Huella basada SOLO en la IP.
+ *
+ * El User-Agent lo controla el atacante: rotándolo se obtenía un cubo de
+ * conteo nuevo y el límite quedaba eludido. Este cubo adicional, con un
+ * tope más alto, corta esa elusión sin castigar a usuarios legítimos que
+ * comparten IP (NAT doméstico, operadores móviles).
+ */
+export function createIpFingerprint(
+  request: Request,
+  scope?: string,
+): string {
+  const secret = readRequiredEnv("RATE_LIMIT_SECRET");
+
+  if (secret.length < 32) {
+    throw new Error(
+      "RATE_LIMIT_SECRET debe tener al menos 32 caracteres.",
+    );
+  }
+
+  const clientIp = getClientIp(request);
+
+  return createHmac("sha256", secret)
+    .update(`ip-only\n${clientIp}\n${scope ?? ""}`)
+    .digest("hex");
+}

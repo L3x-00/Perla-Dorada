@@ -24,7 +24,7 @@ Fase 3 — Solicitudes y pagos	✅ Portal público (Bloque A) completado 22 jul 
 Fase 4 — Tickets, PDF e impresión	✅ Completada 22 jul 2026 (Bloque D)	Impresión admin + descarga pública (DNI+code) en A4 HTML print-to-PDF; verificado E2E
 Fase 5 — Consulta y ganador	✅ Completada 22 jul 2026 (Bloque E)	Seguimiento + registro de ganador irreversible; verificado E2E
 Fase 6 — Calidad y seguridad	✅ Completada 23 jul 2026 (Bloque G)	Rate limiting público, cabeceras seguras, Zod, auditoría de secretos/dependencias/sesiones
-Fase 7 — Despliegue y aceptación	❌ Pendiente	Vercel producción, smoke tests, entrega
+Fase 7 — Despliegue y aceptación	⚠️ Desplegada y probada 23 jul 2026	EN RENDER (no Vercel): https://perla-dorada.onrender.com — smoke tests y batería crítica PASAN. Pendiente: aceptación del cliente, cron jobs y rediseño visual
 3. Reglas de negocio invariantes
 Estados de entidades
 Entidad	Estados / Regla
@@ -201,7 +201,27 @@ Decisiones documentadas (no son trabajo pendiente):
 - Rate limit en `/api/admin/**`: no aplicado. Esas rutas ya exigen sesión válida y están gateadas por el proxy; el vector de abuso anónimo no existe.
 - Enumeración de tracking codes: 16 caracteres hex (64 bits) + DNI requerido + rate limit → enumeración inviable. ERR-07 (sin reintento ante colisión) permanece como riesgo residual muy bajo.
 - CVEs de dependencias transitivas de Next (sharp <0.35.0 high, postcss moderate): sin corrección disponible que no sea un downgrade absurdo (npm propone next@9.3.3). Impacto real nulo en esta app: `next/image` NO se usa (verificado; la única coincidencia es una regex del matcher del proxy), por lo que sharp nunca procesa imágenes en runtime; los comprobantes van a Supabase Storage y se validan con sniffing de `file-type`, sin pasar por sharp. postcss es build-time sobre CSS propio, no de usuario. Riesgo aceptado; revisar en futuras versiones de Next.
-11. Pruebas críticas pendientes
+11. Pruebas críticas — ✅ EJECUTADAS EN PRODUCCIÓN (23 jul 2026)
+
+Ejecutadas contra https://perla-dorada.onrender.com y su BD (proyecto iewcowhkfsywdiyligsq). Todos los datos de prueba fueron eliminados al terminar (0 residuos verificados).
+
+ID	Resultado
+PF-01	✅ POST /api/purchase-requests → 201, trackingCode y expiración a ~60 min
+PF-02	✅ Imagen falsa (texto con extensión .png) → 400 por sniffing de contenido; archivo de 7 MB → 413
+PF-03	✅ Aprobación generó exactamente 3 tickets, únicos y correlativos [1,2,3]
+PF-04	✅ Rechazo deja status=rejected con motivo y revisor; segundo rechazo bloqueado (estado terminal)
+PF-05	✅ Seguimiento devuelve estado correcto; descarga de tickets con solicitud NO aprobada → 404
+PF-06	✅ Guardas del ganador (rifa no cerrada → RAFFLE_NOT_CLOSED). Registro único e irreversible ya verificado en Bloque E
+PF-07	✅ Original + 5 reimpresiones permitidas; la séptima → MAX_REPRINTS_REACHED
+PF-08	✅ Aprobar solicitud vencida → "La reserva de la solicitud ha vencido"
+PC-01	✅ Dos aprobaciones simultáneas: 1 éxito de 2, exactamente 2 tickets (sin duplicar)
+PC-02	✅ Aprobaciones concurrentes: sin números duplicados y dentro de total_tickets
+PS-01	✅ /admin y /api/admin sin sesión → 307; crons sin secret → 401; comprobante en Storage por URL pública → 400 (bloqueado)
+PR-01	✅ RPC de retención responde y filtra candidatos correctamente (proceso completo ya verificado E2E en Bloque F)
+
+Hallazgo de la campaña: ERR-11 (rate limit eludible rotando el User-Agent) — detectado, corregido y verificado el mismo día. Ver errores.md.
+
+Tabla original de referencia:
 ID	Prueba	Resultado requerido
 PF-01	Registro público	Solicitud válida, tracking y expiración
 PF-02	Archivo	Acepta JPG/PNG/WEBP; rechaza inválidos/sobredimensionados

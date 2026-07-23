@@ -1,49 +1,23 @@
 import "server-only";
 
-import { createRequestFingerprint } from
-  "@/lib/security/request-fingerprint";
-import { createAdminClient } from
-  "@/lib/supabase/admin";
+import {
+  PURCHASE_REQUEST_RATE_LIMIT,
+  checkRateLimit,
+  type RateLimitResult,
+} from "@/lib/security/rate-limit";
 
-export type RateLimitResult = {
-  allowed: boolean;
-  retryAfterSeconds: number;
-};
+export type { RateLimitResult };
 
+/*
+ * Límite del alta de solicitudes públicas.
+ *
+ * Delega en el control genérico, que evalúa a la vez el cubo IP + User-Agent
+ * y el cubo de IP sola (este último impide eludir el límite rotando el
+ * User-Agent). Sustituye al RPC check_purchase_request_rate_limit, cuyos
+ * topes estaban fijos en SQL y solo contemplaban la primera huella.
+ */
 export async function checkPurchaseRequestRateLimit(
   request: Request,
 ): Promise<RateLimitResult> {
-  const fingerprint =
-    createRequestFingerprint(request);
-
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .rpc("check_purchase_request_rate_limit", {
-      p_fingerprint_hash: fingerprint,
-    })
-    .single();
-
-  if (error) {
-    console.error(
-      "No se pudo comprobar el rate limit:",
-      error,
-    );
-
-    throw new Error(
-      "No se pudo validar temporalmente la solicitud.",
-    );
-  }
-
-  if (!data) {
-    throw new Error(
-      "La comprobación del límite no devolvió datos.",
-    );
-  }
-
-  return {
-    allowed: data.allowed,
-    retryAfterSeconds:
-      data.retry_after_seconds,
-  };
+  return checkRateLimit(request, PURCHASE_REQUEST_RATE_LIMIT);
 }
