@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { btnGhost } from "@/components/admin/ui";
+
 import { PAYMENT_PROOF_MAX_SIZE_BYTES } from "@/config/storage";
 import { raffleImageUrl } from "@/lib/storage/public-url";
 
@@ -102,9 +104,9 @@ export function RaffleImageUpload({
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-      <h2 className="text-lg font-semibold text-white">Foto del premio</h2>
-      <p className="mt-1 text-sm text-neutral-400">
+    <section className="rounded-xl border border-line bg-ink-2 p-6">
+      <h2 className="font-display text-2xl font-light text-cream">Foto del premio</h2>
+      <p className="mt-1.5 text-sm text-muted">
         Es la imagen que ve el público en la web. Usa una foto nítida y
         horizontal; JPG, PNG o WEBP de hasta 5 MB.
       </p>
@@ -115,17 +117,17 @@ export function RaffleImageUpload({
           <img
             src={preview}
             alt="Premio de la rifa"
-            className="max-h-64 w-full rounded-xl border border-neutral-800 object-cover"
+            className="max-h-64 w-full rounded-lg border border-line object-cover"
           />
         </div>
       ) : (
-        <div className="mt-5 flex h-40 items-center justify-center rounded-xl border border-dashed border-neutral-700 text-sm text-neutral-500">
+        <div className="mt-5 flex h-40 items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted">
           Sin foto: la web mostrará la rifa sin imagen del premio.
         </div>
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <label className="inline-flex cursor-pointer items-center rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-amber-300">
+        <label className="inline-flex cursor-pointer items-center rounded-lg bg-gold px-4 py-2.5 text-sm font-medium text-ink transition-colors duration-200 hover:bg-gold-soft">
           {busy ? "Procesando..." : preview ? "Cambiar foto" : "Subir foto"}
           <input
             type="file"
@@ -147,7 +149,7 @@ export function RaffleImageUpload({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800 disabled:opacity-50"
+            className={btnGhost}
           >
             Quitar
           </button>
@@ -155,7 +157,7 @@ export function RaffleImageUpload({
       </div>
 
       {error ? (
-        <p role="alert" className="mt-3 text-sm text-red-400">
+        <p role="alert" className="mt-3 text-sm text-red-300">
           {error}
         </p>
       ) : null}

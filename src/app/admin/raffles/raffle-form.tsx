@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import {
+  adminInput,
+  adminLabel,
+  btnGhost,
+  btnPrimary,
+} from "@/components/admin/ui";
 import {
   type FormEvent,
   useState,
@@ -48,7 +55,7 @@ const emptyValues: RaffleFormValues = {
 };
 
 const inputClassName =
-  "h-11 rounded-lg border border-neutral-700 bg-neutral-950 px-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-11 rounded-lg border border-line bg-ink px-3 text-sm text-cream outline-none transition placeholder:text-muted focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:cursor-not-allowed disabled:opacity-60";
 
 function getInitialValues(
   values?: Partial<RaffleFormValues>,
@@ -293,17 +300,17 @@ export function RaffleForm(
       {errorMessage ? (
         <div
           role="alert"
-          className="rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300"
+          className="rounded-xl border border-red-900/70 bg-red-950/30 px-4 py-3 text-sm text-red-200"
         >
           {errorMessage}
         </div>
       ) : null}
 
-      <section className="grid gap-6 rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 sm:p-6">
+      <section className="grid gap-6 rounded-xl border border-line bg-ink-2 p-5 sm:p-6">
         <div className="grid gap-2">
           <label
             htmlFor="raffle-name"
-            className="text-sm font-medium"
+            className={adminLabel}
           >
             Nombre de la rifa
           </label>
@@ -332,7 +339,7 @@ export function RaffleForm(
         <div className="grid gap-2">
           <label
             htmlFor="raffle-description"
-            className="text-sm font-medium"
+            className={adminLabel}
           >
             Descripción
           </label>
@@ -351,10 +358,10 @@ export function RaffleForm(
             disabled={isSubmitting}
             rows={5}
             placeholder="Describe el premio y las condiciones principales."
-            className="resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`${adminInput} resize-y`}
           />
 
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted">
             {values.description.length}/2000
           </p>
         </div>
@@ -363,7 +370,7 @@ export function RaffleForm(
           <div className="grid gap-2">
             <label
               htmlFor="raffle-ticket-price"
-              className="text-sm font-medium"
+              className={adminLabel}
             >
               Precio por ticket
             </label>
@@ -392,7 +399,7 @@ export function RaffleForm(
           <div className="grid gap-2">
             <label
               htmlFor="raffle-total-tickets"
-              className="text-sm font-medium"
+              className={adminLabel}
             >
               Total de tickets
             </label>
@@ -452,7 +459,7 @@ export function RaffleForm(
           />
         </div>
 
-        <p className="text-xs leading-5 text-neutral-500">
+        <p className="text-xs leading-5 text-muted">
           Las fechas se interpretan usando la zona horaria
           configurada en el dispositivo del administrador.
         </p>
@@ -461,7 +468,7 @@ export function RaffleForm(
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
           href="/admin/raffles"
-          className="inline-flex h-11 items-center justify-center rounded-lg border border-neutral-700 px-5 text-sm font-medium text-neutral-200 transition hover:bg-neutral-900"
+          className={btnGhost}
         >
           Cancelar
         </Link>
@@ -469,7 +476,7 @@ export function RaffleForm(
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex h-11 items-center justify-center rounded-lg bg-amber-400 px-5 text-sm font-semibold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnPrimary}
         >
           {isSubmitting
             ? pendingLabel
@@ -499,7 +506,7 @@ function DateField({
     <div className="grid gap-2">
       <label
         htmlFor={id}
-        className="text-sm font-medium"
+        className={adminLabel}
       >
         {label}
       </label>

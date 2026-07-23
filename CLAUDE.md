@@ -75,6 +75,15 @@ El sitio es una **web de marca de joyería** con el sorteo como sección que apa
 - Foto del premio: se sube desde `/admin/raffles/[id]/edit` al bucket **público** `raffle-images` (columna `raffles.image_path`). El origen de Supabase está permitido en `img-src` de la CSP.
 - Páginas legales en `/legal/{terminos,bases,privacidad,devoluciones}`: **borradores** pendientes de revisión legal. Al aprobarse, poner `LEGAL_ES_BORRADOR = false` en `src/app/legal/legal-document.tsx` para quitar el aviso.
 
+## Panel administrativo (rediseño 23 jul 2026)
+
+Comparte paleta y tipografía con el sitio público, pero **con densidad de herramienta**: menos aire, controles compactos, sin animaciones lentas. Aplicar el "lujo sobrio" literal a tablas de datos empeoraría el trabajo diario.
+
+- Kit compartido en `src/components/admin/ui.tsx`: `adminCard`, `adminInput`, `adminLabel`, `btnPrimary/Ghost/Danger/Success/Small`, y componentes `AdminPage`, `AdminPageHeader`, `Badge`, `AdminAlert`, `EmptyState`. Usarlo en vez de escribir clases sueltas.
+- Los **badges de estado conservan color semántico** (verde/rojo/ámbar): ahí el color es información que se escanea, no decoración. Igual la reimpresión, que sigue en ámbar por ser acción con cupo limitado.
+- La **hoja imprimible del ticket se mantiene clara** (`/admin/tickets/[id]/print` y el documento de `/seguimiento/tickets`): va a papel. La cabecera del panel lleva `print:hidden`.
+- Navegación con sección activa en `src/app/admin/admin-nav.tsx`.
+
 ## Workflows disponibles (skills de este proyecto)
 
 - `/pd-fases` — audita `pendiente.md` + `errores.md`, propone la siguiente subfase de mayor valor con el formato de respuesta de `arquitectura.md` §14 (Inspección → Alcance → Plan → Archivos → Implementación → Comandos → Pruebas → Rollback → Definición de terminado).

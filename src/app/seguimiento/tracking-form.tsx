@@ -166,12 +166,12 @@ export function TrackingForm() {
     <div className="mx-auto max-w-lg">
       <form
         onSubmit={submit}
-        className="space-y-5 rounded-2xl border border-neutral-800 bg-neutral-950 p-6"
+        className="space-y-5 rounded-2xl border border-line bg-ink-2 p-6"
       >
         <div>
           <label
             htmlFor="tracking-dni"
-            className="mb-2 block text-sm font-medium"
+            className="eyebrow mb-2.5 block text-muted"
           >
             DNI
           </label>
@@ -193,14 +193,14 @@ export function TrackingForm() {
             maxLength={20}
             autoComplete="off"
             inputMode="numeric"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+            className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-cream outline-none transition-colors focus:border-gold"
           />
         </div>
 
         <div>
           <label
             htmlFor="tracking-code"
-            className="mb-2 block text-sm font-medium"
+            className="eyebrow mb-2.5 block text-muted"
           >
             Código de seguimiento
           </label>
@@ -222,7 +222,7 @@ export function TrackingForm() {
             minLength={6}
             maxLength={40}
             autoComplete="off"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 font-mono uppercase text-white outline-none focus:border-amber-500"
+            className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 font-mono uppercase text-cream outline-none transition-colors focus:border-gold"
           />
         </div>
 
@@ -231,7 +231,7 @@ export function TrackingForm() {
           disabled={
             submitting
           }
-          className="w-full rounded-lg bg-amber-500 px-4 py-3 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-full bg-gold px-4 py-3.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
             ? "Consultando..."
@@ -242,20 +242,20 @@ export function TrackingForm() {
       {error ? (
         <div
           role="alert"
-          className="mt-5 rounded-xl border border-red-900 bg-red-950 p-4 text-sm text-red-200"
+          className="mt-5 rounded-xl border border-red-900/70 bg-red-950/30 p-4 text-sm text-red-200"
         >
           {error}
         </div>
       ) : null}
 
       {result ? (
-        <section className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+        <section className="mt-6 rounded-2xl border border-line bg-ink-2 p-6">
           <header>
-            <p className="text-sm text-neutral-400">
+            <p className="text-sm text-muted">
               Rifa
             </p>
 
-            <h2 className="mt-1 text-xl font-bold">
+            <h2 className="mt-1 font-display text-2xl font-light text-cream">
               {
                 result.raffleName
               }
@@ -264,11 +264,11 @@ export function TrackingForm() {
 
           <dl className="mt-6 space-y-5">
             <div>
-              <dt className="text-sm text-neutral-400">
+              <dt className="text-sm text-muted">
                 Estado
               </dt>
 
-              <dd className="mt-1 text-lg font-semibold">
+              <dd className="mt-1 text-lg font-medium text-cream">
                 {
                   STATUS_LABELS[
                     result.status
@@ -281,7 +281,7 @@ export function TrackingForm() {
               "pending" &&
             expiresAt ? (
               <div>
-                <dt className="text-sm text-neutral-400">
+                <dt className="text-sm text-muted">
                   Reserva válida
                   hasta
                 </dt>
@@ -303,7 +303,7 @@ export function TrackingForm() {
             {result.status ===
               "approved" ? (
               <div>
-                <dt className="text-sm text-neutral-400">
+                <dt className="text-sm text-muted">
                   Tickets
                   asignados
                 </dt>
@@ -334,7 +334,7 @@ export function TrackingForm() {
                     )}
                   </dd>
                 ) : (
-                  <dd className="mt-2 text-sm text-neutral-400">
+                  <dd className="mt-2 text-sm text-muted">
                     La solicitud
                     está aprobada,
                     pero todavía no
@@ -349,7 +349,7 @@ export function TrackingForm() {
                   <dd className="mt-4">
                     <Link
                       href="/seguimiento/tickets"
-                      className="inline-flex rounded-lg border border-amber-500 px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/10"
+                      className="inline-flex rounded-lg border border-gold px-4 py-2 text-sm font-semibold text-gold hover:bg-gold/10"
                     >
                       Descargar / imprimir
                       mis tickets
@@ -363,7 +363,7 @@ export function TrackingForm() {
               "rejected" &&
             result.rejectionReason ? (
               <div>
-                <dt className="text-sm text-neutral-400">
+                <dt className="text-sm text-muted">
                   Motivo
                 </dt>
 
@@ -377,7 +377,7 @@ export function TrackingForm() {
 
             {reviewedAt ? (
               <div>
-                <dt className="text-sm text-neutral-400">
+                <dt className="text-sm text-muted">
                   Fecha de revisión
                 </dt>
 

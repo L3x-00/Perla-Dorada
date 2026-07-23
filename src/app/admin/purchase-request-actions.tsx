@@ -1,6 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
+import {
+  adminInput,
+  btnDanger,
+  btnSmall,
+  btnSuccess,
+} from "@/components/admin/ui";
 import { useState } from "react";
 
 type PurchaseRequestActionsProps = {
@@ -140,7 +147,7 @@ export function PurchaseRequestActions({
           type="button"
           onClick={approve}
           disabled={isSubmitting}
-          className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`${btnSuccess} ${btnSmall}`}
         >
           {isSubmitting ? "Procesando..." : "Aprobar"}
         </button>
@@ -152,7 +159,7 @@ export function PurchaseRequestActions({
             setMessage(null);
           }}
           disabled={isSubmitting}
-          className="rounded-lg bg-red-800 px-3 py-2 text-xs font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`${btnDanger} ${btnSmall}`}
         >
           Rechazar
         </button>
@@ -168,14 +175,14 @@ export function PurchaseRequestActions({
             maxLength={500}
             rows={3}
             placeholder="Motivo del rechazo"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-white outline-none focus:border-red-500"
+            className={`${adminInput} text-xs`}
           />
 
           <button
             type="button"
             onClick={reject}
             disabled={isSubmitting}
-            className="mt-2 rounded-lg border border-red-700 px-3 py-2 text-xs text-red-300 hover:bg-red-950 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${btnDanger} ${btnSmall} mt-2`}
           >
             Confirmar rechazo
           </button>
@@ -183,7 +190,7 @@ export function PurchaseRequestActions({
       ) : null}
 
       {message ? (
-        <p className="mt-2 text-xs text-neutral-300">
+        <p className="mt-2 text-xs text-muted">
           {message}
         </p>
       ) : null}

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { btnGhost, btnSmall } from "@/components/admin/ui";
+
 type PaymentProofButtonProps = {
   purchaseRequestId: string;
   disabled?: boolean;
@@ -72,13 +74,13 @@ export function PaymentProofButton({
         type="button"
         onClick={handleOpenPaymentProof}
         disabled={disabled || isLoading}
-        className="rounded-lg border border-neutral-700 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`${btnGhost} ${btnSmall}`}
       >
         {isLoading ? "Abriendo..." : "Ver comprobante"}
       </button>
 
       {errorMessage ? (
-        <p className="mt-2 max-w-48 text-xs text-red-400">
+        <p className="mt-2 max-w-48 text-xs text-red-300">
           {errorMessage}
         </p>
       ) : null}

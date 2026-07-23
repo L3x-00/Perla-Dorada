@@ -201,23 +201,23 @@ export default async function AdminTicketsPage() {
           Tickets asignados
         </h1>
 
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-muted">
           Impresión original y control de
           reimpresiones.
         </p>
       </header>
 
       {tickets.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-neutral-800 p-6">
-          <p className="text-sm text-neutral-400">
+        <div className="mt-6 rounded-xl border border-line p-6">
+          <p className="text-sm text-muted">
             Todavía no existen tickets
             asignados.
           </p>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-neutral-800">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="bg-neutral-900">
+            <thead className="bg-ink-2">
               <tr>
                 <th className="px-4 py-3">
                   Ticket
@@ -263,7 +263,7 @@ export default async function AdminTicketsPage() {
                 return (
                   <tr
                     key={ticket.id}
-                    className="border-t border-neutral-800 align-top"
+                    className="border-t border-line align-top"
                   >
                     <td className="px-4 py-4 text-lg font-bold tabular-nums">
                       {String(
@@ -306,7 +306,7 @@ export default async function AdminTicketsPage() {
                         {previousPrints}
                       </p>
 
-                      <p className="text-xs text-neutral-400">
+                      <p className="text-xs text-muted">
                         Reimpresiones:{" "}
                         {Math.max(
                           previousPrints - 1,

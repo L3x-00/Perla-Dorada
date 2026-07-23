@@ -71,31 +71,31 @@ export function TicketsDocument() {
       {!document ? (
         <div className="mx-auto max-w-lg">
           <header className="mb-8 flex items-center justify-between gap-4">
-            <p className="text-sm font-semibold uppercase tracking-widest text-amber-400">
+            <p className="text-sm font-semibold uppercase tracking-widest text-gold">
               Joyería Perla Dorada
             </p>
             <Link
               href="/seguimiento"
-              className="text-sm font-medium text-amber-400 underline-offset-4 hover:underline"
+              className="text-sm font-medium text-gold underline-offset-4 hover:underline"
             >
               Ver estado
             </Link>
           </header>
 
-          <h1 className="text-2xl font-bold">Descargar mis tickets</h1>
-          <p className="mt-2 text-sm text-neutral-400">
+          <h1 className="font-display text-3xl font-light text-cream">Descargar mis tickets</h1>
+          <p className="mt-2 text-sm text-muted">
             Disponible solo para solicitudes aprobadas. Ingresa tu DNI y tu
             código de seguimiento.
           </p>
 
           <form
             onSubmit={submit}
-            className="mt-6 space-y-5 rounded-2xl border border-neutral-800 bg-neutral-950 p-6"
+            className="mt-6 space-y-5 rounded-2xl border border-line bg-ink-2 p-6"
           >
             <div>
               <label
                 htmlFor="tickets-dni"
-                className="mb-2 block text-sm font-medium"
+                className="eyebrow mb-2.5 block text-muted"
               >
                 DNI
               </label>
@@ -108,14 +108,14 @@ export function TicketsDocument() {
                 maxLength={20}
                 autoComplete="off"
                 inputMode="numeric"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+                className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-cream outline-none transition-colors focus:border-gold"
               />
             </div>
 
             <div>
               <label
                 htmlFor="tickets-code"
-                className="mb-2 block text-sm font-medium"
+                className="eyebrow mb-2.5 block text-muted"
               >
                 Código de seguimiento
               </label>
@@ -129,14 +129,14 @@ export function TicketsDocument() {
                 minLength={6}
                 maxLength={40}
                 autoComplete="off"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 font-mono uppercase text-white outline-none focus:border-amber-500"
+                className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 font-mono uppercase text-cream outline-none transition-colors focus:border-gold"
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-lg bg-amber-500 px-4 py-3 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-full bg-gold px-4 py-3.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? "Buscando..." : "Ver mis tickets"}
             </button>
@@ -145,7 +145,7 @@ export function TicketsDocument() {
           {error ? (
             <div
               role="alert"
-              className="mt-5 rounded-xl border border-red-900 bg-red-950 p-4 text-sm text-red-200"
+              className="mt-5 rounded-xl border border-red-900/70 bg-red-950/30 p-4 text-sm text-red-200"
             >
               {error}
             </div>
@@ -173,14 +173,14 @@ function TicketSheet({
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400"
+          className="rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft"
         >
           Imprimir / Guardar PDF
         </button>
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg border border-neutral-700 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-900"
+          className="rounded-full border border-line px-5 py-2.5 text-sm font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
         >
           Buscar otra
         </button>

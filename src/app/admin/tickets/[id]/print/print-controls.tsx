@@ -6,7 +6,7 @@ export function PrintControls() {
       <button
         type="button"
         onClick={() => window.print()}
-        className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white"
+        className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-cream"
       >
         Imprimir
       </button>
@@ -14,7 +14,7 @@ export function PrintControls() {
       <button
         type="button"
         onClick={() => window.close()}
-        className="rounded-lg border border-neutral-400 px-4 py-2 text-sm font-medium text-black"
+        className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-black"
       >
         Cerrar
       </button>

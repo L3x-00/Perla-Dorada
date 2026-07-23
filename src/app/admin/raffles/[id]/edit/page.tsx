@@ -128,27 +128,27 @@ export default async function EditRafflePage({
   };
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-4 py-8 text-white sm:px-6">
+    <main className="min-h-screen px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-5xl">
         <Link
           href="/admin/raffles"
-          className="text-sm font-medium text-neutral-400 transition hover:text-white"
+          className="text-sm text-muted transition-colors hover:text-gold"
         >
           ← Volver a rifas
         </Link>
 
         <header className="mt-5">
-          <p className="text-sm font-medium text-amber-400">
+          <p className="eyebrow text-gold">
             Joyería Perla Dorada
           </p>
 
-          <h1 className="mt-1 text-3xl font-semibold">
+          <h1 className="mt-2 font-display text-3xl font-light text-cream sm:text-4xl">
             Editar rifa
           </h1>
 
-          <p className="mt-2 text-sm text-neutral-400">
+          <p className="mt-2.5 text-sm text-muted">
             Actualiza la configuración de{" "}
-            <span className="font-medium text-neutral-200">
+            <span className="text-cream">
               {raffle.name}
             </span>
             .

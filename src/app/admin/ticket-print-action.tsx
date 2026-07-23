@@ -138,7 +138,7 @@ export function TicketPrintAction({
           Límite alcanzado
         </p>
 
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-muted">
           Reimpresiones: {reprintsUsed}/
           {maxReprints}
         </p>
@@ -153,7 +153,7 @@ export function TicketPrintAction({
           type="button"
           onClick={registerPrint}
           disabled={submitting}
-          className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-cream disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
             ? "Registrando..."
@@ -179,7 +179,7 @@ export function TicketPrintAction({
             setError(null);
           }}
           disabled={submitting}
-          className="rounded-lg border border-amber-600 px-3 py-2 text-sm font-semibold text-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-lg border border-amber-800/70 bg-amber-950/25 px-3 py-2 text-xs font-medium text-amber-200 transition-colors duration-200 hover:bg-amber-950/50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Reimprimir ({reprintsUsed}/
           {maxReprints})
@@ -188,7 +188,7 @@ export function TicketPrintAction({
         <div className="space-y-2">
           <label
             htmlFor={`reason-${ticketId}`}
-            className="block text-xs font-medium text-neutral-300"
+            className="block text-xs font-medium text-muted"
           >
             Motivo de reimpresión
           </label>
@@ -204,10 +204,10 @@ export function TicketPrintAction({
             maxLength={500}
             disabled={submitting}
             placeholder="Ejemplo: el original se deterioró"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-950 p-2 text-sm text-white outline-none focus:border-amber-500"
+            className="w-full rounded-lg border border-line bg-ink p-2 text-sm text-cream outline-none focus:border-gold"
           />
 
-          <p className="text-right text-xs text-neutral-500">
+          <p className="text-right text-xs text-muted">
             {reason.length}/500
           </p>
 
@@ -219,7 +219,7 @@ export function TicketPrintAction({
                 submitting ||
                 reason.trim().length < 3
               }
-              className="rounded-lg bg-amber-700 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-lg border border-amber-700/70 bg-amber-900/40 px-3 py-2 text-xs font-medium text-amber-100 transition-colors duration-200 hover:bg-amber-900/70 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? "Registrando..."
@@ -234,7 +234,7 @@ export function TicketPrintAction({
                 setError(null);
               }}
               disabled={submitting}
-              className="rounded-lg border border-neutral-700 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-line px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancelar
             </button>

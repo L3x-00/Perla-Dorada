@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { TicketPrintAction } from "@/app/admin/ticket-print-action";
+import { btnPrimary } from "@/components/admin/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -491,7 +492,7 @@ export default async function AdminSearchPage({
           Buscar solicitudes y tickets
         </h1>
 
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-muted">
           Busca por DNI parcial o completo,
           o por número exacto de ticket.
         </p>
@@ -512,33 +513,33 @@ export default async function AdminSearchPage({
           minLength={2}
           maxLength={50}
           placeholder="Ejemplo: 12345678 o 25"
-          className="flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-amber-500"
+          className="flex-1 rounded-lg border border-line bg-ink px-4 py-3 text-cream outline-none focus:border-gold"
         />
 
         <button
           type="submit"
-          className="rounded-lg bg-white px-5 py-3 font-semibold text-black"
+          className={btnPrimary}
         >
           Buscar
         </button>
       </form>
 
       {!query ? (
-        <div className="mt-8 rounded-xl border border-neutral-800 p-6 text-sm text-neutral-400">
+        <div className="mt-8 rounded-xl border border-line p-6 text-sm text-muted">
           Ingresa un DNI o número de ticket.
         </div>
       ) : null}
 
       {query &&
       safeQuery.length < 2 ? (
-        <div className="mt-8 rounded-xl border border-amber-900 bg-amber-950/30 p-6 text-sm text-amber-200">
+        <div className="mt-8 rounded-xl border border-amber-800/70 bg-amber-950/25 p-6 text-sm text-amber-200">
           Ingresa al menos dos caracteres.
         </div>
       ) : null}
 
       {hasSearch &&
       !hasResults ? (
-        <div className="mt-8 rounded-xl border border-neutral-800 p-6 text-sm text-neutral-400">
+        <div className="mt-8 rounded-xl border border-line p-6 text-sm text-muted">
           No se encontraron solicitudes ni
           tickets con ese criterio.
         </div>
@@ -546,7 +547,7 @@ export default async function AdminSearchPage({
 
       {hasResults ? (
         <section className="mt-8 space-y-6">
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-muted">
             Solicitudes encontradas:{" "}
             {purchaseRequests.length}
           </p>
@@ -563,7 +564,7 @@ export default async function AdminSearchPage({
                   key={
                     purchaseRequest.id
                   }
-                  className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6"
+                  className="rounded-2xl border border-line bg-ink p-6"
                 >
                   <header className="flex flex-wrap items-start justify-between gap-4">
                     <div>
@@ -573,27 +574,27 @@ export default async function AdminSearchPage({
                         }
                       </h2>
 
-                      <p className="mt-2 text-sm text-neutral-300">
+                      <p className="mt-2 text-sm text-muted">
                         DNI:{" "}
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-cream">
                           {
                             purchaseRequest.dni
                           }
                         </span>
                       </p>
 
-                      <p className="mt-1 text-sm text-neutral-300">
+                      <p className="mt-1 text-sm text-muted">
                         Estado:{" "}
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-cream">
                           {
                             purchaseRequest.status
                           }
                         </span>
                       </p>
 
-                      <p className="mt-1 text-sm text-neutral-300">
+                      <p className="mt-1 text-sm text-muted">
                         Código de seguimiento:{" "}
-                        <span className="font-mono text-white">
+                        <span className="font-mono text-cream">
                           {
                             purchaseRequest.tracking_code
                           }
@@ -601,21 +602,21 @@ export default async function AdminSearchPage({
                       </p>
                     </div>
 
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted">
                       {formatDate(
                         purchaseRequest.created_at,
                       )}
                     </p>
                   </header>
 
-                  <div className="mt-6 border-t border-neutral-800 pt-6">
+                  <div className="mt-6 border-t border-line pt-6">
                     <h3 className="font-semibold">
                       Tickets asignados
                     </h3>
 
                     {requestTickets.length ===
                     0 ? (
-                      <p className="mt-3 text-sm text-neutral-400">
+                      <p className="mt-3 text-sm text-muted">
                         Esta solicitud todavía no
                         tiene tickets asignados.
                       </p>
@@ -638,7 +639,7 @@ export default async function AdminSearchPage({
                                 key={
                                   ticket.id
                                 }
-                                className="rounded-xl border border-neutral-800 bg-neutral-900 p-5"
+                                className="rounded-xl border border-line bg-ink-2 p-5"
                               >
                                 <div className="flex flex-wrap items-start justify-between gap-4">
                                   <div>
@@ -649,25 +650,25 @@ export default async function AdminSearchPage({
                                       )}
                                     </p>
 
-                                    <p className="mt-2 text-sm text-neutral-300">
+                                    <p className="mt-2 text-sm text-muted">
                                       Rifa:{" "}
                                       {raffle?.name ??
                                         "No encontrada"}
                                     </p>
 
-                                    <p className="mt-1 text-xs text-neutral-500">
+                                    <p className="mt-1 text-xs text-muted">
                                       Asignado:{" "}
                                       {formatDate(
                                         ticket.assigned_at,
                                       )}
                                     </p>
 
-                                    <p className="mt-2 text-xs text-neutral-400">
+                                    <p className="mt-2 text-xs text-muted">
                                       Impresiones:{" "}
                                       {previousPrints}
                                     </p>
 
-                                    <p className="mt-1 text-xs text-neutral-400">
+                                    <p className="mt-1 text-xs text-muted">
                                       Reimpresiones:{" "}
                                       {Math.max(
                                         previousPrints -

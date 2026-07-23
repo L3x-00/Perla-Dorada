@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+import {
+  adminInput,
+  adminLabel,
+  btnPrimary,
+} from "@/components/admin/ui";
+
 type WinnerFormProps = {
   raffleId: string;
 };
@@ -83,12 +89,12 @@ export function WinnerForm({ raffleId }: WinnerFormProps) {
   return (
     <form
       onSubmit={submit}
-      className="mt-6 max-w-md space-y-5 rounded-2xl border border-neutral-800 bg-neutral-900 p-6"
+      className="mt-6 max-w-md space-y-5 rounded-xl border border-line bg-ink-2 p-6"
     >
       <div>
         <label
           htmlFor="ticketNumber"
-          className="mb-2 block text-sm font-medium"
+          className={adminLabel}
         >
           Número de ticket ganador
         </label>
@@ -100,11 +106,11 @@ export function WinnerForm({ raffleId }: WinnerFormProps) {
           value={ticketNumber}
           onChange={(event) => setTicketNumber(event.target.value)}
           required
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-3 text-white outline-none focus:border-amber-500"
+          className={adminInput}
         />
       </div>
 
-      <label className="flex items-start gap-3 text-sm text-neutral-300">
+      <label className="flex items-start gap-3 text-sm text-muted">
         <input
           type="checkbox"
           checked={acknowledged}
@@ -120,7 +126,7 @@ export function WinnerForm({ raffleId }: WinnerFormProps) {
       {error ? (
         <div
           role="alert"
-          className="rounded-xl border border-red-900 bg-red-950 p-4 text-sm text-red-200"
+          className="rounded-xl border border-red-900/70 bg-red-950/30 p-4 text-sm text-red-200"
         >
           {error}
         </div>
@@ -129,7 +135,7 @@ export function WinnerForm({ raffleId }: WinnerFormProps) {
       <button
         type="submit"
         disabled={submitting || !acknowledged}
-        className="rounded-lg bg-amber-500 px-4 py-3 font-semibold text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className={btnPrimary}
       >
         {submitting ? "Registrando..." : "Registrar ganador"}
       </button>

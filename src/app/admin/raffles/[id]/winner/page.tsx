@@ -77,67 +77,67 @@ export default async function RaffleWinnerPage({
   const confirmedAt = winner ? formatDateTime(winner.confirmed_at) : null;
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-4 py-8 text-white sm:px-6">
+    <main className="min-h-screen px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-3xl">
         <header>
           <Link
             href="/admin/raffles"
-            className="text-sm text-amber-400 underline-offset-4 hover:underline"
+            className="text-sm text-gold underline-offset-4 hover:underline"
           >
             ← Volver a rifas
           </Link>
 
-          <h1 className="mt-3 text-3xl font-semibold">Ganador</h1>
-          <p className="mt-1 text-sm text-neutral-400">{raffle.name}</p>
+          <h1 className="mt-3 font-display text-3xl font-light text-cream sm:text-4xl">Ganador</h1>
+          <p className="mt-2 text-sm text-muted">{raffle.name}</p>
         </header>
 
         {winner ? (
-          <section className="mt-8 max-w-md rounded-2xl border border-emerald-800 bg-emerald-950/30 p-6">
-            <p className="text-sm text-emerald-200/80">
+          <section className="mt-8 max-w-md rounded-xl border border-emerald-800/70 bg-emerald-950/25 p-6">
+            <p className="eyebrow text-emerald-300">
               Ganador registrado (irreversible)
             </p>
 
-            <p className="mt-3 text-sm text-neutral-400">Ticket ganador</p>
-            <p className="mt-1 text-5xl font-black tabular-nums text-white">
+            <p className="mt-4 text-xs uppercase tracking-[0.14em] text-muted">Ticket ganador</p>
+            <p className="mt-2 font-display text-6xl font-light tabular-nums text-cream">
               {winningTicketNumber !== null
                 ? String(winningTicketNumber).padStart(4, "0")
                 : "—"}
             </p>
 
             {winnerName ? (
-              <p className="mt-5 text-sm">
-                <span className="text-neutral-400">Participante:</span>{" "}
+              <p className="mt-6 text-sm text-muted">
+                <span className="text-muted">Participante:</span>{" "}
                 <span className="font-medium">{winnerName}</span>
               </p>
             ) : null}
 
             {winnerDni ? (
-              <p className="mt-1 text-sm">
-                <span className="text-neutral-400">DNI:</span>{" "}
+              <p className="mt-1.5 text-sm text-muted">
+                <span className="text-muted">DNI:</span>{" "}
                 <span className="font-medium">{winnerDni}</span>
               </p>
             ) : null}
 
             {confirmedAt ? (
-              <p className="mt-1 text-sm">
-                <span className="text-neutral-400">Confirmado:</span>{" "}
+              <p className="mt-1.5 text-sm text-muted">
+                <span className="text-muted">Confirmado:</span>{" "}
                 {confirmedAt}
               </p>
             ) : null}
           </section>
         ) : raffle.status === "closed" ? (
           <>
-            <p className="mt-6 max-w-md text-sm text-neutral-400">
+            <p className="mt-6 max-w-md text-sm leading-relaxed text-muted">
               Registra el número de ticket ganador de esta rifa cerrada. El
               registro es único e irreversible.
             </p>
             <WinnerForm raffleId={raffle.id} />
           </>
         ) : (
-          <section className="mt-8 max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-sm text-neutral-400">
-            La rifa debe estar <strong className="text-white">cerrada</strong>{" "}
+          <section className="mt-8 max-w-md rounded-xl border border-line bg-ink-2 p-6 text-sm leading-relaxed text-muted">
+            La rifa debe estar <strong className="text-cream">cerrada</strong>{" "}
             antes de registrar un ganador. Estado actual:{" "}
-            <strong className="text-white">{raffle.status}</strong>.
+            <strong className="text-cream">{raffle.status}</strong>.
           </section>
         )}
       </div>

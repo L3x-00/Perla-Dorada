@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import {
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  btnSmall,
+  btnSuccess,
+} from "@/components/admin/ui";
 import { useState } from "react";
 
 type RaffleAction =
@@ -142,7 +150,7 @@ export function RaffleActions({
         {canEdit ? (
           <Link
             href={`/admin/raffles/${raffleId}/edit`}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-700 px-3 text-sm font-medium text-neutral-200 transition hover:bg-neutral-800"
+            className={`${btnGhost} ${btnSmall}`}
           >
             Editar
           </Link>
@@ -155,7 +163,7 @@ export function RaffleActions({
             onClick={() => {
               void executeAction("activate");
             }}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-700 px-3 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${btnSuccess} ${btnSmall}`}
           >
             {pendingAction === "activate"
               ? actionConfiguration.activate
@@ -171,7 +179,7 @@ export function RaffleActions({
             onClick={() => {
               void executeAction("close");
             }}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-neutral-200 px-3 text-sm font-medium text-neutral-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${btnPrimary} ${btnSmall}`}
           >
             {pendingAction === "close"
               ? actionConfiguration.close
@@ -187,7 +195,7 @@ export function RaffleActions({
             onClick={() => {
               void executeAction("cancel");
             }}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-red-800 px-3 text-sm font-medium text-red-300 transition hover:bg-red-950/50 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${btnDanger} ${btnSmall}`}
           >
             {pendingAction === "cancel"
               ? actionConfiguration.cancel

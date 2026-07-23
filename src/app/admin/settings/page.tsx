@@ -27,16 +27,16 @@ export default async function SettingsPage() {
     .maybeSingle();
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-4 py-8 text-white sm:px-6">
+    <main className="min-h-screen bg-ink px-4 py-8 text-cream sm:px-6">
       <div className="mx-auto max-w-7xl">
         <header>
-          <p className="text-sm font-medium text-amber-400">
+          <p className="text-sm font-medium text-gold">
             Joyería Perla Dorada
           </p>
 
           <h1 className="mt-1 text-3xl font-semibold">Configuración</h1>
 
-          <p className="mt-2 text-sm text-neutral-400">
+          <p className="mt-2 text-sm text-muted">
             Ajustes generales del sistema de rifas.
           </p>
         </header>
