@@ -15,6 +15,14 @@ const connectSrc = ["'self'", supabaseUrl, supabaseWsUrl]
   .join(" ");
 
 /*
+ * Las fotos del premio se sirven desde el bucket público de Supabase, así
+ * que su origen debe permitirse en img-src o el navegador las bloquea.
+ */
+const imgSrc = ["'self'", "data:", "blob:", supabaseUrl]
+  .filter(Boolean)
+  .join(" ");
+
+/*
  * Next.js inyecta scripts y estilos en línea para la hidratación, por eso
  * se permite 'unsafe-inline'. En desarrollo, Fast Refresh necesita además
  * 'unsafe-eval'; en producción no se concede.
@@ -23,7 +31,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src ${imgSrc}`,
   "font-src 'self' data:",
   `connect-src ${connectSrc}`,
   "frame-ancestors 'none'",

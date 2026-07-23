@@ -8,6 +8,7 @@ import {
   RaffleForm,
   type RaffleFormValues,
 } from "../../raffle-form";
+import { RaffleImageUpload } from "../../raffle-image-upload";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -76,7 +77,8 @@ export default async function EditRafflePage({
         total_tickets,
         starts_at,
         closes_at,
-        draw_at
+        draw_at,
+        image_path
       `,
     )
     .eq("id", id)
@@ -152,6 +154,13 @@ export default async function EditRafflePage({
             .
           </p>
         </header>
+
+        <div className="mt-8">
+          <RaffleImageUpload
+            raffleId={raffle.id}
+            currentPath={raffle.image_path}
+          />
+        </div>
 
         <div className="mt-8">
           <RaffleForm

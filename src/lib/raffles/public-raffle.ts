@@ -1,5 +1,6 @@
 import "server-only";
 
+import { raffleImageUrl } from "@/lib/storage/public-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /*
@@ -22,6 +23,8 @@ export type ActivePublicRaffle = {
   drawAt: string | null;
   closesAt: string | null;
   available: number;
+  totalTickets: number;
+  imageUrl: string | null;
   maintenanceMode: boolean;
   maintenanceMessage: string | null;
 };
@@ -47,7 +50,7 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
   const { data: raffle, error: raffleError } = await supabase
     .from("raffles")
     .select(
-      "id, name, description, ticket_price, total_tickets, draw_at, closes_at",
+      "id, name, description, ticket_price, total_tickets, draw_at, closes_at, image_path",
     )
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -105,6 +108,8 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
     drawAt: raffle.draw_at,
     closesAt: raffle.closes_at,
     available,
+    totalTickets: raffle.total_tickets,
+    imageUrl: raffleImageUrl(raffle.image_path),
     maintenanceMode,
     maintenanceMessage,
   };

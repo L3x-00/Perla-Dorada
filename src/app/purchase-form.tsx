@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
+import { Countdown } from "@/app/countdown";
 import {
   PAYMENT_PROOF_ALLOWED_MIME_TYPES,
   PAYMENT_PROOF_MAX_SIZE_BYTES,
 } from "@/config/storage";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
-import { Countdown } from "@/app/countdown";
 
 type PurchaseFormProps = {
   ticketPrice: number;
@@ -30,6 +30,11 @@ type ApiResponse = {
 };
 
 const ACCEPTED_FILE_TYPES = PAYMENT_PROOF_ALLOWED_MIME_TYPES.join(",");
+
+const inputClass =
+  "w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-cream outline-none transition-colors duration-300 placeholder:text-muted/60 focus:border-gold";
+
+const labelClass = "eyebrow mb-2.5 block text-muted";
 
 export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
   const router = useRouter();
@@ -125,9 +130,7 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
           setFieldErrors(body.fields);
         }
 
-        throw new Error(
-          body.error ?? "No se pudo registrar la solicitud.",
-        );
+        throw new Error(body.error ?? "No se pudo registrar la solicitud.");
       }
 
       setSuccess(body.data);
@@ -149,41 +152,36 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
     return (
       <section
         role="status"
-        className="rounded-2xl border border-emerald-700 bg-emerald-950/40 p-6"
+        className="rounded-2xl border border-gold-deep bg-ink-2 p-8"
       >
-        <h2 className="text-xl font-bold text-emerald-200">
-          ¡Solicitud registrada!
-        </h2>
+        <p className="eyebrow text-gold">Solicitud registrada</p>
 
-        <p className="mt-2 text-sm text-emerald-100/80">
-          Guarda tu código de seguimiento. Lo necesitarás junto con tu DNI para
-          consultar el estado de tu solicitud.
+        <h3 className="mt-4 font-display text-3xl font-light text-cream">
+          Guarda tu código
+        </h3>
+
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          Lo necesitarás junto con tu DNI para consultar el estado de tu
+          solicitud y descargar tus boletos.
         </p>
 
-        <div className="mt-5 space-y-4">
-          <div>
-            <p className="text-sm text-neutral-400">Código de seguimiento</p>
-            <p className="mt-1 font-mono text-2xl font-bold tracking-widest text-white">
-              {success.trackingCode}
+        <p className="mt-7 font-mono text-3xl font-semibold tracking-[0.2em] text-gold">
+          {success.trackingCode}
+        </p>
+
+        {expiresAt ? (
+          <div className="mt-7 border-t border-line pt-5">
+            <p className="eyebrow text-muted">Reserva válida hasta</p>
+            <p className="mt-2 text-cream">{expiresAt}</p>
+            <p className="mt-1 text-sm">
+              <Countdown expiresAt={success.expiresAt} />
             </p>
           </div>
-
-          {expiresAt ? (
-            <div>
-              <p className="text-sm text-neutral-400">Reserva válida hasta</p>
-              <p className="mt-1 text-lg font-semibold text-white">
-                {expiresAt}
-              </p>
-              <p className="mt-1 text-sm">
-                <Countdown expiresAt={success.expiresAt} />
-              </p>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
 
         <Link
           href="/seguimiento"
-          className="mt-6 inline-flex rounded-lg bg-amber-500 px-4 py-3 font-semibold text-black hover:bg-amber-400"
+          className="mt-8 inline-flex rounded-full bg-gold px-7 py-3.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft"
         >
           Ver estado de mi solicitud
         </Link>
@@ -195,11 +193,11 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
     <form
       onSubmit={submit}
       noValidate
-      className="space-y-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-6"
+      className="space-y-7 rounded-2xl border border-line bg-ink-2 p-7 sm:p-8"
     >
-      <fieldset disabled={submitting} className="space-y-6">
+      <fieldset disabled={submitting} className="space-y-7">
         <div>
-          <p className="mb-2 block text-sm font-medium">Cantidad de boletos</p>
+          <p className={labelClass}>Cantidad de boletos</p>
 
           <div className="flex items-center gap-4">
             <button
@@ -207,7 +205,7 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
               onClick={decrement}
               disabled={quantity <= 1}
               aria-label="Disminuir cantidad"
-              className="h-11 w-11 rounded-lg border border-neutral-700 text-xl font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-12 w-12 rounded-full border border-line text-xl text-cream transition-colors duration-300 hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30"
             >
               −
             </button>
@@ -222,7 +220,7 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
                 setQuantity(clampQuantity(Number(event.target.value)))
               }
               aria-label="Cantidad de boletos"
-              className="h-11 w-20 rounded-lg border border-neutral-700 bg-neutral-900 text-center text-lg font-semibold tabular-nums text-white outline-none focus:border-amber-500"
+              className="h-12 w-20 rounded-lg border border-line bg-ink text-center font-display text-2xl font-light tabular-nums text-cream outline-none focus:border-gold"
             />
 
             <button
@@ -230,26 +228,26 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
               onClick={increment}
               disabled={quantity >= maxQuantity}
               aria-label="Aumentar cantidad"
-              className="h-11 w-11 rounded-lg border border-neutral-700 text-xl font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-12 w-12 rounded-full border border-line text-xl text-cream transition-colors duration-300 hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30"
             >
               +
             </button>
 
-            <span className="ml-auto text-sm text-neutral-400">
-              Disponibles: {available}
+            <span className="ml-auto text-sm text-muted">
+              {available} disponibles
             </span>
           </div>
         </div>
 
-        <div className="flex items-baseline justify-between rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-          <span className="text-sm text-neutral-400">Total a pagar</span>
-          <span className="text-2xl font-bold tabular-nums text-amber-400">
+        <div className="flex items-baseline justify-between border-y border-line py-5">
+          <span className="eyebrow text-muted">Total a pagar</span>
+          <span className="font-display text-4xl font-light tabular-nums text-gold">
             {total}
           </span>
         </div>
 
         <div>
-          <label htmlFor="fullName" className="mb-2 block text-sm font-medium">
+          <label htmlFor="fullName" className={labelClass}>
             Nombre completo
           </label>
           <input
@@ -261,13 +259,13 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
             minLength={3}
             maxLength={150}
             autoComplete="name"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+            className={inputClass}
           />
           <FieldError messages={fieldErrors.fullName} />
         </div>
 
         <div>
-          <label htmlFor="dni" className="mb-2 block text-sm font-medium">
+          <label htmlFor="dni" className={labelClass}>
             DNI
           </label>
           <input
@@ -279,14 +277,14 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
             inputMode="numeric"
             maxLength={8}
             autoComplete="off"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+            className={inputClass}
           />
           <FieldError messages={fieldErrors.dni} />
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-7 sm:grid-cols-2">
           <div>
-            <label htmlFor="phone" className="mb-2 block text-sm font-medium">
+            <label htmlFor="phone" className={labelClass}>
               Teléfono
             </label>
             <input
@@ -298,16 +296,13 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
               inputMode="tel"
               maxLength={15}
               autoComplete="tel"
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+              className={inputClass}
             />
             <FieldError messages={fieldErrors.phone} />
           </div>
 
           <div>
-            <label
-              htmlFor="whatsapp"
-              className="mb-2 block text-sm font-medium"
-            >
+            <label htmlFor="whatsapp" className={labelClass}>
               WhatsApp
             </label>
             <input
@@ -319,17 +314,14 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
               inputMode="tel"
               maxLength={15}
               autoComplete="off"
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-white outline-none focus:border-amber-500"
+              className={inputClass}
             />
             <FieldError messages={fieldErrors.whatsapp} />
           </div>
         </div>
 
         <div>
-          <label
-            htmlFor="paymentProof"
-            className="mb-2 block text-sm font-medium"
-          >
+          <label htmlFor="paymentProof" className={labelClass}>
             Comprobante de pago Yape
           </label>
           <input
@@ -337,13 +329,11 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
             name="paymentProof"
             type="file"
             accept={ACCEPTED_FILE_TYPES}
-            onChange={(event) =>
-              onFileChange(event.target.files?.[0] ?? null)
-            }
+            onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
             required
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-3 text-sm text-neutral-300 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-2 file:text-sm file:text-white outline-none focus:border-amber-500"
+            className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-sm text-muted outline-none transition-colors file:mr-4 file:rounded-full file:border-0 file:bg-ink-3 file:px-4 file:py-2 file:text-sm file:text-cream focus:border-gold"
           />
-          <p className="mt-2 text-xs text-neutral-500">
+          <p className="mt-2.5 text-xs text-muted">
             Imagen JPG, PNG o WEBP. Máximo 5 MB.
           </p>
         </div>
@@ -352,7 +342,7 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
       {error ? (
         <div
           role="alert"
-          className="rounded-xl border border-red-900 bg-red-950 p-4 text-sm text-red-200"
+          className="rounded-xl border border-red-900/70 bg-red-950/40 p-4 text-sm text-red-200"
         >
           {error}
         </div>
@@ -361,10 +351,22 @@ export function PurchaseForm({ ticketPrice, available }: PurchaseFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-amber-500 px-4 py-3 font-semibold text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-full bg-gold px-7 py-4 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
       >
         {submitting ? "Enviando..." : "Enviar solicitud"}
       </button>
+
+      <p className="text-center text-xs leading-relaxed text-muted">
+        Al enviar aceptas los{" "}
+        <Link href="/legal/terminos" className="text-gold hover:underline">
+          términos
+        </Link>{" "}
+        y las{" "}
+        <Link href="/legal/bases" className="text-gold hover:underline">
+          bases del sorteo
+        </Link>
+        .
+      </p>
     </form>
   );
 }
@@ -374,7 +376,5 @@ function FieldError({ messages }: { messages?: string[] }) {
     return null;
   }
 
-  return (
-    <p className="mt-2 text-xs text-red-400">{messages[0]}</p>
-  );
+  return <p className="mt-2.5 text-xs text-red-400">{messages[0]}</p>;
 }

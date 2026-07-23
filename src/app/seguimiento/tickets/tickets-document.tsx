@@ -67,7 +67,7 @@ export function TicketsDocument() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-12 text-white print:bg-white print:p-0">
+    <div className="px-6 pt-32 pb-24 print:bg-white print:p-0 print:pt-0">
       {!document ? (
         <div className="mx-auto max-w-lg">
           <header className="mb-8 flex items-center justify-between gap-4">
@@ -154,7 +154,7 @@ export function TicketsDocument() {
       ) : (
         <TicketSheet document={document} onReset={() => setDocument(null)} />
       )}
-    </main>
+    </div>
   );
 }
 

@@ -242,6 +242,7 @@ export type Database = {
           description: string | null
           draw_at: string | null
           id: string
+          image_path: string | null
           name: string
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
@@ -257,6 +258,7 @@ export type Database = {
           description?: string | null
           draw_at?: string | null
           id?: string
+          image_path?: string | null
           name: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["raffle_status"]
@@ -272,6 +274,7 @@ export type Database = {
           description?: string | null
           draw_at?: string | null
           id?: string
+          image_path?: string | null
           name?: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["raffle_status"]
@@ -373,6 +376,7 @@ export type Database = {
           description: string | null
           draw_at: string | null
           id: string
+          image_path: string | null
           name: string
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
@@ -408,6 +412,7 @@ export type Database = {
           description: string | null
           draw_at: string | null
           id: string
+          image_path: string | null
           name: string
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
@@ -454,6 +459,7 @@ export type Database = {
           description: string | null
           draw_at: string | null
           id: string
+          image_path: string | null
           name: string
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
@@ -504,6 +510,7 @@ export type Database = {
           description: string | null
           draw_at: string | null
           id: string
+          image_path: string | null
           name: string
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
@@ -641,6 +648,7 @@ export type Database = {
           description: string | null
           draw_at: string | null
           id: string
+          image_path: string | null
           name: string
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]

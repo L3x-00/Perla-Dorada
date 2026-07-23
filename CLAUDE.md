@@ -63,6 +63,18 @@ Variables de entorno en el dashboard de Render: NEXT_PUBLIC_SUPABASE_URL, NEXT_P
 
 **Nota de entorno:** Supabase local NO corre; se aplican migraciones al remoto con `supabase db push --linked` (CLI ya linkeada, password cacheada, no pide interacción) y se regeneran tipos con `supabase gen types typescript --linked > src/types/database.ts` (redirigir vía bash para UTF-8). El `.env.local` apunta al remoto vivo con rifa de prueba → sirve para verificación E2E con `npm run dev`. El warning `pgdelta ... cert ENOENT` al final de `db push` es inocuo (cache de catálogo experimental), las migraciones sí se aplican.
 
+## Sitio público (rediseño 23 jul 2026)
+
+El sitio es una **web de marca de joyería** con el sorteo como sección que aparece/desaparece: las rifas son marketing, se hacen 3-4 veces al año, así que la web debe funcionar los 8-9 meses sin rifa activa.
+
+- Estilo "lujo sobrio": negro profundo + oro envejecido como acento. Tokens en `src/app/globals.css` (`@theme`), tipografías Cormorant Garamond (display) + Inter (texto) vía `next/font` (auto-hospedadas, compatibles con la CSP).
+- Animación con **motion** (`src/components/site/reveal.tsx`), lenta y una sola vez; respeta `prefers-reduced-motion`.
+- Componentes del sitio en `src/components/site/` (esta carpeta ya la preveía `arquitectura.md` §3; se adopta para el público, el admin sigue con componentes colocados).
+- **Todo lo no configurado se oculta solo**: redes, contacto, vitrina y datos de pago. Nada de enlaces rotos ni secciones vacías.
+- Datos a completar por el cliente: `src/config/brand.ts` (redes, contacto, **Yape**, datos legales) y `src/config/vitrina.ts` (fotos de piezas). Assets en `public/marca/` (ver su README).
+- Foto del premio: se sube desde `/admin/raffles/[id]/edit` al bucket **público** `raffle-images` (columna `raffles.image_path`). El origen de Supabase está permitido en `img-src` de la CSP.
+- Páginas legales en `/legal/{terminos,bases,privacidad,devoluciones}`: **borradores** pendientes de revisión legal. Al aprobarse, poner `LEGAL_ES_BORRADOR = false` en `src/app/legal/legal-document.tsx` para quitar el aviso.
+
 ## Workflows disponibles (skills de este proyecto)
 
 - `/pd-fases` — audita `pendiente.md` + `errores.md`, propone la siguiente subfase de mayor valor con el formato de respuesta de `arquitectura.md` §14 (Inspección → Alcance → Plan → Archivos → Implementación → Comandos → Pruebas → Rollback → Definición de terminado).
