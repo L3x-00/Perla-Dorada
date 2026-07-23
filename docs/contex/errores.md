@@ -79,6 +79,13 @@ ERR-07 — ⚪ Bajo — tracking_code sin retry en colisión de unicidad
 - Fix propuesto: opcional — envolver en loop de reintento si se quiere robustez extra. Baja prioridad.
 - Detectado: 22 jul 2026, auditoría de código.
 
+ERR-10 — 🟢 Corregido (código) / ⚠️ requiere rotación de claves — Variables de entorno pegadas en un mismo campo filtraban el secreto en logs
+- Área: `src/lib/supabase/admin.ts` (y demás lectores de env), incidente en el despliegue de Render el 23 jul 2026.
+- Causa: en el panel de Render se pegaron DOS variables en el campo de `SUPABASE_SERVICE_ROLE_KEY` (la clave + salto de línea + `RATE_LIMIT_SECRET=...`). Un salto de línea es inválido en un valor de cabecera HTTP, así que supabase-js fallaba con `TypeError: Headers.set: "<valor>" is an invalid header value` en TODA consulta. Peor: la excepción incluía el valor completo, por lo que **la service role key quedó impresa en los logs de Render**.
+- Fix aplicado 23 jul 2026: helper `readRequiredEnv` en `src/lib/env.ts` que recorta, valida ausencia de espacios/saltos de línea y lanza un mensaje claro que NUNCA incluye el valor. Usado en admin.ts, server.ts, proxy.ts y request-fingerprint.ts; `client.ts` mantiene acceso estático (requisito de Next para NEXT_PUBLIC_* en el bundle) con `.trim()`.
+- Verificado: con la variable malformada, el log muestra el mensaje explicativo y 0 apariciones del secreto; la landing degrada con "No pudimos cargar la rifa".
+- ⚠️ ACCIÓN PENDIENTE DEL USUARIO: rotar `SUPABASE_SERVICE_ROLE_KEY` y `RATE_LIMIT_SECRET` (quedaron expuestas en logs), y actualizarlas en Render y `.env.local`.
+
 3. Decisiones pendientes (no son bugs, requieren definición del cliente)
 
 DEC-01 — ⚪ src/components/{public,admin}/ no existe

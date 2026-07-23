@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHmac } from "node:crypto";
 
+import { readRequiredEnv } from "@/lib/env";
+
 function getClientIp(request: Request): string {
   /*
    * La plataforma de hosting expone la IP pública del cliente en estos
@@ -34,11 +36,11 @@ export function createRequestFingerprint(
   request: Request,
   scope?: string,
 ): string {
-  const secret = process.env.RATE_LIMIT_SECRET;
+  const secret = readRequiredEnv("RATE_LIMIT_SECRET");
 
-  if (!secret || secret.length < 32) {
+  if (secret.length < 32) {
     throw new Error(
-      "RATE_LIMIT_SECRET no está configurado correctamente.",
+      "RATE_LIMIT_SECRET debe tener al menos 32 caracteres.",
     );
   }
 
