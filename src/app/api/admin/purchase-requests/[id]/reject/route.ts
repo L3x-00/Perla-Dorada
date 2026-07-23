@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEvent } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -115,6 +116,13 @@ export async function POST(
       { status: 500 },
     );
   }
+
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "reject_purchase_request",
+    entity: "purchase_requests",
+    entityId: id,
+  });
 
   return NextResponse.json({
     success: true,

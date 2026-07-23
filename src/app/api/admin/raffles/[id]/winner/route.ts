@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEvent } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -119,20 +120,13 @@ export async function POST(
     );
   }
 
-  const { error: auditError } = await adminClient.from("audit_log").insert({
-    actor_user_id: adminUserId,
+  await recordAuditEvent({
+    actorUserId: adminUserId,
     action: "register_winner",
     entity: "raffle_winners",
-    entity_id: id,
+    entityId: id,
     metadata: { ticket_number: ticketNumber },
   });
-
-  if (auditError) {
-    console.error(
-      "No se pudo registrar la auditoría del ganador:",
-      auditError,
-    );
-  }
 
   return NextResponse.json(
     { success: true, winner },

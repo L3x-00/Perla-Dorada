@@ -164,22 +164,25 @@ Criterios de aceptación
  ✅ No existe endpoint de edición o eliminación del ganador
  ✅ Reintento devuelve resultado controlado sin duplicar (RAFFLE_ALREADY_HAS_WINNER)
  ✅ Acción queda auditada (audit_log)
-9. Bloque F — Auditoría y retención de comprobantes
-Estado actualizado (22 jul 2026): la tabla `audit_log` YA EXISTE (migración `20260722161000`, creada en Bloque B): columnas actor_user_id, action, entity, entity_id, metadata jsonb, created_at; append-only (service_role solo select/insert). Hoy solo la escribe el POST de configuración (action `update_settings`). La columna payment_proof_deleted_at existe en purchase_requests pero ninguna función/job la usa aún.
-Trabajo pendiente
-NO crear audit_log de nuevo — ya existe; reutilizarla
-Registrar el resto de acciones críticas en audit_log: crear/modificar rifa, activate/close/cancel, aprobación, rechazo, impresión, reimpresión, ganador (hoy solo se registra update_settings)
-No almacenar secretos, comprobantes completos ni PII innecesaria en logs
-Proceso idempotente: eliminar comprobantes de Storage 15 días después del cierre (no implementado — construir desde cero)
-Marcar payment_proof_deleted_at tras eliminación (columna lista, falta la función que la use)
-Conservar: solicitud, tickets, ganador y estadísticas mínimas
-Registrar éxito y fallo del proceso de retención
+9. Bloque F — Auditoría y retención de comprobantes — 🟢 COMPLETADO (23 jul 2026)
+
+Auditoría:
+- Helper `src/lib/audit/log.ts` (`recordAuditEvent`) — inserta en audit_log; nunca rompe la operación principal; sin secretos/PII.
+- Cableado en TODAS las rutas admin críticas: create_raffle, update_raffle, activate_raffle, close_raffle, cancel_raffle, approve_purchase_request, reject_purchase_request, ticket_print, register_winner, update_settings, y payment_proof_retention (cron). Cada evento registra actor, acción, entidad, entity_id, metadata mínima.
+
+Retención de comprobantes:
+- RPC `list_payment_proofs_for_retention(p_retention_days default 15)` (migración `20260723120000`) — candidatos: rifa closed/cancelled con closed_at hace >= 15 días y payment_proof_deleted_at null.
+- Ruta `GET /api/cron/retention` (Bearer CRON_SECRET) — elimina cada objeto de Storage, marca payment_proof_deleted_at, conserva la solicitud/tickets/ganador; registra processed/failed en audit_log. Idempotente. Fallos no marcan la fila → se reintentan.
+- Añadida al vercel.json (referencia; en Render es un Cron Job aparte).
+
+Verificado E2E: cron sin secret → 401; con secret → {processed:1}; 2ª ejecución → {processed:0} (idempotente); payment_proof_deleted_at=YES; objeto de Storage GONE; audit_log recibe payment_proof_retention. Nota: auditorías de rutas admin (approve/reject/print/rifas) no probadas por HTTP (requieren sesión) pero usan el mismo helper verificado E2E vía retención.
+
 Criterios de aceptación
- Toda acción crítica tiene: actor, fecha, tipo, entidad
- Comprobante vencido por retención deja de existir en Storage
- Ruta no expuesta públicamente
- Proceso idempotente (no rompe si se ejecuta dos veces)
- Fallos detectables y reintentables
+ ✅ Toda acción crítica tiene: actor, fecha, tipo, entidad
+ ✅ Comprobante vencido por retención deja de existir en Storage (GONE)
+ ✅ Ruta no expuesta públicamente (401 sin Bearer)
+ ✅ Proceso idempotente (2ª ejecución → 0)
+ ✅ Fallos detectables y reintentables (contador failed + no marca la fila)
 10. Bloque G — Seguridad y endurecimiento
 Estado confirmado: no existe ninguna política RLS (CREATE POLICY) en ninguna tabla — en su lugar, TODAS las tablas (app_settings, admin_profiles, raffles, purchase_requests, tickets, ticket_prints, raffle_winners, private.purchase_request_rate_limits) tienen REVOKE ALL de anon/authenticated + acceso exclusivo vía funciones SECURITY DEFINER otorgadas a service_role. Es un patrón de seguridad válido y consistente (no es lo mismo que "falta RLS" — es una decisión de diseño deliberada), pero hay que confirmarlo con el cliente como aceptado, no asumir que falta implementar RLS clásico. Rate limiting real solo cubre POST /api/purchase-requests (5/15min, 20/día por fingerprint); /api/tracking y todas las rutas /admin y /api/admin/** no tienen límite propio. Bucket payment-proofs es privado, sin políticas de Storage (comentario en migración confirma que el acceso pasa solo por el backend con service role, no por cliente directo) — correcto. Tres funciones (approve_purchase_request, reject_purchase_request, expire_purchase_requests, todas de la migración 20260721164313/164609) no tienen GRANT EXECUTE ... TO service_role explícito, a diferencia de las 9 funciones posteriores que sí lo tienen — verificar si funcionan igual por membership de rol o si falta el GRANT.
 Trabajo pendiente

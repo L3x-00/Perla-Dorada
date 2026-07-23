@@ -79,7 +79,7 @@ RLS / acceso privado	ℹ️ Sin políticas RLS en ninguna tabla; acceso cerrado 
 Página pública principal	✅ Completado 22 jul 2026 (Bloque A) — landing de venta unitaria: rifa activa, contador −/+, total visual, formulario multipart a POST /api/purchase-requests, confirmación con trackingCode. Verificado contra BD real. Archivos: `src/app/page.tsx`, `src/app/purchase-form.tsx`, `src/lib/raffles/public-raffle.ts`, `src/lib/format.ts`
 Ganador	✅ Completado 22 jul 2026 (Bloque E) — RPC `register_raffle_winner` + ruta `/api/admin/raffles/[id]/winner` + UI con doble confirmación + vista de solo lectura. Inmutable (triggers). No expuesto públicamente. Verificado E2E
 Configuración pública + mantenimiento	✅ Completado 22 jul 2026 (Bloque B) — pantalla `/admin/settings` (mantenimiento, mensaje configurable, minutos de reserva, máx reimpresiones); enforcement 503 en POST y en landing; audit_log de cambios. Migraciones aplicadas al remoto y verificado E2E. Además se corrigió ERR-08 (create_purchase_request estaba roto: ambigüedad + gen_random_bytes) — el flujo de solicitud pública ahora funciona (POST → 201 verificado)
-Retención automática de comprobantes	❌ Pendiente — columna `payment_proof_deleted_at` existe pero ninguna función/job la usa
+Retención automática de comprobantes	✅ Completado 23 jul 2026 (Bloque F) — RPC `list_payment_proofs_for_retention` + cron `/api/cron/retention` (Bearer) elimina comprobantes de Storage 15 días tras cierre y marca `payment_proof_deleted_at`; idempotente; auditado. Verificado E2E
 Pruebas finales + despliegue producción	❌ Pendiente
 6. Árbol de archivos confirmados (re-verificado por inspección directa, 22 jul 2026)
 src/

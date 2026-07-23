@@ -519,6 +519,13 @@ export type Database = {
           tracking_code: string
         }[]
       }
+      list_payment_proofs_for_retention: {
+        Args: { p_retention_days?: number }
+        Returns: {
+          payment_proof_path: string
+          request_id: string
+        }[]
+      }
       register_raffle_winner: {
         Args: {
           p_admin_user_id: string

@@ -9,6 +9,7 @@ import {
   parseRaffleInput,
   type RaffleInput,
 } from "@/lib/raffles/validation";
+import { recordAuditEvent } from "@/lib/audit/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -149,6 +150,13 @@ async function updateRaffle(
     );
   }
 
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "update_raffle",
+    entity: "raffles",
+    entityId: raffleId,
+  });
+
   return jsonSuccess();
 }
 
@@ -173,6 +181,13 @@ async function activateRaffle(
       error,
     );
   }
+
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "activate_raffle",
+    entity: "raffles",
+    entityId: raffleId,
+  });
 
   return jsonSuccess();
 }
@@ -199,6 +214,13 @@ async function closeRaffle(
     );
   }
 
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "close_raffle",
+    entity: "raffles",
+    entityId: raffleId,
+  });
+
   return jsonSuccess();
 }
 
@@ -223,6 +245,13 @@ async function cancelRaffle(
       error,
     );
   }
+
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "cancel_raffle",
+    entity: "raffles",
+    entityId: raffleId,
+  });
 
   return jsonSuccess();
 }

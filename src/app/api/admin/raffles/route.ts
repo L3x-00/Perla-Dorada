@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEvent } from "@/lib/audit/log";
 import { mapRaffleDatabaseError } from "@/lib/raffles/errors";
 import { parseRaffleInput } from "@/lib/raffles/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -184,6 +185,18 @@ const {
       },
     );
   }
+
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "create_raffle",
+    entity: "raffles",
+    entityId: createdRaffle.id,
+    metadata: {
+      name: input.name,
+      ticket_price: input.ticketPrice,
+      total_tickets: input.totalTickets,
+    },
+  });
 
   return NextResponse.json(
     {

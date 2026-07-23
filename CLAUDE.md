@@ -48,9 +48,14 @@ Migraciones aplicadas al remoto (proyecto iewcowhkfsywdiyligsq): `20260722160000
 
 **Bloque E (ganador irreversible) completado el 22 jul 2026**, verificado E2E. RPC `register_raffle_winner` + ruta `/api/admin/raffles/[id]/winner` + UI con doble confirmación + vista de solo lectura. No expuesto públicamente (DEC-04). Dejó 1 rifa de prueba permanente en el remoto (ganador inmutable); SQL de limpieza en errores.md.
 
-**Bloques A–E completos y verificados.** Próximos bloques: F (auditoría/retención — audit_log ya existe, extender a más acciones + retención de comprobantes 15 días), G (endurecimiento: ERR-06 rate-limit en /api/tracking y /api/tickets). Ver `docs/contex/pendiente.md` y `errores.md`.
+**Bloque F (auditoría + retención) completado el 23 jul 2026**, verificado E2E. Helper `recordAuditEvent` cableado en todas las rutas admin críticas; RPC `list_payment_proofs_for_retention` + cron `/api/cron/retention` (Bearer CRON_SECRET) elimina comprobantes 15 días tras cierre, marca payment_proof_deleted_at, idempotente y auditado.
 
-**Despliegue: el proyecto va en RENDER (no Vercel).** El `vercel.json` con cron NO aplica en Render — la expiración periódica debe configurarse como un Render Cron Job que llame a `/api/cron/expire-requests` con el header `Authorization: Bearer <CRON_SECRET>`. Variables de entorno (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY, RATE_LIMIT_SECRET, CRON_SECRET) se definen en el dashboard de Render.
+**Bloques A–F completos y verificados.** Queda: G (endurecimiento: ERR-06 rate-limit en /api/tracking y /api/tickets; confirmar patrón sin-RLS; cabeceras seguras). Ver `docs/contex/pendiente.md` y `errores.md`.
+
+**Despliegue: el proyecto va en RENDER (no Vercel).** El `vercel.json` con crons NO aplica en Render. Hay DOS tareas programadas, cada una como un Render Cron Job que hace curl con `Authorization: Bearer <CRON_SECRET>`:
+- `/api/cron/expire-requests` — cada ~15 min (marca solicitudes vencidas).
+- `/api/cron/retention` — diario (elimina comprobantes 15 días tras cierre).
+Variables de entorno en el dashboard de Render: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY, RATE_LIMIT_SECRET, CRON_SECRET.
 
 **Nota de entorno:** Supabase local NO corre; se aplican migraciones al remoto con `supabase db push --linked` (CLI ya linkeada, password cacheada, no pide interacción) y se regeneran tipos con `supabase gen types typescript --linked > src/types/database.ts` (redirigir vía bash para UTF-8). El `.env.local` apunta al remoto vivo con rifa de prueba → sirve para verificación E2E con `npm run dev`. El warning `pgdelta ... cert ENOENT` al final de `db push` es inocuo (cache de catálogo experimental), las migraciones sí se aplican.
 

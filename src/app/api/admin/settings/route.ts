@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { recordAuditEvent } from "@/lib/audit/log";
 import { appSettingsSchema } from "@/lib/settings/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -70,15 +71,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  /*
-   * Auditoría: el registro no debe hacer fallar la operación si algo sale
-   * mal (la configuración ya quedó guardada). Solo metadatos no sensibles.
-   */
-  const { error: auditError } = await adminClient.from("audit_log").insert({
-    actor_user_id: adminUserId,
+  await recordAuditEvent({
+    actorUserId: adminUserId,
     action: "update_settings",
     entity: "app_settings",
-    entity_id: null,
     metadata: {
       maintenance_mode: input.maintenanceMode,
       reservation_minutes: input.reservationMinutes,
@@ -86,13 +82,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       maintenance_message_set: input.maintenanceMessage !== null,
     },
   });
-
-  if (auditError) {
-    console.error(
-      "No se pudo registrar la auditoría de configuración:",
-      auditError,
-    );
-  }
 
   return NextResponse.json(
     { success: true },
