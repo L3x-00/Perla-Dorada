@@ -23,7 +23,7 @@ Fase 2.3 — Configuración y mantenimiento	✅ Completada 22 jul 2026 (Bloque B
 Fase 3 — Solicitudes y pagos	✅ Portal público (Bloque A) completado 22 jul 2026	Bug de ruteo admin (Bloque 0) corregido; landing de venta unitaria funcional y verificada contra BD real
 Fase 4 — Tickets, PDF e impresión	✅ Completada 22 jul 2026 (Bloque D)	Impresión admin + descarga pública (DNI+code) en A4 HTML print-to-PDF; verificado E2E
 Fase 5 — Consulta y ganador	✅ Completada 22 jul 2026 (Bloque E)	Seguimiento + registro de ganador irreversible; verificado E2E
-Fase 6 — Calidad y seguridad	❌ Pendiente	Auditoría integral y pruebas
+Fase 6 — Calidad y seguridad	✅ Completada 23 jul 2026 (Bloque G)	Rate limiting público, cabeceras seguras, Zod, auditoría de secretos/dependencias/sesiones
 Fase 7 — Despliegue y aceptación	❌ Pendiente	Vercel producción, smoke tests, entrega
 3. Reglas de negocio invariantes
 Estados de entidades
@@ -185,18 +185,22 @@ Criterios de aceptación
  ✅ Fallos detectables y reintentables (contador failed + no marca la fila)
 10. Bloque G — Seguridad y endurecimiento
 Estado confirmado: no existe ninguna política RLS (CREATE POLICY) en ninguna tabla — en su lugar, TODAS las tablas (app_settings, admin_profiles, raffles, purchase_requests, tickets, ticket_prints, raffle_winners, private.purchase_request_rate_limits) tienen REVOKE ALL de anon/authenticated + acceso exclusivo vía funciones SECURITY DEFINER otorgadas a service_role. Es un patrón de seguridad válido y consistente (no es lo mismo que "falta RLS" — es una decisión de diseño deliberada), pero hay que confirmarlo con el cliente como aceptado, no asumir que falta implementar RLS clásico. Rate limiting real solo cubre POST /api/purchase-requests (5/15min, 20/día por fingerprint); /api/tracking y todas las rutas /admin y /api/admin/** no tienen límite propio. Bucket payment-proofs es privado, sin políticas de Storage (comentario en migración confirma que el acceso pasa solo por el backend con service role, no por cliente directo) — correcto. Tres funciones (approve_purchase_request, reject_purchase_request, expire_purchase_requests, todas de la migración 20260721164313/164609) no tienen GRANT EXECUTE ... TO service_role explícito, a diferencia de las 9 funciones posteriores que sí lo tienen — verificar si funcionan igual por membership de rol o si falta el GRANT.
-Trabajo pendiente
-Confirmar con cliente que el patrón "sin RLS clásico, todo vía SECURITY DEFINER + REVOKE ALL" es el diseño aceptado (documentarlo como tal, no como pendiente de "agregar RLS")
-Agregar GRANT EXECUTE explícito a service_role en approve_purchase_request, reject_purchase_request, expire_purchase_requests si se confirma que falta
-Confirmar que service role se usa solo en módulos server-only (verificado hoy: solo en src/lib/supabase/admin.ts y consumidores server)
-Ampliar rate limiting a /api/tracking (hoy sin límite, DNI+tracking_code es fuerza-bruteable) y a rutas /api/admin/**
-URLs firmadas con duración corta (ya usado en payment-proof: 60s — verificar que sea el estándar en todos los accesos a comprobantes)
-Validar sesiones admin en cada mutación
-Validación Zod en todos los Route Handlers
-Revisar enumeración de tracking codes (generado con gen_random_bytes(8) hex — sin retry en colisión, ver riesgo en estado_proyecto.md)
-Cabeceras seguras y CSRF según patrón de sesión
-Revisar dependencias y secretos
-Resolver duplicidad de proxy.ts (raíz vs src/) antes de auditar auth — ver estado_proyecto.md §1.1
+🟢 COMPLETADO (23 jul 2026)
+
+Implementado y verificado E2E:
+- Rate limiting en endpoints públicos de consulta (ERR-06): RPC genérico `check_rate_limit(fingerprint, short_limit, daily_limit)` (migración `20260723140000`, reutiliza la tabla existente) + `src/lib/security/rate-limit.ts`. `/api/tracking` y `/api/tickets` comparten ámbito `public-lookup` (20/15 min, 100/día) para que no se pueda alternar entre endpoints y duplicar cuota. El ámbito se separa incluyendo `scope` en el HMAC del fingerprint, así el alta de solicitudes conserva su cuota propia (5/15min, 20/día) intacta. Falla en cerrado (503) si el chequeo no se puede realizar.
+  Verificado: 20 consultas OK, la 21ª → 429 con Retry-After 754; /api/tickets → 429 tras agotar vía /api/tracking (ámbito compartido confirmado).
+- Cabeceras seguras (`next.config.ts`): Content-Security-Policy (default-src 'self'; connect-src incluye el origen Supabase https + wss; frame-ancestors 'none'; object-src 'none'; base-uri/form-action 'self'), X-Content-Type-Options, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, y HSTS solo en producción. Verificado presentes; páginas siguen renderizando.
+- Validación Zod en los endpoints públicos: esquema compartido `src/lib/validation/tracking.ts` usado por /api/tracking y /api/tickets (elimina la duplicación de normalización/regex). Verificado: DNI inválido → 400 con mensaje controlado.
+- Dependencias actualizadas: Next 16.2.10 → 16.2.11 (pin exacto, última parche). Ver nota de CVEs abajo.
+- Auditado y confirmado: `service_role` solo en `src/lib/supabase/admin.ts` (con `import "server-only"`); sin secretos hardcodeados en el repo; `NEXT_PUBLIC_*` solo expone URL y publishable key; las 8 rutas `/api/admin/**` validan sesión con `getClaims` (además del proxy que las gatea); URLs firmadas de comprobantes a 60 s.
+
+Decisiones documentadas (no son trabajo pendiente):
+- Patrón sin RLS clásico: todas las tablas con REVOKE ALL a anon/authenticated + acceso exclusivo por funciones SECURITY DEFINER otorgadas a service_role. Es el diseño aceptado del proyecto (ver DEC-03 en errores.md), no una carencia.
+- CSRF: las mutaciones admin son POST same-origin con cookies de Supabase Auth (SameSite=Lax), lo que bloquea el envío de cookies en POST cross-site. No se añadió verificación extra de Origin para no romper clientes legítimos; documentado como mitigación aceptada.
+- Rate limit en `/api/admin/**`: no aplicado. Esas rutas ya exigen sesión válida y están gateadas por el proxy; el vector de abuso anónimo no existe.
+- Enumeración de tracking codes: 16 caracteres hex (64 bits) + DNI requerido + rate limit → enumeración inviable. ERR-07 (sin reintento ante colisión) permanece como riesgo residual muy bajo.
+- CVEs de dependencias transitivas de Next (sharp <0.35.0 high, postcss moderate): sin corrección disponible que no sea un downgrade absurdo (npm propone next@9.3.3). Impacto real nulo en esta app: `next/image` NO se usa (verificado; la única coincidencia es una regex del matcher del proxy), por lo que sharp nunca procesa imágenes en runtime; los comprobantes van a Supabase Storage y se validan con sniffing de `file-type`, sin pasar por sharp. postcss es build-time sobre CSS propio, no de usuario. Riesgo aceptado; revisar en futuras versiones de Next.
 11. Pruebas críticas pendientes
 ID	Prueba	Resultado requerido
 PF-01	Registro público	Solicitud válida, tracking y expiración

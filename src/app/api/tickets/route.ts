@@ -1,36 +1,53 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
+import {
+  PUBLIC_LOOKUP_RATE_LIMIT,
+  checkRateLimit,
+} from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-type TicketsRequestBody = {
-  dni?: unknown;
-  trackingCode?: unknown;
-};
-
-const DNI_PATTERN = /^[0-9A-Za-z-]{6,20}$/;
-const TRACKING_CODE_PATTERN = /^[0-9A-Z-]{6,40}$/;
-
-function normalizeDni(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().replace(/\s+/g, "");
-}
-
-function normalizeTrackingCode(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().toUpperCase().replace(/\s+/g, "");
-}
+import { trackingLookupSchema } from "@/lib/validation/tracking";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  let body: TicketsRequestBody;
+  /*
+   * Comparte ámbito de rate limit con /api/tracking: ambos se validan con
+   * DNI + código de seguimiento y no deben poder alternarse para duplicar
+   * la cuota. Falla en cerrado.
+   */
+  try {
+    const rateLimit = await checkRateLimit(
+      request,
+      PUBLIC_LOOKUP_RATE_LIMIT,
+    );
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "Has realizado demasiadas consultas. Inténtalo nuevamente más tarde.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+            "Cache-Control": "no-store",
+          },
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Error ejecutando protección antiabuso:", error);
+
+    return NextResponse.json(
+      { error: "El servicio no está disponible temporalmente." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  let rawBody: unknown;
 
   try {
-    body = (await request.json()) as TicketsRequestBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json(
       { error: "El cuerpo de la solicitud no es válido." },
@@ -38,28 +55,29 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const dni = normalizeDni(body.dni);
-  const trackingCode = normalizeTrackingCode(body.trackingCode);
+  let input;
 
-  if (!DNI_PATTERN.test(dni)) {
-    return NextResponse.json(
-      { error: "El DNI no es válido." },
-      { status: 400, headers: { "Cache-Control": "no-store" } },
-    );
-  }
+  try {
+    input = trackingLookupSchema.parse(rawBody);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error:
+            error.issues[0]?.message ?? "Los datos enviados no son válidos.",
+        },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+    }
 
-  if (!TRACKING_CODE_PATTERN.test(trackingCode)) {
-    return NextResponse.json(
-      { error: "El código de seguimiento no es válido." },
-      { status: 400, headers: { "Cache-Control": "no-store" } },
-    );
+    throw error;
   }
 
   const adminClient = createAdminClient();
 
   const { data, error } = await adminClient.rpc(
     "get_public_ticket_document",
-    { p_dni: dni, p_tracking_code: trackingCode },
+    { p_dni: input.dni, p_tracking_code: input.trackingCode },
   );
 
   if (error) {

@@ -431,6 +431,19 @@ export type Database = {
           short_window_count: number
         }[]
       }
+      check_rate_limit: {
+        Args: {
+          p_daily_limit: number
+          p_fingerprint_hash: string
+          p_short_limit: number
+        }
+        Returns: {
+          allowed: boolean
+          daily_window_count: number
+          retry_after_seconds: number
+          short_window_count: number
+        }[]
+      }
       close_raffle: {
         Args: { p_admin_user_id: string; p_raffle_id: string }
         Returns: {

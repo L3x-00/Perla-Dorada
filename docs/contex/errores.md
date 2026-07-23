@@ -57,11 +57,18 @@ ERR-09 — 🟡 Alto (setup de datos, no código) — admin_profiles vacío → 
 - Detectado: 22 jul 2026, durante verificación de Bloque C. NO se sembró automáticamente (no se deben inventar user_id).
 - Nota (Bloque D, 22 jul): se verificó que al sembrar temporalmente admin_profiles con un user_id real de auth, approve_purchase_request funciona y asigna tickets correctamente; luego se eliminó la fila temporal. Confirma que sembrar admin_profiles es lo único que falta para habilitar aprobar/rechazar/imprimir en admin. También afecta register_ticket_print (impresión admin).
 
-ERR-06 — 🟡 Medio — Rate limiting solo cubre POST /api/purchase-requests
+ERR-06 — 🟢 Corregido — Rate limiting solo cubría POST /api/purchase-requests
 - Área: `src/lib/security/*`
-- Causa: `/api/tracking` (DNI + tracking_code, fuerza-bruteable) y todas las rutas `/admin` y `/api/admin/**` no tienen límite de tasa propio.
-- Fix propuesto: extender `checkPurchaseRequestRateLimit` (o una variante) a `/api/tracking` como mínimo.
-- Detectado: 22 jul 2026, auditoría de código.
+- Causa: `/api/tracking` (y luego `/api/tickets`) validan solo con DNI + tracking_code y no tenían límite de tasa.
+- Fix aplicado 23 jul 2026 (Bloque G): RPC genérico `check_rate_limit(fingerprint, short_limit, daily_limit)` (migración `20260723140000`) + `src/lib/security/rate-limit.ts`. Ambos endpoints comparten el ámbito `public-lookup` (20/15 min, 100/día); el ámbito se separa incluyendo `scope` en el HMAC, dejando intacta la cuota del alta de solicitudes. Verificado E2E: 20 OK, la 21ª → 429 con Retry-After; `/api/tickets` también 429 tras agotar vía `/api/tracking`.
+- Nota: las rutas `/api/admin/**` no llevan rate limit por decisión: exigen sesión válida y están gateadas por el proxy (sin vector anónimo). Ver Bloque G en pendiente.md.
+- Detectado: 22 jul 2026. Corregido: 23 jul 2026.
+
+DEP-01 — ⚪ Riesgo aceptado — CVEs en dependencias transitivas de Next
+- `npm audit` reporta sharp <0.35.0 (high, CVEs de libvips) y postcss (moderate, XSS en stringify de CSS), ambas arrastradas por `next`.
+- No hay corrección disponible: Next 16.2.11 (última parche, ya aplicada) sigue empaquetando sharp 0.34.5, y `npm audit fix --force` propone next@9.3.3 (downgrade inviable).
+- Impacto real nulo en esta app: `next/image` NO se usa (verificado: la única coincidencia textual es una regex del matcher en `src/proxy.ts`), por lo que sharp nunca procesa imágenes en runtime. Los comprobantes suben a Supabase Storage y se validan con sniffing de `file-type`, sin pasar por sharp. postcss actúa en build sobre CSS propio, no de usuario.
+- Acción: revisar en futuras versiones de Next. Registrado 23 jul 2026.
 
 ERR-07 — ⚪ Bajo — tracking_code sin retry en colisión de unicidad
 - Área: función `create_purchase_request`, generación `upper(encode(gen_random_bytes(8),'hex'))`
@@ -77,8 +84,8 @@ DEC-01 — ⚪ src/components/{public,admin}/ no existe
 DEC-02 — 🟢 Resuelta (22 jul 2026) — "PDF" de tickets es HTML print-to-PDF A4
 - Decisión tomada en Bloque D: se mantiene HTML + window.print() (impresión del navegador a PDF), sin agregar librería PDF. Aplica tanto a la impresión admin como a la descarga pública (`/seguimiento/tickets`). Justificación: evitar dependencia pesada (puppeteer en serverless) para beneficio marginal. Reabrir solo si el cliente exige PDF generado en servidor.
 
-DEC-03 — ⚪ Sin RLS clásico — todo vía SECURITY DEFINER + REVOKE ALL
-- Patrón de seguridad intencional y consistente en las 10 migraciones, pero conviene que el cliente/responsable técnico lo confirme como diseño aceptado (no como "falta implementar RLS").
+DEC-03 — 🟢 Resuelta (23 jul 2026) — Sin RLS clásico: todo vía SECURITY DEFINER + REVOKE ALL
+- Patrón intencional y consistente en todas las migraciones: cada tabla tiene RLS habilitado sin políticas + REVOKE ALL a anon/authenticated; el acceso ocurre solo por funciones SECURITY DEFINER (con search_path fijo) otorgadas a service_role, que únicamente se usa en servidor (`src/lib/supabase/admin.ts`, con `import "server-only"`). Auditado en Bloque G y documentado como el DISEÑO ACEPTADO del proyecto, no como una carencia. No añadir políticas RLS "por completitud" sin una razón concreta.
 
 DEC-04 — ⚪ Mostrar el ganador públicamente — pendiente de decisión del cliente
 - Bloque E registra el ganador y lo muestra solo en el panel admin (vista de solo lectura). El documento de alcance dice "definir si se muestra públicamente (no asumir)". No se expuso en el portal público. Si el cliente lo desea, agregar una vista pública (p. ej. en /seguimiento o la landing) leyendo raffle_winners de la rifa cerrada.

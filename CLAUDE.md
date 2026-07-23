@@ -50,7 +50,9 @@ Migraciones aplicadas al remoto (proyecto iewcowhkfsywdiyligsq): `20260722160000
 
 **Bloque F (auditoría + retención) completado el 23 jul 2026**, verificado E2E. Helper `recordAuditEvent` cableado en todas las rutas admin críticas; RPC `list_payment_proofs_for_retention` + cron `/api/cron/retention` (Bearer CRON_SECRET) elimina comprobantes 15 días tras cierre, marca payment_proof_deleted_at, idempotente y auditado.
 
-**Bloques A–F completos y verificados.** Queda: G (endurecimiento: ERR-06 rate-limit en /api/tracking y /api/tickets; confirmar patrón sin-RLS; cabeceras seguras). Ver `docs/contex/pendiente.md` y `errores.md`.
+**Bloque G (endurecimiento) completado el 23 jul 2026**, verificado E2E. Rate limiting en consultas públicas (`/api/tracking` + `/api/tickets`, ámbito compartido 20/15min · 100/día, ERR-06 cerrado), cabeceras seguras en `next.config.ts` (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS en prod), Zod compartido en lookups públicos, Next 16.2.10 → 16.2.11, y auditoría de secretos/sesiones (limpia). Patrón sin-RLS documentado como diseño aceptado (DEC-03).
+
+**Bloques A–G completos y verificados.** Queda solo despliegue/aceptación (Fase 7) y los pendientes del usuario listados abajo.
 
 **Despliegue: el proyecto va en RENDER (no Vercel).** El `vercel.json` con crons NO aplica en Render. Hay DOS tareas programadas, cada una como un Render Cron Job que hace curl con `Authorization: Bearer <CRON_SECRET>`:
 - `/api/cron/expire-requests` — cada ~15 min (marca solicitudes vencidas).

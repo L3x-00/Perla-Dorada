@@ -18,7 +18,7 @@ Estos hechos fueron verificados leyendo código y migraciones reales (no documen
 - 🟡 Zod instalado es v4 (`^4.4.3`), no v3. Las convenciones de manejo de errores/`z.infer` de v3 no aplican tal cual si se buscan ejemplos genéricos en línea.
 - ℹ️ No existe ninguna política RLS (`CREATE POLICY`) en ninguna migración. El acceso está completamente cerrado por diseño: `REVOKE ALL` a `anon`/`authenticated` en cada tabla + funciones `SECURITY DEFINER` otorgadas solo a `service_role`. Es un patrón válido y consistente, pero significa que "RLS" como tal no está en uso — toda la seguridad de fila vive en las funciones. Tres funciones (`approve_purchase_request`, `reject_purchase_request`, `expire_purchase_requests`, migración 3) no tienen un `GRANT EXECUTE ... TO service_role` explícito, a diferencia de todas las funciones posteriores — verificar si esto es intencional.
 - ℹ️ La tabla `raffle_winners` YA EXISTE en la base de datos (con constraints de unicidad e inmutabilidad vía triggers), pero no hay ningún RPC que inserte un ganador ni UI alguna que la use. Ver corrección en la sección 5.
-- ℹ️ Rate limiting real cubre únicamente `POST /api/purchase-requests`. `/api/tracking` y todas las rutas `/admin` y `/api/admin/**` no tienen límite de tasa propio (aparte de los límites nativos de Supabase Auth en login).
+- ✅ (23 jul 2026, Bloque G) Rate limiting cubre `POST /api/purchase-requests` (5/15min, 20/día) y, con ámbito separado, las consultas públicas `/api/tracking` + `/api/tickets` (20/15min, 100/día compartidos). Las rutas `/api/admin/**` no llevan límite por decisión (exigen sesión + proxy). Cabeceras de seguridad activas en `next.config.ts` (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS en producción).
 - 🟡 (ERR-09, hallado 22 jul 2026) `admin_profiles` está VACÍA en el remoto → aprobar/rechazar solicitudes fallan siempre ("no es administrador activo") aunque el admin inicie sesión. Es setup de datos manual (sembrar admin_profiles con los user_id reales), no bug de código. Ver errores.md.
 - ✅ (22 jul 2026) Bloques A, B y C completados y verificados E2E contra el remoto. Bloque C: cron de expiración `/api/cron/expire-requests` (Bearer CRON_SECRET) + countdown en vivo. Requiere `CRON_SECRET` en Vercel.
 
@@ -35,7 +35,7 @@ El navegador nunca es fuente confiable del precio ni del total.
 
 3. Stack tecnológico confirmado (versiones exactas de package.json/node_modules)
 Capa	Tecnología	Versión / Detalle
-Framework web	Next.js App Router	16.2.10 (pinned)
+Framework web	Next.js App Router	16.2.11 (pin exacto; subido desde 16.2.10 en Bloque G)
 Interfaz	React	19.2.4 (pinned)
 Lenguaje	TypeScript	5.9.3, strict: true
 Estilos	Tailwind CSS	v4.3.3 — sin tailwind.config.js; vía @tailwindcss/postcss + globals.css
@@ -75,7 +75,7 @@ UI de impresión / reimpresión	✅ Admin: HTML + `window.print()` (registrado, 
 Seguimiento público por DNI + tracking code	✅ Completado — RPC `track_purchase_request`, ruta `/seguimiento` y `/api/tracking` verificados end-to-end
 Búsqueda administrativa por DNI y número de ticket	✅ Completado
 CRUD de rifas (/admin/raffles) + activar / cerrar / cancelar	✅ Completado — rutas cliente/servidor consistentes, sin bug de ruteo
-RLS / acceso privado	ℹ️ Sin políticas RLS en ninguna tabla; acceso cerrado por REVOKE ALL + SECURITY DEFINER (patrón intencional). Verificar GRANT faltante en 3 funciones de migración 3 (ver 1.1)
+RLS / acceso privado	✅ Auditado 23 jul 2026 (Bloque G) — patrón aceptado y documentado (DEC-03): RLS habilitado sin políticas + REVOKE ALL a anon/authenticated + acceso exclusivo por SECURITY DEFINER otorgado a service_role (solo servidor). GRANT faltantes corregidos (ERR-05)
 Página pública principal	✅ Completado 22 jul 2026 (Bloque A) — landing de venta unitaria: rifa activa, contador −/+, total visual, formulario multipart a POST /api/purchase-requests, confirmación con trackingCode. Verificado contra BD real. Archivos: `src/app/page.tsx`, `src/app/purchase-form.tsx`, `src/lib/raffles/public-raffle.ts`, `src/lib/format.ts`
 Ganador	✅ Completado 22 jul 2026 (Bloque E) — RPC `register_raffle_winner` + ruta `/api/admin/raffles/[id]/winner` + UI con doble confirmación + vista de solo lectura. Inmutable (triggers). No expuesto públicamente. Verificado E2E
 Configuración pública + mantenimiento	✅ Completado 22 jul 2026 (Bloque B) — pantalla `/admin/settings` (mantenimiento, mensaje configurable, minutos de reserva, máx reimpresiones); enforcement 503 en POST y en landing; audit_log de cambios. Migraciones aplicadas al remoto y verificado E2E. Además se corrigió ERR-08 (create_purchase_request estaba roto: ambigüedad + gen_random_bytes) — el flujo de solicitud pública ahora funciona (POST → 201 verificado)

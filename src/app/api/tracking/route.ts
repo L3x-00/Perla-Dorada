@@ -1,120 +1,101 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
+import {
+  PUBLIC_LOOKUP_RATE_LIMIT,
+  checkRateLimit,
+} from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { trackingLookupSchema } from "@/lib/validation/tracking";
 
-type TrackingRequestBody = {
-  dni?: unknown;
-  trackingCode?: unknown;
-};
+export async function POST(request: Request): Promise<NextResponse> {
+  /*
+   * Rate limit antes de tocar la base: la combinación DNI + código es el
+   * único secreto que protege esta consulta, así que se limita la fuerza
+   * bruta. Falla en cerrado si no se puede comprobar.
+   */
+  try {
+    const rateLimit = await checkRateLimit(
+      request,
+      PUBLIC_LOOKUP_RATE_LIMIT,
+    );
 
-const DNI_PATTERN = /^[0-9A-Za-z-]{6,20}$/;
-const TRACKING_CODE_PATTERN = /^[0-9A-Z-]{6,40}$/;
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            "Has realizado demasiadas consultas. Inténtalo nuevamente más tarde.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+            "Cache-Control": "no-store",
+          },
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Error ejecutando protección antiabuso:", error);
 
-function normalizeDni(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
+    return NextResponse.json(
+      { error: "El servicio no está disponible temporalmente." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
-  return value
-    .trim()
-    .replace(/\s+/g, "");
-}
-
-function normalizeTrackingCode(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "");
-}
-
-export async function POST(request: Request) {
-  let body: TrackingRequestBody;
+  let rawBody: unknown;
 
   try {
-    body =
-      (await request.json()) as TrackingRequestBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      {
-        error:
-          "El cuerpo de la solicitud no es válido.",
-      },
-      { status: 400 },
+      { error: "El cuerpo de la solicitud no es válido." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
 
-  const dni = normalizeDni(body.dni);
+  let input;
 
-  const trackingCode =
-    normalizeTrackingCode(
-      body.trackingCode,
-    );
+  try {
+    input = trackingLookupSchema.parse(rawBody);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error:
+            error.issues[0]?.message ?? "Los datos enviados no son válidos.",
+        },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+    }
 
-  if (!DNI_PATTERN.test(dni)) {
-    return NextResponse.json(
-      {
-        error: "El DNI no es válido.",
-      },
-      { status: 400 },
-    );
+    throw error;
   }
 
-  if (
-    !TRACKING_CODE_PATTERN.test(
-      trackingCode,
-    )
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "El código de seguimiento no es válido.",
-      },
-      { status: 400 },
-    );
-  }
+  const adminClient = createAdminClient();
 
-  const adminClient =
-    createAdminClient();
-
-  const { data, error } =
-    await adminClient.rpc(
-      "track_purchase_request",
-      {
-        p_dni: dni,
-        p_tracking_code:
-          trackingCode,
-      },
-    );
+  const { data, error } = await adminClient.rpc("track_purchase_request", {
+    p_dni: input.dni,
+    p_tracking_code: input.trackingCode,
+  });
 
   if (error) {
-    console.error(
-      "track_purchase_request failed",
-      {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      },
-    );
+    console.error("track_purchase_request failed", {
+      code: error.code,
+      message: error.message,
+    });
 
     return NextResponse.json(
-      {
-        error:
-          "No se pudo consultar la solicitud.",
-      },
-      { status: 500 },
+      { error: "No se pudo consultar la solicitud." },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   const result = data?.[0];
 
   /*
-   * No indicamos si falló el DNI o el
-   * código por separado.
+   * No indicamos si falló el DNI o el código por separado.
    */
   if (!result) {
     return NextResponse.json(
@@ -122,40 +103,33 @@ export async function POST(request: Request) {
         error:
           "No encontramos una solicitud con los datos ingresados.",
       },
-      { status: 404 },
+      { status: 404, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   /*
-   * Defensa adicional: aunque el RPC ya
-   * filtra los tickets, el endpoint vuelve
-   * a garantizar que solo se devuelvan si
-   * la solicitud está aprobada.
+   * Defensa adicional: aunque el RPC ya filtra los tickets, el endpoint
+   * vuelve a garantizar que solo se devuelvan si la solicitud está
+   * aprobada.
    */
   const ticketNumbers =
-    result.request_status ===
-    "approved"
-      ? result.ticket_numbers
-      : [];
+    result.request_status === "approved" ? result.ticket_numbers : [];
 
-  return NextResponse.json({
-    request: {
-      requestId:
-        result.request_id,
-      raffleName:
-        result.raffle_name,
-      status:
-        result.request_status,
-      expiresAt:
-        result.expires_at,
-      reviewedAt:
-        result.reviewed_at,
-      rejectionReason:
-        result.request_status ===
-        "rejected"
-          ? result.rejection_reason
-          : null,
-      ticketNumbers,
+  return NextResponse.json(
+    {
+      request: {
+        requestId: result.request_id,
+        raffleName: result.raffle_name,
+        status: result.request_status,
+        expiresAt: result.expires_at,
+        reviewedAt: result.reviewed_at,
+        rejectionReason:
+          result.request_status === "rejected"
+            ? result.rejection_reason
+            : null,
+        ticketNumbers,
+      },
     },
-  });
+    { status: 200, headers: { "Cache-Control": "no-store" } },
+  );
 }
