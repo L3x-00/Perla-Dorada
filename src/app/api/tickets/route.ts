@@ -113,12 +113,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     {
       document: {
         raffleName: document.raffle_name,
-        raffleDescription: document.raffle_description,
-        drawAt: document.draw_at,
-        ticketPrice: document.ticket_price,
         fullName: document.full_name,
         dni: document.dni,
-        trackingCode: document.tracking_code,
+        purchasedAt: document.purchased_at,
         ticketNumbers: document.ticket_numbers,
       },
     },

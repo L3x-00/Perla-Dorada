@@ -37,7 +37,7 @@ export const brand = {
     /** Titular tal como aparece en Yape. */
     holder: "",
     /** Número de Yape, p. ej. "987 654 321". */
-    yapeNumber: "",
+    yapeNumber: "956 252 677",
     /** QR de Yape en public/marca/pago/qr.webp */
     qrImage: "/marca/pago/qr.webp",
   },

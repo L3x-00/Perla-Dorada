@@ -11,6 +11,7 @@ import {
   btnSmall,
   btnSuccess,
 } from "@/components/admin/ui";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { useState } from "react";
 
 type RaffleAction =
@@ -32,7 +33,10 @@ type ApiResponse = {
 type ActionConfiguration = {
   label: string;
   pendingLabel: string;
+  title: string;
   confirmation: string;
+  confirmLabel: string;
+  tone: "success" | "danger" | "default";
 };
 
 const actionConfiguration: Record<
@@ -42,20 +46,29 @@ const actionConfiguration: Record<
   activate: {
     label: "Activar",
     pendingLabel: "Activando...",
+    title: "Activar rifa",
     confirmation:
-      "¿Confirmas que deseas activar esta rifa? Solo puede existir una rifa activa.",
+      "Solo puede existir una rifa activa a la vez. La rifa quedará visible en el sitio y podrá recibir solicitudes.",
+    confirmLabel: "Sí, activar",
+    tone: "success",
   },
   close: {
     label: "Cerrar",
     pendingLabel: "Cerrando...",
+    title: "Cerrar rifa",
     confirmation:
-      "¿Confirmas que deseas cerrar esta rifa? Ya no podrá recibir nuevas solicitudes.",
+      "Ya no podrá recibir nuevas solicitudes. Las solicitudes pendientes se marcarán como expiradas.",
+    confirmLabel: "Sí, cerrar",
+    tone: "default",
   },
   cancel: {
     label: "Cancelar",
     pendingLabel: "Cancelando...",
+    title: "Cancelar rifa",
     confirmation:
-      "¿Confirmas que deseas cancelar esta rifa? Esta operación no debe realizarse por accidente.",
+      "La rifa se marcará como cancelada y dejará de estar disponible. Esta operación no debe realizarse por accidente.",
+    confirmLabel: "Sí, cancelar rifa",
+    tone: "danger",
   },
 };
 
@@ -71,6 +84,8 @@ export function RaffleActions({
 
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null);
+
+  const [confirmAction, setConfirmAction] = useState<RaffleAction | null>(null);
 
   const [showDelete, setShowDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -135,14 +150,9 @@ export function RaffleActions({
   async function executeAction(
     action: RaffleAction,
   ): Promise<void> {
-    const configuration =
-      actionConfiguration[action];
+    setConfirmAction(null);
 
-    const confirmed = window.confirm(
-      configuration.confirmation,
-    );
-
-    if (!confirmed || isPending) {
+    if (isPending) {
       return;
     }
 
@@ -206,9 +216,7 @@ export function RaffleActions({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => {
-              void executeAction("activate");
-            }}
+            onClick={() => setConfirmAction("activate")}
             className={`${btnSuccess} ${btnSmall}`}
           >
             {pendingAction === "activate"
@@ -222,9 +230,7 @@ export function RaffleActions({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => {
-              void executeAction("close");
-            }}
+            onClick={() => setConfirmAction("close")}
             className={`${btnPrimary} ${btnSmall}`}
           >
             {pendingAction === "close"
@@ -238,9 +244,7 @@ export function RaffleActions({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => {
-              void executeAction("cancel");
-            }}
+            onClick={() => setConfirmAction("cancel")}
             className={`${btnDanger} ${btnSmall}`}
           >
             {pendingAction === "cancel"
@@ -303,6 +307,27 @@ export function RaffleActions({
           {errorMessage}
         </p>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction ? actionConfiguration[confirmAction].title : ""}
+        description={
+          confirmAction ? actionConfiguration[confirmAction].confirmation : ""
+        }
+        confirmLabel={
+          confirmAction
+            ? actionConfiguration[confirmAction].confirmLabel
+            : "Confirmar"
+        }
+        tone={confirmAction ? actionConfiguration[confirmAction].tone : "default"}
+        busy={isPending}
+        onConfirm={() => {
+          if (confirmAction) {
+            void executeAction(confirmAction);
+          }
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

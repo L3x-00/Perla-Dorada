@@ -2,29 +2,24 @@ import { Reveal } from "@/components/site/reveal";
 
 const STEPS = [
   {
-    title: "Elige tus boletos",
+    title: "Elige el Sorteo Ganador",
     detail:
-      "Indica cuántos boletos quieres. El total se calcula al instante y se reserva mientras completas el pago.",
-  },
-  {
-    title: "Paga por Yape",
-    detail:
-      "Transfiere el monto exacto a la cuenta indicada y toma captura del comprobante.",
+      "Slecciona el sorteo que quieres participar y revisa los premios que puedes ganar",
   },
   {
     title: "Completa tus datos",
     detail:
-      "Llena el formulario con tu nombre, DNI y contacto, y adjunta la captura del pago.",
+      "Llena el formulario con tu nombre, DNI y contacto",
   },
   {
-    title: "Guarda tu código",
+    title: "Adjunta tu comprobante de pago",
     detail:
-      "Recibirás un código de seguimiento. Consérvalo: con él y tu DNI consultas tu solicitud.",
+      "Sube el comprobante de tu pago. Asegúrate de que sea legible con los datos correctos.",
   },
   {
-    title: "Validamos tu pago",
+    title: "Espera la validacion y realiza el seguimiento",
     detail:
-      "Revisamos el comprobante manualmente. Si todo está correcto, se te asignan los números.",
+      "Recibirás actualizaciones sobre el estado de tu pago. Puedes consultar tu solicitud en cualquier momento.",
   },
   {
     title: "Descarga tus boletos",
@@ -39,7 +34,7 @@ export function HowToParticipate() {
       <Reveal>
         <p className="eyebrow text-gold">Cómo participar</p>
         <h3 className="mt-4 font-display text-3xl font-light text-cream sm:text-4xl">
-          Seis pasos, sin complicaciones
+          5 sencillos pasos, sin complicaciones
         </h3>
       </Reveal>
 

@@ -618,7 +618,7 @@ function YapePanel() {
               <div>
                 <dt className="eyebrow text-muted">Número</dt>
                 <dd className="mt-1 flex flex-wrap items-center gap-3">
-                  <span className="font-display text-2xl font-light tabular-nums text-gold">
+                  <span className="font-display text-xl font-light tabular-nums text-gold">
                     {brand.payment.yapeNumber}
                   </span>
                   <button

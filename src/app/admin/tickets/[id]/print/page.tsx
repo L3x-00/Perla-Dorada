@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { PrintControls } from "@/app/admin/tickets/[id]/print/print-controls";
+import { BrandLogo } from "@/components/site/brand-logo";
+import { formatDateTime } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -121,15 +123,7 @@ export default async function TicketPrintPage({
   ] = await Promise.all([
     adminClient
       .from("raffles")
-      .select(
-        `
-          id,
-          name,
-          description,
-          ticket_price,
-          draw_at
-        `,
-      )
+      .select("id, name")
       .eq("id", ticket.raffle_id)
       .maybeSingle(),
 
@@ -140,10 +134,8 @@ export default async function TicketPrintPage({
           id,
           full_name,
           dni,
-          phone,
-          whatsapp,
           status,
-          tracking_code
+          created_at
         `,
       )
       .eq(
@@ -188,163 +180,87 @@ export default async function TicketPrintPage({
     ticket.ticket_number,
   ).padStart(4, "0");
 
-  const formattedPrice =
-    new Intl.NumberFormat("es-PE", {
-      style: "currency",
-      currency: "PEN",
-    }).format(
-      Number(raffle.ticket_price),
-    );
+  const formattedPurchasedAt = formatDateTime(
+    purchaseRequest.created_at,
+  );
 
-  const formattedAssignedAt =
-    new Intl.DateTimeFormat("es-PE", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(
-      new Date(ticket.assigned_at),
-    );
+  const formattedPrintedAt = formatDateTime(
+    printRecord.printed_at,
+  );
 
-  const formattedPrintedAt =
-    new Intl.DateTimeFormat("es-PE", {
-      dateStyle: "medium",
-      timeStyle: "medium",
-    }).format(
-      new Date(printRecord.printed_at),
-    );
-
-  const formattedDrawAt =
-    raffle.draw_at
-      ? new Intl.DateTimeFormat(
-          "es-PE",
-          {
-            dateStyle: "long",
-            timeStyle: "short",
-          },
-        ).format(
-          new Date(raffle.draw_at),
-        )
-      : null;
+  const reprintLabel =
+    printRecord.print_type === "original"
+      ? "Impresión original"
+      : `Reimpresión ${printRecord.print_sequence - 1}`;
 
   return (
-    <main className="min-h-screen bg-neutral-100 p-6 text-black print:bg-white print:p-0">
+    <main className="min-h-screen bg-neutral-100 p-6 text-black print:min-h-0 print:bg-white print:p-0">
       <PrintControls />
 
-      <article className="mx-auto max-w-xl border-2 border-black bg-white p-8 shadow-lg print:max-w-none print:shadow-none">
-        <header className="border-b-2 border-black pb-5 text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.25em]">
-            Joyería Perla Dorada
-          </p>
+      {/* Mismo ticket que recibe el cliente: logo, sorteo, número y datos. */}
+      <div className="ticket-print mx-auto max-w-[20rem] print:max-w-none">
+        <article className="relative overflow-hidden rounded-2xl border border-neutral-300 bg-white text-black shadow-lg print:rounded-lg print:shadow-none">
+          <div
+            className="h-1.5 w-full bg-gold"
+            style={{
+              printColorAdjust: "exact",
+              WebkitPrintColorAdjust: "exact",
+            }}
+          />
 
-          <h1 className="mt-3 text-3xl font-black uppercase">
-            {raffle.name}
-          </h1>
-
-          {raffle.description ? (
-            <p className="mt-3 text-sm">
-              {raffle.description}
+          <div className="px-6 pt-5 text-center">
+            <BrandLogo className="mx-auto h-auto w-24" />
+            <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              Ticket de sorteo
             </p>
-          ) : null}
-        </header>
+            <h1 className="mt-1 font-display text-lg font-medium leading-snug">
+              {raffle.name}
+            </h1>
+          </div>
 
-        <section className="py-8 text-center">
-          <p className="text-sm font-bold uppercase tracking-wide">
-            Número de ticket
-          </p>
+          <div className="my-4 flex items-center gap-2 px-6">
+            <span className="text-gold" style={{ printColorAdjust: "exact" }}>
+              ◆
+            </span>
+            <div className="flex-1 border-t border-dashed border-neutral-300" />
+            <span className="text-gold" style={{ printColorAdjust: "exact" }}>
+              ◆
+            </span>
+          </div>
 
-          <p className="mt-3 text-7xl font-black tabular-nums">
-            {formattedTicketNumber}
-          </p>
-        </section>
-
-        <section className="grid gap-3 border-y-2 border-black py-5 text-sm">
-          <p>
-            <strong>Participante:</strong>{" "}
-            {purchaseRequest.full_name}
-          </p>
-
-          <p>
-            <strong>DNI:</strong>{" "}
-            {purchaseRequest.dni}
-          </p>
-
-          <p>
-            <strong>Teléfono:</strong>{" "}
-            {purchaseRequest.phone}
-          </p>
-
-          <p>
-            <strong>WhatsApp:</strong>{" "}
-            {purchaseRequest.whatsapp}
-          </p>
-
-          <p>
-            <strong>
-              Código de seguimiento:
-            </strong>{" "}
-            {purchaseRequest.tracking_code}
-          </p>
-
-          <p>
-            <strong>Precio:</strong>{" "}
-            {formattedPrice}
-          </p>
-
-          <p>
-            <strong>
-              Fecha de asignación:
-            </strong>{" "}
-            {formattedAssignedAt}
-          </p>
-
-          {formattedDrawAt ? (
-            <p>
-              <strong>
-                Fecha del sorteo:
-              </strong>{" "}
-              {formattedDrawAt}
+          <div className="px-6 text-center">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              Número asignado
             </p>
-          ) : null}
-        </section>
-
-        <footer className="space-y-1 pt-5 text-xs">
-          <p>
-            <strong>Tipo:</strong>{" "}
-            {printRecord.print_type ===
-            "original"
-              ? "Impresión original"
-              : `Reimpresión ${
-                  printRecord.print_sequence -
-                  1
-                }`}
-          </p>
-
-          <p>
-            <strong>
-              Secuencia registrada:
-            </strong>{" "}
-            {printRecord.print_sequence}
-          </p>
-
-          <p>
-            <strong>
-              Fecha de impresión:
-            </strong>{" "}
-            {formattedPrintedAt}
-          </p>
-
-          {printRecord.reason ? (
-            <p>
-              <strong>Motivo:</strong>{" "}
-              {printRecord.reason}
+            <p className="mt-1 font-display text-6xl font-black leading-none tabular-nums">
+              {formattedTicketNumber}
             </p>
-          ) : null}
+          </div>
 
-          <p className="pt-3 text-center text-[10px] text-neutral-600">
-            Registro de impresión:{" "}
-            {printRecord.id}
-          </p>
-        </footer>
-      </article>
+          <dl className="mt-6 space-y-2.5 px-6 text-sm">
+            <TicketRow label="Nombre" value={purchaseRequest.full_name} />
+            <TicketRow label="DNI" value={purchaseRequest.dni} />
+            {formattedPurchasedAt ? (
+              <TicketRow label="Fecha de compra" value={formattedPurchasedAt} />
+            ) : null}
+          </dl>
+
+          {/* Pie de control de impresión (uso interno del panel). */}
+          <footer className="mt-5 border-t border-dashed border-neutral-300 px-6 py-3 text-center text-[10px] text-neutral-500">
+            {reprintLabel}
+            {formattedPrintedAt ? ` · ${formattedPrintedAt}` : ""}
+          </footer>
+        </article>
+      </div>
     </main>
+  );
+}
+
+function TicketRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-neutral-200 pb-2 last:border-0">
+      <dt className="shrink-0 text-neutral-500">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </div>
   );
 }

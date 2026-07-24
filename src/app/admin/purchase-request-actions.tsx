@@ -8,6 +8,7 @@ import {
   btnSmall,
   btnSuccess,
 } from "@/components/admin/ui";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { useState } from "react";
 
 type PurchaseRequestActionsProps = {
@@ -33,20 +34,14 @@ export function PurchaseRequestActions({
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmApprove, setConfirmApprove] = useState(false);
 
   if (status !== "pending") {
     return null;
   }
 
   async function approve() {
-    const confirmed = window.confirm(
-      "¿Confirmas la aprobación? Los tickets serán asignados de forma definitiva.",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    setConfirmApprove(false);
     setIsSubmitting(true);
     setMessage(null);
 
@@ -145,7 +140,7 @@ export function PurchaseRequestActions({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={approve}
+          onClick={() => setConfirmApprove(true)}
           disabled={isSubmitting}
           className={`${btnSuccess} ${btnSmall}`}
         >
@@ -194,6 +189,17 @@ export function PurchaseRequestActions({
           {message}
         </p>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmApprove}
+        tone="success"
+        title="Aprobar solicitud"
+        description="Se asignarán los tickets de forma definitiva. Esta acción no se puede deshacer."
+        confirmLabel="Sí, aprobar"
+        busy={isSubmitting}
+        onConfirm={() => void approve()}
+        onCancel={() => setConfirmApprove(false)}
+      />
     </div>
   );
 }

@@ -214,6 +214,26 @@ export function TrackingForm() {
                   <dd className="mt-4">
                     <Link
                       href="/seguimiento/tickets"
+                      onClick={() => {
+                        /*
+                         * Pasa el DNI + código ya escritos a la página de
+                         * tickets para no volver a pedirlos. Va por
+                         * sessionStorage (no en la URL) para no dejar el DNI
+                         * ni el código en el historial ni en el referer.
+                         */
+                        try {
+                          sessionStorage.setItem(
+                            "pd:ticket-lookup",
+                            JSON.stringify({
+                              documentType,
+                              documentNumber,
+                              trackingCode,
+                            }),
+                          );
+                        } catch {
+                          /* Modo privado sin storage: pedirá los datos una vez. */
+                        }
+                      }}
                       className="inline-flex rounded-lg border border-gold px-4 py-2 text-sm font-semibold text-gold hover:bg-gold/10"
                     >
                       Descargar / imprimir mis tickets

@@ -565,6 +565,7 @@ export type Database = {
           dni: string
           draw_at: string
           full_name: string
+          purchased_at: string
           raffle_description: string
           raffle_name: string
           ticket_numbers: number[]
