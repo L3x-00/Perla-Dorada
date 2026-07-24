@@ -163,8 +163,18 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
         </div>
       ) : null}
 
+      {/* Móvil: tarjetas. Una tabla de 8 columnas no cabe en un teléfono. */}
       {requests.length > 0 ? (
-        <div className="mt-8 overflow-x-auto rounded-xl border border-line">
+        <div className="mt-8 space-y-3 lg:hidden">
+          {requests.map((request, index) => (
+            <RequestCard key={request.id} request={request} index={index} />
+          ))}
+        </div>
+      ) : null}
+
+      {/* Escritorio: tabla completa. */}
+      {requests.length > 0 ? (
+        <div className="mt-8 hidden overflow-x-auto rounded-xl border border-line lg:block">
           <table className="min-w-full divide-y divide-line text-sm">
             <thead className="bg-ink-3 text-left">
               <tr className="text-[0.68rem] uppercase tracking-[0.14em] text-muted">
@@ -268,6 +278,123 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
         </div>
       ) : null}
     </AdminPage>
+  );
+}
+
+type RequestRow = {
+  id: string;
+  full_name: string;
+  document_type: string;
+  dni: string;
+  phone: string;
+  whatsapp: string;
+  requested_quantity: number;
+  status: PurchaseRequestStatus;
+  tracking_code: string;
+  created_at: string;
+  expires_at: string;
+  rejection_reason: string | null;
+  payment_proof_deleted_at: string | null;
+};
+
+function documentLabel(documentType: string): string {
+  return isDocumentType(documentType)
+    ? DOCUMENT_LABELS[documentType]
+    : "DNI";
+}
+
+/*
+ * Tarjeta de solicitud para móvil. Misma información que una fila de la
+ * tabla, pero apilada y con acciones cómodas para el dedo.
+ */
+function RequestCard({
+  request,
+  index,
+}: {
+  request: RequestRow;
+  index: number;
+}) {
+  return (
+    <article
+      className="rise-in rounded-xl border border-line bg-ink-2 p-4"
+      style={{ animationDelay: `${Math.min(index * 40, 400)}ms` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium text-cream">{request.full_name}</p>
+          <p className="mt-1 text-xs text-muted">
+            {documentLabel(request.document_type)}: {request.dni}
+          </p>
+          <p className="mt-1 break-all font-mono text-xs text-gold-deep">
+            {request.tracking_code}
+          </p>
+        </div>
+
+        <Badge tone={statusTones[request.status]}>
+          {statusLabels[request.status]}
+        </Badge>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <Cell label="Teléfono" value={request.phone} />
+        <Cell label="WhatsApp" value={request.whatsapp} />
+        <Cell label="Cantidad" value={String(request.requested_quantity)} />
+        <Cell
+          label="Expira"
+          value={getExpirationLabel(request.status, request.expires_at)}
+        />
+        <div className="col-span-2">
+          <dt className="text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+            Creada
+          </dt>
+          <dd className="mt-1 text-cream">{formatDate(request.created_at)}</dd>
+        </div>
+      </dl>
+
+      {request.rejection_reason ? (
+        <p className="mt-3 rounded-lg border border-red-900/50 bg-red-950/20 p-2.5 text-xs text-red-300">
+          {request.rejection_reason}
+        </p>
+      ) : null}
+
+      <div className="mt-4 border-t border-line pt-4">
+        {request.payment_proof_deleted_at ? (
+          <p className="text-xs text-muted">Comprobante eliminado</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <PaymentProofButton
+              purchaseRequestId={request.id}
+              client={{
+                fullName: request.full_name,
+                documentTypeLabel: documentLabel(request.document_type),
+                documentNumber: request.dni,
+                phone: request.phone,
+                whatsapp: request.whatsapp,
+                trackingCode: request.tracking_code,
+                requestedQuantity: request.requested_quantity,
+              }}
+            />
+            <DeleteProofButton purchaseRequestId={request.id} />
+          </div>
+        )}
+      </div>
+
+      <PurchaseRequestActions
+        purchaseRequestId={request.id}
+        status={request.status}
+      />
+    </article>
+  );
+}
+
+function Cell({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+        {label}
+      </dt>
+      <dd className="mt-1 text-cream">{value}</dd>
+    </div>
   );
 }
 

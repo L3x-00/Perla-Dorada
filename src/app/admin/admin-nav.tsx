@@ -22,25 +22,33 @@ export function AdminNav() {
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
   return (
-    <nav className="flex flex-wrap items-center gap-1">
-      {LINKS.map((link) => {
-        const active = isActive(link.href);
+    /*
+     * En móvil la navegación se desliza en horizontal (no envuelve a varias
+     * líneas ni empuja el contenido). Los márgenes negativos + padding hacen
+     * que el primer y último elemento no queden pegados al borde y que el
+     * scroll llegue de canto a canto.
+     */
+    <nav className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <div className="flex w-max items-center gap-1">
+        {LINKS.map((link) => {
+          const active = isActive(link.href);
 
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            aria-current={active ? "page" : undefined}
-            className={`rounded-lg px-3 py-2 text-sm transition-colors duration-200 ${
-              active
-                ? "bg-gold-deep/20 text-gold"
-                : "text-muted hover:text-cream"
-            }`}
-          >
-            {link.label}
-          </Link>
-        );
-      })}
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm transition-colors duration-200 ${
+                active
+                  ? "bg-gold-deep/20 text-gold"
+                  : "text-muted hover:text-cream"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

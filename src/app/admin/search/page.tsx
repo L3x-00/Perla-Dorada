@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 
 import { TicketPrintAction } from "@/app/admin/ticket-print-action";
-import { btnPrimary } from "@/components/admin/ui";
+import {
+  AdminPage,
+  AdminPageHeader,
+  btnPrimary,
+} from "@/components/admin/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -73,6 +77,7 @@ function formatDate(value: string) {
     {
       dateStyle: "medium",
       timeStyle: "short",
+      timeZone: "America/Lima",
     },
   ).format(date);
 }
@@ -486,19 +491,14 @@ export default async function AdminSearchPage({
     purchaseRequests.length > 0;
 
   return (
-    <main className="p-6">
-      <header>
-        <h1 className="text-2xl font-bold">
-          Buscar solicitudes y tickets
-        </h1>
+    <AdminPage wide>
+      <AdminPageHeader
+        eyebrow="Panel"
+        title="Buscar solicitudes y tickets"
+        description="Busca por DNI parcial o completo, o por número exacto de ticket."
+      />
 
-        <p className="mt-1 text-sm text-muted">
-          Busca por DNI parcial o completo,
-          o por número exacto de ticket.
-        </p>
-      </header>
-
-      <form className="mt-6 flex max-w-2xl flex-col gap-3 sm:flex-row">
+      <form className="mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row">
         <label
           htmlFor="admin-search"
           className="sr-only"
@@ -714,6 +714,6 @@ export default async function AdminSearchPage({
           )}
         </section>
       ) : null}
-    </main>
+    </AdminPage>
   );
 }

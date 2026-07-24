@@ -142,8 +142,13 @@ export function PaymentProofButton({
               </button>
             </header>
 
-            <div className="grid min-h-0 flex-1 gap-0 overflow-hidden md:grid-cols-[1fr_260px]">
-              <div className="flex min-h-0 items-center justify-center overflow-auto bg-ink p-4">
+            {/*
+              Móvil: el cuerpo entero se desplaza en vertical (imagen y luego
+              datos). Escritorio: dos columnas independientes que se desplazan
+              por separado.
+            */}
+            <div className="flex-1 overflow-y-auto md:grid md:min-h-0 md:grid-cols-[1fr_260px] md:overflow-hidden">
+              <div className="flex items-center justify-center bg-ink p-4 md:min-h-0 md:overflow-auto">
                 {isLoading ? (
                   <p className="text-sm text-muted">Cargando comprobante…</p>
                 ) : errorMessage ? (
@@ -165,7 +170,7 @@ export function PaymentProofButton({
                 ) : null}
               </div>
 
-              <dl className="space-y-4 overflow-auto border-t border-line p-5 text-sm md:border-l md:border-t-0">
+              <dl className="space-y-4 border-t border-line p-5 text-sm md:border-l md:border-t-0 md:overflow-auto">
                 <Detail label={client.documentTypeLabel}>
                   {client.documentNumber}
                 </Detail>

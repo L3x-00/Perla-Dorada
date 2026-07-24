@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { TicketPrintAction } from "@/app/admin/ticket-print-action";
+import {
+  AdminPage,
+  AdminPageHeader,
+  EmptyState,
+} from "@/components/admin/ui";
+import { formatDateTime } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -194,29 +200,91 @@ export default async function AdminTicketsPage() {
     );
   }
 
-  return (
-    <main className="p-6">
-      <header>
-        <h1 className="text-2xl font-bold">
-          Tickets asignados
-        </h1>
+  const rows = tickets.map((ticket) => ({
+    ticket,
+    raffleName: raffleById.get(ticket.raffle_id)?.name ?? "Rifa no encontrada",
+    request: purchaseRequestById.get(ticket.purchase_request_id),
+    previousPrints: printCountByTicketId.get(ticket.id) ?? 0,
+  }));
 
-        <p className="mt-1 text-sm text-muted">
-          Impresión original y control de
-          reimpresiones.
-        </p>
-      </header>
+  return (
+    <AdminPage wide>
+      <AdminPageHeader
+        eyebrow="Panel"
+        title="Tickets asignados"
+        description="Impresión original y control de reimpresiones. Se muestran los 200 más recientes."
+      />
 
       {tickets.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-line p-6">
-          <p className="text-sm text-muted">
-            Todavía no existen tickets
-            asignados.
-          </p>
+        <div className="mt-8">
+          <EmptyState
+            title="Sin tickets"
+            description="Todavía no existen tickets asignados."
+          />
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-line">
-          <table className="w-full min-w-[900px] text-left text-sm">
+        <>
+          {/* Móvil: tarjetas */}
+          <div className="mt-8 space-y-3 lg:hidden">
+            {rows.map(({ ticket, raffleName, request, previousPrints }, i) => (
+              <article
+                key={ticket.id}
+                className="rise-in rounded-xl border border-line bg-ink-2 p-4"
+                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-display text-3xl font-light tabular-nums text-cream">
+                      {String(ticket.ticket_number).padStart(4, "0")}
+                    </p>
+                    <p className="mt-1 truncate text-sm text-cream">
+                      {request?.full_name ?? "Solicitud no encontrada"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      DNI {request?.dni ?? "—"} · {raffleName}
+                    </p>
+                  </div>
+                </div>
+
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <div>
+                    <dt className="text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+                      Asignado
+                    </dt>
+                    <dd className="mt-1 text-cream">
+                      {formatDateTime(ticket.assigned_at)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+                      Reimpresiones
+                    </dt>
+                    <dd className="mt-1 text-cream">
+                      {Math.max(previousPrints - 1, 0)}/{maxReprints}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-4 border-t border-line pt-4">
+                  {request?.status === "approved" ? (
+                    <TicketPrintAction
+                      ticketId={ticket.id}
+                      previousPrints={previousPrints}
+                      maxReprints={maxReprints}
+                    />
+                  ) : (
+                    <p className="text-xs text-red-400">
+                      La solicitud no está aprobada.
+                    </p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Escritorio: tabla */}
+          <div className="mt-8 hidden overflow-x-auto rounded-xl border border-line lg:block">
+            <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-ink-2">
               <tr>
                 <th className="px-4 py-3">
@@ -287,17 +355,7 @@ export default async function AdminTicketsPage() {
                     </td>
 
                     <td className="px-4 py-4">
-                      {new Intl.DateTimeFormat(
-                        "es-PE",
-                        {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        },
-                      ).format(
-                        new Date(
-                          ticket.assigned_at,
-                        ),
-                      )}
+                      {formatDateTime(ticket.assigned_at)}
                     </td>
 
                     <td className="px-4 py-4">
@@ -340,8 +398,9 @@ export default async function AdminTicketsPage() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
-    </main>
+    </AdminPage>
   );
 }

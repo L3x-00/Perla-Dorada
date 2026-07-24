@@ -75,6 +75,32 @@ body {
   color: transparent;
 }
 
+/* Barra que se desliza en móvil sin mostrar la barra de scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Entrada suave para tarjetas de listas (paneles admin en móvil) */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.5s var(--ease-lux) both;
+}
+
 /* Respeta a quien pide menos movimiento */
 @media (prefers-reduced-motion: reduce) {
   *,
