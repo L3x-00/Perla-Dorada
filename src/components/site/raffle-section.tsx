@@ -1,9 +1,8 @@
 import { DrawCountdown } from "@/components/site/draw-countdown";
 import { HowToParticipate } from "@/components/site/how-to-participate";
 import { GemIcon } from "@/components/site/icons";
-import { PaymentInfo } from "@/components/site/payment-info";
+import { Participate } from "@/components/site/participate";
 import { Reveal } from "@/components/site/reveal";
-import { PurchaseForm } from "@/app/purchase-form";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import type { ActivePublicRaffle } from "@/lib/raffles/public-raffle";
 
@@ -34,38 +33,44 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
   return (
     <section id="sorteo" className="scroll-mt-24 border-t border-line">
       <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
-        <div className="grid gap-14 lg:grid-cols-2 lg:items-start lg:gap-20">
-          {/* Premio */}
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="eyebrow text-gold">Sorteo vigente</p>
+            <h2 className="mt-4 font-display text-4xl font-light leading-tight text-cream sm:text-5xl">
+              {raffle.name}
+            </h2>
+            {raffle.description ? (
+              <p className="mx-auto mt-5 max-w-xl whitespace-pre-line text-base leading-relaxed text-muted">
+                {raffle.description}
+              </p>
+            ) : null}
+          </div>
+        </Reveal>
+
+        <div className="mt-14 grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+          {/* Foto del premio */}
           <Reveal>
-            <div className="lg:sticky lg:top-28">
-              <p className="eyebrow text-gold">Sorteo vigente</p>
-              <h2 className="mt-4 font-display text-4xl font-light leading-tight text-cream sm:text-5xl">
-                {raffle.name}
-              </h2>
+            <div className="overflow-hidden rounded-2xl border border-line bg-ink-2">
+              {raffle.imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={raffle.imageUrl}
+                  alt={`Premio: ${raffle.name}`}
+                  className="aspect-[4/3] w-full object-cover"
+                />
+              ) : (
+                <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 text-muted">
+                  <GemIcon className="h-10 w-10 text-gold-deep" />
+                  <span className="eyebrow">Premio del sorteo</span>
+                </div>
+              )}
+            </div>
+          </Reveal>
 
-              {raffle.description ? (
-                <p className="mt-5 max-w-md whitespace-pre-line text-base leading-relaxed text-muted">
-                  {raffle.description}
-                </p>
-              ) : null}
-
-              <div className="mt-9 overflow-hidden rounded-2xl border border-line bg-ink-2">
-                {raffle.imageUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={raffle.imageUrl}
-                    alt={`Premio: ${raffle.name}`}
-                    className="aspect-[4/3] w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 text-muted">
-                    <GemIcon className="h-9 w-9 text-gold-deep" />
-                    <span className="eyebrow">Premio del sorteo</span>
-                  </div>
-                )}
-              </div>
-
-              <dl className="mt-9 grid grid-cols-2 gap-x-8 gap-y-6">
+          {/* Datos + llamada a participar */}
+          <Reveal delay={0.1}>
+            <div>
+              <dl className="grid grid-cols-2 gap-x-8 gap-y-6">
                 <Stat
                   label="Precio por boleto"
                   value={formatCurrencyPEN(raffle.ticketPrice)}
@@ -92,7 +97,7 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
               </div>
 
               {raffle.drawAt ? (
-                <div className="mt-10">
+                <div className="mt-9">
                   <DrawCountdown drawAt={raffle.drawAt} />
                   {drawAt ? (
                     <p className="mt-4 text-sm text-muted">
@@ -101,59 +106,45 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
                   ) : null}
                 </div>
               ) : null}
+
+              <div className="mt-10">
+                {raffle.maintenanceMode ? (
+                  <div className="rounded-2xl border border-line bg-ink-2 p-6">
+                    <h3 className="font-display text-xl font-light text-cream">
+                      Portal en mantenimiento
+                    </h3>
+                    <p className="mt-2.5 text-sm leading-relaxed text-muted">
+                      {raffle.maintenanceMessage?.trim()
+                        ? raffle.maintenanceMessage
+                        : "Estamos realizando tareas de mantenimiento. Por ahora no es posible registrar nuevas solicitudes. Inténtalo más tarde."}
+                    </p>
+                  </div>
+                ) : soldOut ? (
+                  <div className="rounded-2xl border border-line bg-ink-2 p-6">
+                    <h3 className="font-display text-xl font-light text-cream">
+                      Boletos agotados
+                    </h3>
+                    <p className="mt-2.5 text-sm leading-relaxed text-muted">
+                      Ya no quedan boletos para este sorteo. Si tienes una
+                      solicitud pendiente, puedes consultar su estado.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <Participate
+                      ticketPrice={raffle.ticketPrice}
+                      available={raffle.available}
+                      raffleName={raffle.name}
+                    />
+                    <p className="mt-4 text-sm leading-relaxed text-muted">
+                      Completas tus datos, yapeas y subes tu comprobante. La
+                      reserva se mantiene mientras validamos tu pago.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           </Reveal>
-
-          {/* Compra */}
-          <div className="space-y-10">
-            <PaymentInfo />
-
-            <Reveal>
-              <div>
-                <p className="eyebrow text-gold">Reserva tus boletos</p>
-                <h3 className="mt-4 font-display text-3xl font-light text-cream">
-                  Completa tu solicitud
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted">
-                  La reserva se mantiene mientras validamos tu comprobante.
-                </p>
-              </div>
-            </Reveal>
-
-            {raffle.maintenanceMode ? (
-              <Reveal>
-                <div className="rounded-2xl border border-line bg-ink-2 p-7">
-                  <h4 className="font-display text-2xl font-light text-cream">
-                    Portal en mantenimiento
-                  </h4>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">
-                    {raffle.maintenanceMessage?.trim()
-                      ? raffle.maintenanceMessage
-                      : "Estamos realizando tareas de mantenimiento. Por ahora no es posible registrar nuevas solicitudes. Inténtalo más tarde."}
-                  </p>
-                </div>
-              </Reveal>
-            ) : soldOut ? (
-              <Reveal>
-                <div className="rounded-2xl border border-line bg-ink-2 p-7">
-                  <h4 className="font-display text-2xl font-light text-cream">
-                    Boletos agotados
-                  </h4>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">
-                    Ya no quedan boletos para este sorteo. Si tienes una
-                    solicitud pendiente, puedes consultar su estado.
-                  </p>
-                </div>
-              </Reveal>
-            ) : (
-              <Reveal>
-                <PurchaseForm
-                  ticketPrice={raffle.ticketPrice}
-                  available={raffle.available}
-                />
-              </Reveal>
-            )}
-          </div>
         </div>
 
         <div className="mt-24">

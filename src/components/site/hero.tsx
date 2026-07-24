@@ -68,18 +68,8 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
               <ArrowRightIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           ) : null}
-
-          <Link
-            href="#coleccion"
-            className="inline-flex items-center gap-2.5 rounded-full border border-line px-7 py-3.5 text-sm font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
-          >
-            Ver la colección
-          </Link>
         </motion.div>
       </div>
-
-      {/* Filo dorado que cierra la portada */}
-      <div aria-hidden className="hairline absolute inset-x-0 bottom-0" />
     </section>
   );
 }
