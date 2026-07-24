@@ -84,3 +84,12 @@ export function createRaffleImagePath(
 ): string {
   return `raffles/${raffleId}/${crypto.randomUUID()}.${extension}`;
 }
+
+/*
+ * Ruta para una foto subida ANTES de que exista la rifa (premio mayor o
+ * premios de la lista, desde el formulario de creación). Vive en la carpeta
+ * "prizes/" del mismo bucket público; la rifa la referencia al guardarse.
+ */
+export function createStagedPrizeImagePath(extension: string): string {
+  return `prizes/${crypto.randomUUID()}.${extension}`;
+}

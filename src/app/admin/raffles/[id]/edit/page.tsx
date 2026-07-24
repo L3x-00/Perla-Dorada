@@ -10,6 +10,7 @@ import {
 } from "../../raffle-form";
 import { RaffleImageUpload } from "../../raffle-image-upload";
 import { isoToLimaInput } from "@/lib/datetime-lima";
+import { prizesFromDbJson } from "@/lib/raffles/prizes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -63,7 +64,8 @@ export default async function EditRafflePage({
         starts_at,
         closes_at,
         draw_at,
-        image_path
+        image_path,
+        prizes
       `,
     )
     .eq("id", id)
@@ -146,6 +148,7 @@ export default async function EditRafflePage({
             mode="edit"
             raffleId={raffle.id}
             initialValues={initialValues}
+            initialPrizes={prizesFromDbJson(raffle.prizes)}
           />
         </div>
       </div>

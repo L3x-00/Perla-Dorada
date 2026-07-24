@@ -593,15 +593,15 @@ function YapePanel() {
 
       {configured ? (
         <>
-          {brand.payment.yapeNumber ? (
+          {brand.payment.qrImage ? (
             <div className="mx-auto mt-5 w-fit rounded-xl border border-line bg-cream p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={brand.payment.qrImage}
                 alt="Código QR de Yape"
-                width={150}
-                height={150}
-                className="h-[150px] w-[150px] object-contain"
+                width={170}
+                height={170}
+                className="h-[170px] w-[170px] object-contain"
               />
             </div>
           ) : null}

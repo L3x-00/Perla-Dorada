@@ -1,10 +1,16 @@
 import { DrawCountdown } from "@/components/site/draw-countdown";
 import { HowToParticipate } from "@/components/site/how-to-participate";
-import { GemIcon } from "@/components/site/icons";
 import { Participate } from "@/components/site/participate";
+import { PrizeShowcase } from "@/components/site/prize-showcase";
 import { Reveal } from "@/components/site/reveal";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import type { ActivePublicRaffle } from "@/lib/raffles/public-raffle";
+
+/*
+ * Si el sorteo aún no tiene fotos propias, la vitrina muestra las piezas de
+ * marca de public/marca/og para no quedar vacía y seguir animando.
+ */
+const FALLBACK_PRIZE_IMAGES = ["/marca/og/moto2.webp", "/marca/og/moto.webp"];
 
 type RaffleSectionProps = {
   raffle: ActivePublicRaffle;
@@ -30,6 +36,25 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
       ? Math.min(Math.round((vendidos / raffle.totalTickets) * 100), 100)
       : 0;
 
+  /*
+   * Vitrina: foto del premio mayor + fotos de cada premio de la lista, sin
+   * repetir. Si no hay ninguna, se recurre a las piezas de marca.
+   */
+  const prizeImages = raffle.prizes
+    .map((prize) => prize.imageUrl)
+    .filter((url): url is string => url !== null);
+
+  const showcaseImages = [
+    ...new Set(
+      [raffle.imageUrl, ...prizeImages].filter(
+        (url): url is string => url !== null,
+      ),
+    ),
+  ];
+
+  const images =
+    showcaseImages.length > 0 ? showcaseImages : FALLBACK_PRIZE_IMAGES;
+
   return (
     <section id="sorteo" className="scroll-mt-24 border-t border-line">
       <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
@@ -48,23 +73,9 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
         </Reveal>
 
         <div className="mt-14 grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
-          {/* Foto del premio */}
+          {/* Vitrina del premio (fundido + destellos) */}
           <Reveal>
-            <div className="overflow-hidden rounded-2xl border border-line bg-ink-2">
-              {raffle.imageUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={raffle.imageUrl}
-                  alt={`Premio: ${raffle.name}`}
-                  className="aspect-[4/3] w-full object-cover"
-                />
-              ) : (
-                <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 text-muted">
-                  <GemIcon className="h-10 w-10 text-gold-deep" />
-                  <span className="eyebrow">Premio del sorteo</span>
-                </div>
-              )}
-            </div>
+            <PrizeShowcase images={images} alt={`Premio: ${raffle.name}`} />
           </Reveal>
 
           {/* Datos + llamada a participar */}
@@ -80,6 +91,27 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
                   value={String(raffle.available)}
                 />
               </dl>
+
+              {raffle.prizes.length > 0 ? (
+                <div className="mt-8">
+                  <p className="eyebrow text-muted">
+                    {raffle.prizes.length === 1 ? "Premio" : "Premios"}
+                  </p>
+                  <ul className="mt-4 space-y-3">
+                    {raffle.prizes.map((prize, index) => (
+                      <li
+                        key={index}
+                        className="flex items-center gap-3 border-t border-line pt-3"
+                      >
+                        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-gold/40 px-2 text-sm tabular-nums text-gold">
+                          {prize.quantity}
+                        </span>
+                        <span className="text-cream">{prize.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="mt-8">
                 <div className="flex items-baseline justify-between">

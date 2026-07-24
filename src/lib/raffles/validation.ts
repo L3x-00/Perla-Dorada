@@ -1,3 +1,9 @@
+import {
+  parseHeroImagePath,
+  parseRafflePrizes,
+  type RafflePrize,
+} from "@/lib/raffles/prizes";
+
 export type RaffleInput = {
   name: string;
   description: string | null;
@@ -6,6 +12,8 @@ export type RaffleInput = {
   startsAt: string | null;
   closesAt: string | null;
   drawAt: string | null;
+  imagePath: string | null;
+  prizes: RafflePrize[];
 };
 
 export type RawRaffleInput =
@@ -17,6 +25,8 @@ export type RawRaffleInput =
     startsAt?: unknown;
     closesAt?: unknown;
     drawAt?: unknown;
+    imagePath?: unknown;
+    prizes?: unknown;
   };
 
 function parseOptionalDate(
@@ -148,6 +158,9 @@ export function parseRaffleInput(
     );
   }
 
+  const imagePath = parseHeroImagePath(body.imagePath);
+  const prizes = parseRafflePrizes(body.prizes);
+
   return {
     name,
     description,
@@ -156,5 +169,7 @@ export function parseRaffleInput(
     startsAt,
     closesAt,
     drawAt,
+    imagePath,
+    prizes,
   };
 }

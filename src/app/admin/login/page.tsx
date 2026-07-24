@@ -10,7 +10,7 @@ import {
   adminLabel,
   btnPrimary,
 } from "@/components/admin/ui";
-import { Wordmark } from "@/components/site/wordmark";
+import { BrandLogo } from "@/components/site/brand-logo";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
 
       <section className="relative w-full max-w-sm">
         <div className="flex justify-center">
-          <Wordmark />
+          <BrandLogo className="h-auto w-44 sm:w-52" />
         </div>
 
         <div className="mt-10 rounded-2xl border border-line bg-ink-2 p-7">

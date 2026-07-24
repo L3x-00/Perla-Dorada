@@ -88,14 +88,20 @@ export async function DELETE(
     }
   }
 
-  if (data?.image_path) {
+  /* Foto del premio mayor + fotos de cada premio de la lista. */
+  const raffleImagePaths = [
+    data?.image_path ?? null,
+    ...(data?.prize_image_paths ?? []),
+  ].filter((path): path is string => Boolean(path));
+
+  if (raffleImagePaths.length > 0) {
     const { error: imageError } = await supabase.storage
       .from(RAFFLE_IMAGES_BUCKET)
-      .remove([data.image_path]);
+      .remove(raffleImagePaths);
 
     if (imageError) {
-      console.error("No se pudo borrar la foto del premio:", imageError);
-      orphanedPaths.push(data.image_path);
+      console.error("No se pudieron borrar fotos de premios:", imageError);
+      orphanedPaths.push(...raffleImagePaths);
     }
   }
 

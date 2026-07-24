@@ -1,7 +1,14 @@
 import "server-only";
 
+import { prizesFromDbJson } from "@/lib/raffles/prizes";
 import { raffleImageUrl } from "@/lib/storage/public-url";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+export type PublicPrize = {
+  title: string;
+  quantity: number;
+  imageUrl: string | null;
+};
 
 /*
  * Lectura pública de la rifa activa.
@@ -25,6 +32,7 @@ export type ActivePublicRaffle = {
   available: number;
   totalTickets: number;
   imageUrl: string | null;
+  prizes: PublicPrize[];
   maintenanceMode: boolean;
   maintenanceMessage: string | null;
 };
@@ -50,7 +58,7 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
   const { data: raffle, error: raffleError } = await supabase
     .from("raffles")
     .select(
-      "id, name, description, ticket_price, total_tickets, draw_at, closes_at, image_path",
+      "id, name, description, ticket_price, total_tickets, draw_at, closes_at, image_path, prizes",
     )
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -101,6 +109,14 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
     0,
   );
 
+  const prizes: PublicPrize[] = prizesFromDbJson(raffle.prizes).map(
+    (prize) => ({
+      title: prize.title,
+      quantity: prize.quantity,
+      imageUrl: raffleImageUrl(prize.imagePath),
+    }),
+  );
+
   return {
     name: raffle.name,
     description: raffle.description,
@@ -110,6 +126,7 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
     available,
     totalTickets: raffle.total_tickets,
     imageUrl: raffleImageUrl(raffle.image_path),
+    prizes,
     maintenanceMode,
     maintenanceMessage,
   };

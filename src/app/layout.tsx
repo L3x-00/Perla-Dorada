@@ -32,13 +32,18 @@ export const metadata: Metadata = {
     template: `%s · ${brand.name}`,
   },
   description: brand.description,
+  icons: {
+    icon: "/marca/logo/logo.webp",
+    shortcut: "/marca/logo/logo.webp",
+    apple: "/marca/logo/logo.webp",
+  },
   openGraph: {
     type: "website",
     locale: "es_PE",
     siteName: brand.name,
     title: `${brand.name} · ${brand.tagline}`,
     description: brand.description,
-    images: ["/marca/og/og.jpg"],
+    images: ["/marca/og/moto2.webp", "/marca/og/moto.webp"],
   },
   robots: { index: true, follow: true },
 };

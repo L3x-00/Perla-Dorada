@@ -247,6 +247,7 @@ export type Database = {
           id: string
           image_path: string | null
           name: string
+          prizes: Json
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number
@@ -263,6 +264,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           name: string
+          prizes?: Json
           starts_at?: string | null
           status?: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number
@@ -279,6 +281,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           name?: string
+          prizes?: Json
           starts_at?: string | null
           status?: Database["public"]["Enums"]["raffle_status"]
           ticket_price?: number
@@ -381,6 +384,7 @@ export type Database = {
           id: string
           image_path: string | null
           name: string
+          prizes: Json
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number
@@ -417,6 +421,7 @@ export type Database = {
           id: string
           image_path: string | null
           name: string
+          prizes: Json
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number
@@ -464,6 +469,7 @@ export type Database = {
           id: string
           image_path: string | null
           name: string
+          prizes: Json
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number
@@ -501,7 +507,9 @@ export type Database = {
           p_closes_at: string
           p_description: string
           p_draw_at: string
+          p_image_path?: string
           p_name: string
+          p_prizes?: Json
           p_starts_at: string
           p_ticket_price: number
           p_total_tickets: number
@@ -516,6 +524,7 @@ export type Database = {
           id: string
           image_path: string | null
           name: string
+          prizes: Json
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number
@@ -543,6 +552,7 @@ export type Database = {
           deleted_tickets: number
           image_path: string
           payment_proof_paths: string[]
+          prize_image_paths: string[]
           raffle_name: string
           raffle_status: Database["public"]["Enums"]["raffle_status"]
         }[]
@@ -570,6 +580,7 @@ export type Database = {
         }[]
       }
       normalize_document_number: { Args: { p_value: string }; Returns: string }
+      normalize_raffle_prizes: { Args: { p_prizes: Json }; Returns: Json }
       normalize_tracking_code: { Args: { p_value: string }; Returns: string }
       purge_rate_limits: {
         Args: { p_retention_days?: number }
@@ -665,6 +676,7 @@ export type Database = {
           p_description: string
           p_draw_at: string
           p_name: string
+          p_prizes?: Json
           p_raffle_id: string
           p_starts_at: string
           p_ticket_price: number
@@ -680,6 +692,7 @@ export type Database = {
           id: string
           image_path: string | null
           name: string
+          prizes: Json
           starts_at: string | null
           status: Database["public"]["Enums"]["raffle_status"]
           ticket_price: number

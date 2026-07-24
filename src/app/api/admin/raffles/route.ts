@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { recordAuditEvent } from "@/lib/audit/log";
 import { mapRaffleDatabaseError } from "@/lib/raffles/errors";
+import { prizesToDbJson } from "@/lib/raffles/prizes";
 import { parseRaffleInput } from "@/lib/raffles/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -113,6 +114,8 @@ const rpcArguments = {
   p_starts_at: input.startsAt,
   p_closes_at: input.closesAt,
   p_draw_at: input.drawAt,
+  p_image_path: input.imagePath,
+  p_prizes: prizesToDbJson(input.prizes),
 } as unknown as Database["public"]["Functions"]["create_raffle"]["Args"];
 
 const {

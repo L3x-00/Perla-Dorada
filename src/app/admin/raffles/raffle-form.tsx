@@ -15,6 +15,10 @@ import {
 } from "react";
 
 import { limaInputToIso } from "@/lib/datetime-lima";
+import { type RafflePrize } from "@/lib/raffles/prizes";
+
+import { PrizeFields } from "./prize-fields";
+import { StagedImageInput } from "./staged-image-input";
 
 export type RaffleFormValues = {
   name: string;
@@ -31,11 +35,13 @@ type RaffleFormProps =
       mode: "create";
       raffleId?: never;
       initialValues?: Partial<RaffleFormValues>;
+      initialPrizes?: RafflePrize[];
     }
   | {
       mode: "edit";
       raffleId: string;
       initialValues: RaffleFormValues;
+      initialPrizes?: RafflePrize[];
     };
 
 type ApiResponse = {
@@ -88,6 +94,17 @@ export function RaffleForm(
     useState<RaffleFormValues>(() =>
       getInitialValues(props.initialValues),
     );
+
+  const [prizes, setPrizes] = useState<RafflePrize[]>(
+    () => props.initialPrizes ?? [],
+  );
+
+  /*
+   * Foto del premio mayor. En "crear" se sube en staging aquí mismo; en
+   * "editar" la gestiona RaffleImageUpload en la página, así que este control
+   * no aparece en ese modo.
+   */
+  const [heroImagePath, setHeroImagePath] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -218,6 +235,28 @@ export function RaffleForm(
       return;
     }
 
+    /*
+     * Filas de premio vacías (sin nombre ni foto) se descartan en silencio;
+     * una con foto pero sin nombre es un error del usuario que hay que avisar.
+     */
+    const cleanedPrizes = prizes
+      .map((prize) => ({
+        title: prize.title.trim(),
+        quantity:
+          Number.isInteger(prize.quantity) && prize.quantity >= 1
+            ? prize.quantity
+            : 1,
+        imagePath: prize.imagePath,
+      }))
+      .filter(
+        (prize) => prize.title.length > 0 || prize.imagePath !== null,
+      );
+
+    if (cleanedPrizes.some((prize) => prize.title.length === 0)) {
+      setErrorMessage("Cada premio necesita un nombre.");
+      return;
+    }
+
     const requestBody = {
       ...(props.mode === "edit"
         ? {
@@ -232,6 +271,12 @@ export function RaffleForm(
       startsAt,
       closesAt,
       drawAt,
+      prizes: cleanedPrizes,
+      ...(props.mode === "create"
+        ? {
+            imagePath: heroImagePath,
+          }
+        : {}),
     };
 
     const endpoint =
@@ -460,6 +505,33 @@ export function RaffleForm(
           Las fechas se interpretan en la hora de Perú (Lima).
         </p>
       </section>
+
+      {props.mode === "create" ? (
+        <section className="grid gap-4 rounded-xl border border-line bg-ink-2 p-5 sm:p-6">
+          <div>
+            <h2 className="font-display text-xl font-light text-cream">
+              Foto del premio mayor
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Es la imagen principal que verá el público. Podrás cambiarla luego
+              desde la edición de la rifa.
+            </p>
+          </div>
+
+          <StagedImageInput
+            path={heroImagePath}
+            disabled={isSubmitting}
+            addLabel="Subir foto del premio mayor"
+            onChange={setHeroImagePath}
+          />
+        </section>
+      ) : null}
+
+      <PrizeFields
+        prizes={prizes}
+        disabled={isSubmitting}
+        onChange={setPrizes}
+      />
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link

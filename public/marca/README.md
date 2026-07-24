@@ -12,15 +12,12 @@ Los nombres de archivo importan: el código los busca exactamente así.
 
 | Archivo | Qué es | Formato |
 |---|---|---|
-| `logo-horizontal.svg` | Logo con texto, para la cabecera | SVG preferible (PNG con fondo transparente sirve) |
-| `isotipo.svg` | Solo el símbolo, sin texto | SVG |
-| `logo-blanco.svg` | Versión monocroma clara, para fondos oscuros | SVG |
+| `logo.webp` | Logo completo (emblema + nombre), oro sobre transparente | WEBP con canal alfa · **presente** |
 
-Mientras no exista `logo-horizontal.svg`, la cabecera muestra un logotipo
-tipográfico provisional hecho en código. Se ve digno, pero conviene sustituirlo
-por el logo real.
-
-**Favicon:** reemplaza `src/app/favicon.ico` (32×32 o 48×48).
+`logo.webp` se usa en el acceso administrativo, en el pie del sitio y como
+favicon (`src/app/layout.tsx` → `metadata.icons`). La cabecera y el panel siguen
+con el Wordmark tipográfico (`src/components/site/wordmark.tsx`): en una barra
+estrecha el lockup cuadrado no se lee bien.
 
 ---
 
@@ -44,11 +41,11 @@ Si prefieres JPG, cambia la extensión en `src/config/vitrina.ts`.
 
 | Archivo | Qué es |
 |---|---|
-| `yape-qr.png` | Captura del QR de Yape del negocio |
+| `qr.webp` | Captura del QR de Yape del negocio · **presente** |
 
-Además del QR, completa en `src/config/brand.ts` el titular y el número de Yape.
-**Sin estos datos el participante no sabe a dónde pagar** y la sección de pago
-no se muestra.
+Con solo el QR ya se muestra el bloque de pago. Para completarlo, agrega en
+`src/config/brand.ts` el titular y el número de Yape (`payment.holder` y
+`payment.yapeNumber`); mientras estén vacíos, se ocultan solos.
 
 ---
 
@@ -56,9 +53,12 @@ no se muestra.
 
 | Archivo | Qué es | Tamaño |
 |---|---|---|
-| `og.jpg` | Imagen que se ve al compartir el enlace en WhatsApp, Facebook, etc. | 1200×630 px |
+| `moto2.webp` | Afiche del premio (oro) · se comparte al enviar el enlace | vertical · **presente** |
+| `moto.webp` | Afiche alterno del premio (morado) | vertical · **presente** |
 
-Ideal: una pieza destacada sobre fondo oscuro, con el logo discreto en una esquina.
+Estas dos piezas son la imagen Open Graph (`src/app/layout.tsx`) y, si el sorteo
+activo todavía no tiene fotos propias, la vitrina animada del premio las usa como
+respaldo (`src/components/site/raffle-section.tsx`).
 
 ---
 

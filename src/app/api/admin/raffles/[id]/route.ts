@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { RAFFLE_IMAGES_BUCKET } from "@/config/storage";
 import {
   isRaffleAction,
   type RaffleAction,
 } from "@/lib/raffles/actions";
 import { mapRaffleDatabaseError } from "@/lib/raffles/errors";
+import {
+  prizesFromDbJson,
+  prizesToDbJson,
+} from "@/lib/raffles/prizes";
 import {
   parseRaffleInput,
   type RaffleInput,
@@ -122,6 +127,23 @@ async function updateRaffle(
   }
 
   /*
+   * Fotos de premios ANTES de reemplazar la lista: al guardar, los premios
+   * que ya no estén dejan huérfana su imagen en Storage. Se leen aquí para
+   * borrar solo las que desaparezcan.
+   */
+  const { data: currentRaffle } = await adminClient
+    .from("raffles")
+    .select("prizes")
+    .eq("id", raffleId)
+    .maybeSingle();
+
+  const previousImagePaths = new Set(
+    prizesFromDbJson(currentRaffle?.prizes)
+      .map((prize) => prize.imagePath)
+      .filter((path): path is string => path !== null),
+  );
+
+  /*
    * Supabase puede generar algunos parámetros timestamptz
    * como string aunque la función PostgreSQL acepte NULL.
    * El cast mantiene la llamada alineada con la firma RPC.
@@ -136,6 +158,7 @@ async function updateRaffle(
     p_starts_at: input.startsAt,
     p_closes_at: input.closesAt,
     p_draw_at: input.drawAt,
+    p_prizes: prizesToDbJson(input.prizes),
   } as unknown as Database["public"]["Functions"]["update_raffle"]["Args"];
 
   const { error } = await adminClient.rpc(
@@ -148,6 +171,30 @@ async function updateRaffle(
       "update",
       error,
     );
+  }
+
+  /* Limpieza best-effort de las fotos de premios que se quitaron. */
+  const nextImagePaths = new Set(
+    input.prizes
+      .map((prize) => prize.imagePath)
+      .filter((path): path is string => path !== null),
+  );
+
+  const orphanedPaths = [...previousImagePaths].filter(
+    (path) => !nextImagePaths.has(path),
+  );
+
+  if (orphanedPaths.length > 0) {
+    const { error: removeError } = await adminClient.storage
+      .from(RAFFLE_IMAGES_BUCKET)
+      .remove(orphanedPaths);
+
+    if (removeError) {
+      console.error(
+        "No se pudieron borrar fotos de premios huérfanas:",
+        removeError,
+      );
+    }
   }
 
   await recordAuditEvent({

@@ -28,8 +28,8 @@ export const brand = {
 
   social: {
     instagram: "",
-    tiktok: "",
-    facebook: "",
+    tiktok: "https://www.tiktok.com/@joyeriaperladorada12",
+    facebook: "https://www.facebook.com/joyeriaperladorada0",
   },
 
   /** Datos de pago que ve el participante para pagar su boleto. */
@@ -38,8 +38,8 @@ export const brand = {
     holder: "",
     /** Número de Yape, p. ej. "987 654 321". */
     yapeNumber: "",
-    /** Coloca la imagen en public/marca/pago/yape-qr.png */
-    qrImage: "/marca/pago/yape-qr.png",
+    /** QR de Yape en public/marca/pago/qr.webp */
+    qrImage: "/marca/pago/qr.webp",
   },
 
   legal: {
@@ -68,9 +68,10 @@ export function whatsappLink(message?: string): string | null {
   return `https://wa.me/${number}${query}`;
 }
 
-/** true cuando ya hay datos suficientes para mostrar cómo pagar. */
+/** true cuando ya hay con qué pagar: el QR basta, aunque falte el número. */
 export function hasPaymentInfo(): boolean {
   return (
+    brand.payment.qrImage.trim().length > 0 ||
     brand.payment.yapeNumber.trim().length > 0 ||
     brand.payment.holder.trim().length > 0
   );

@@ -8,7 +8,7 @@ import {
   TiktokIcon,
   WhatsappIcon,
 } from "@/components/site/icons";
-import { Wordmark } from "@/components/site/wordmark";
+import { BrandLogo } from "@/components/site/brand-logo";
 import { activeSocialLinks, brand, whatsappLink } from "@/config/brand";
 
 const SOCIAL_META = {
@@ -36,7 +36,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
-            <Wordmark />
+            <BrandLogo className="h-auto w-32" />
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
               {brand.description}
             </p>
