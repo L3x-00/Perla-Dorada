@@ -161,7 +161,11 @@ export default async function RafflesPage() {
                 </div>
 
                 <div className="flex shrink-0 flex-col items-stretch gap-3">
-                  <RaffleActions raffleId={raffle.id} status={raffle.status} />
+                  <RaffleActions
+                    raffleId={raffle.id}
+                    raffleName={raffle.name}
+                    status={raffle.status}
+                  />
 
                   {raffle.status === "closed" ? (
                     <Link

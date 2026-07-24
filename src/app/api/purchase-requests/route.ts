@@ -44,9 +44,14 @@ function getPublicDatabaseError(
 ): PublicDatabaseError {
   switch (code) {
     case "23505":
+      /*
+       * Ya no existe el límite de una solicitud pendiente por documento.
+       * Este código solo aparece al superar el tope antiabuso de
+       * create_purchase_request.
+       */
       return {
         message:
-          "Ya existe una solicitud pendiente para este DNI.",
+          "Tienes demasiadas solicitudes pendientes de revisión. Espera a que aprobemos las anteriores.",
         status: 409,
       };
 
@@ -182,6 +187,7 @@ export async function POST(
 
     const parsedInput = purchaseRequestSchema.parse({
       fullName: formData.get("fullName"),
+      documentType: formData.get("documentType"),
       dni: formData.get("dni"),
       phone: formData.get("phone"),
       whatsapp: formData.get("whatsapp"),
@@ -274,6 +280,7 @@ export async function POST(
         .rpc("create_purchase_request", {
           p_request_id: requestId,
           p_full_name: parsedInput.fullName,
+          p_document_type: parsedInput.documentType,
           p_dni: parsedInput.dni,
           p_phone: parsedInput.phone,
           p_whatsapp: parsedInput.whatsapp,

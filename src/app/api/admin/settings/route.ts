@@ -2,19 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { recordAuditEvent } from "@/lib/audit/log";
+import { requireActiveAdmin } from "@/lib/auth/admin";
 import { appSettingsSchema } from "@/lib/settings/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const sessionClient = await createClient();
+  const adminUserId = await requireActiveAdmin();
 
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  const adminUserId = claimsData?.claims?.sub;
-
-  if (claimsError || typeof adminUserId !== "string") {
+  if (!adminUserId) {
     return NextResponse.json(
       { error: "No autorizado." },
       { status: 401, headers: { "Cache-Control": "no-store" } },

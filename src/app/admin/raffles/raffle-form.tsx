@@ -14,6 +14,8 @@ import {
   useState,
 } from "react";
 
+import { limaInputToIso } from "@/lib/datetime-lima";
+
 export type RaffleFormValues = {
   name: string;
   description: string;
@@ -66,20 +68,15 @@ function getInitialValues(
   };
 }
 
+/*
+ * El valor del input se interpreta SIEMPRE como hora de Lima, no como la
+ * zona del dispositivo. Así la fecha que se guarda coincide con la que se
+ * relee al editar, corra el servidor donde corra.
+ */
 function toApiDate(
   value: string,
 ): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.toISOString();
+  return limaInputToIso(value);
 }
 
 export function RaffleForm(
@@ -460,8 +457,7 @@ export function RaffleForm(
         </div>
 
         <p className="text-xs leading-5 text-muted">
-          Las fechas se interpretan usando la zona horaria
-          configurada en el dispositivo del administrador.
+          Las fechas se interpretan en la hora de Perú (Lima).
         </p>
       </section>
 

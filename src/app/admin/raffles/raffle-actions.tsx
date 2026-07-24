@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
+  adminInput,
   btnDanger,
   btnGhost,
   btnPrimary,
@@ -19,6 +20,7 @@ type RaffleAction =
 
 type RaffleActionsProps = {
   raffleId: string;
+  raffleName: string;
   status: string;
 };
 
@@ -59,6 +61,7 @@ const actionConfiguration: Record<
 
 export function RaffleActions({
   raffleId,
+  raffleName,
   status,
 }: RaffleActionsProps) {
   const router = useRouter();
@@ -69,8 +72,51 @@ export function RaffleActions({
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null);
 
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const isPending =
     pendingAction !== null;
+
+  /*
+   * Borrar es irreversible y arrastra solicitudes, tickets y ganador. Se
+   * exige escribir el nombre exacto de la rifa, no basta un confirm(), para
+   * que no ocurra por accidente.
+   */
+  const canDelete = deleteConfirmText.trim() === raffleName.trim();
+
+  async function deleteRaffle(): Promise<void> {
+    if (!canDelete || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/raffles/${raffleId}/delete`,
+        { method: "DELETE", credentials: "same-origin" },
+      );
+
+      const result = (await response.json()) as ApiResponse;
+
+      if (!response.ok) {
+        setErrorMessage(
+          result.error ?? "No se pudo eliminar la rifa.",
+        );
+        return;
+      }
+
+      router.refresh();
+    } catch (error) {
+      console.error("Error eliminando rifa:", error);
+      setErrorMessage("No se pudo conectar con el servidor.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   const canEdit =
     status === "draft" ||
@@ -203,7 +249,51 @@ export function RaffleActions({
               : actionConfiguration.cancel.label}
           </button>
         ) : null}
+
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => {
+            setShowDelete((current) => !current);
+            setDeleteConfirmText("");
+            setErrorMessage(null);
+          }}
+          className={`${btnDanger} ${btnSmall}`}
+        >
+          Eliminar
+        </button>
       </div>
+
+      {showDelete ? (
+        <div className="rounded-lg border border-red-900/70 bg-red-950/20 p-3 lg:max-w-64">
+          <p className="text-xs leading-relaxed text-red-200">
+            Esto borra la rifa y <strong>todas</strong> sus solicitudes,
+            tickets, impresiones y el ganador. No se puede deshacer. Escribe{" "}
+            <span className="font-mono text-cream">{raffleName}</span> para
+            confirmar.
+          </p>
+
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(event) => setDeleteConfirmText(event.target.value)}
+            placeholder="Nombre de la rifa"
+            autoComplete="off"
+            className={`${adminInput} mt-2.5 text-xs`}
+          />
+
+          <button
+            type="button"
+            disabled={!canDelete || isDeleting}
+            onClick={() => {
+              void deleteRaffle();
+            }}
+            className={`${btnDanger} ${btnSmall} mt-2.5 w-full`}
+          >
+            {isDeleting ? "Eliminando…" : "Eliminar definitivamente"}
+          </button>
+        </div>
+      ) : null}
 
       {errorMessage ? (
         <p

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEvent } from "@/lib/audit/log";
+import { requireActiveAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 const PAYMENT_PROOFS_BUCKET = "payment-proofs";
 const SIGNED_URL_EXPIRATION_SECONDS = 60;
@@ -25,14 +26,9 @@ export async function GET(
     );
   }
 
-  const sessionClient = await createClient();
+  const adminUserId = await requireActiveAdmin();
 
-  const {
-    data: claimsData,
-    error: claimsError,
-  } = await sessionClient.auth.getClaims();
-
-  if (claimsError || !claimsData?.claims?.sub) {
+  if (!adminUserId) {
     return NextResponse.json(
       { error: "No autorizado." },
       { status: 401 },
@@ -122,5 +118,104 @@ export async function GET(
         "Cache-Control": "private, no-store, max-age=0",
       },
     },
+  );
+}
+
+/*
+ * Elimina el comprobante del bucket y marca payment_proof_deleted_at.
+ *
+ * El borrado del objeto y el marcado en la base están separados porque
+ * PostgreSQL no puede tocar Storage. delete_payment_proof (SECURITY DEFINER,
+ * valida admin) marca la fila y devuelve la ruta; aquí se borra el objeto.
+ * Es idempotente: si la fila ya estaba marcada, se reintenta el borrado en
+ * Storage sin efectos secundarios.
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  if (!isUuid(id)) {
+    return NextResponse.json(
+      { error: "El identificador de la solicitud no es válido." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const adminUserId = await requireActiveAdmin();
+
+  if (!adminUserId) {
+    return NextResponse.json(
+      { error: "No autorizado." },
+      { status: 401, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const adminClient = createAdminClient();
+
+  const { data, error } = await adminClient
+    .rpc("delete_payment_proof", {
+      p_admin_user_id: adminUserId,
+      p_request_id: id,
+    })
+    .single();
+
+  if (error) {
+    console.error("delete_payment_proof failed", {
+      code: error.code,
+      message: error.message,
+    });
+
+    const status = error.code === "P0002" ? 404 : 500;
+
+    return NextResponse.json(
+      {
+        error:
+          status === 404
+            ? "La solicitud no existe."
+            : "No se pudo eliminar el comprobante.",
+      },
+      { status, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  /*
+   * Se intenta borrar el objeto aunque la fila ya estuviera marcada
+   * (already_deleted): cubre el caso de un intento anterior que marcó la
+   * fila pero falló al borrar en Storage. remove() no falla si ya no existe.
+   */
+  if (data?.payment_proof_path) {
+    const { error: removeError } = await adminClient.storage
+      .from(PAYMENT_PROOFS_BUCKET)
+      .remove([data.payment_proof_path]);
+
+    if (removeError) {
+      console.error(
+        "No se pudo borrar el objeto del comprobante:",
+        removeError,
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "La solicitud quedó marcada, pero no se pudo borrar la imagen del almacenamiento.",
+        },
+        { status: 500, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
+  await recordAuditEvent({
+    actorUserId: adminUserId,
+    action: "delete_payment_proof",
+    entity: "purchase_requests",
+    entityId: id,
+    metadata: { already_deleted: data?.already_deleted ?? false },
+  });
+
+  return NextResponse.json(
+    { success: true },
+    { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }

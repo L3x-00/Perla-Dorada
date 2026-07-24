@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recordAuditEvent } from "@/lib/audit/log";
+import { mapPurchaseRequestActionError } from "@/lib/purchase-requests/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,33 +49,19 @@ export async function POST(
   );
 
   if (error) {
-    console.error("Error aprobando solicitud:", error);
+    console.error("Error aprobando solicitud:", {
+      code: error.code,
+      message: error.message,
+    });
 
-    const message = error.message.toLowerCase();
-
-    if (
-      message.includes("pending") ||
-      message.includes("expired") ||
-      message.includes("already") ||
-      message.includes("no disponible") ||
-      message.includes("insufficient")
-    ) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 409 },
-      );
-    }
-
-    if (message.includes("not found")) {
-      return NextResponse.json(
-        { error: "La solicitud no existe." },
-        { status: 404 },
-      );
-    }
+    const mapped = mapPurchaseRequestActionError(
+      error,
+      "No se pudo aprobar la solicitud.",
+    );
 
     return NextResponse.json(
-      { error: "No se pudo aprobar la solicitud." },
-      { status: 500 },
+      { error: mapped.message },
+      { status: mapped.status },
     );
   }
 

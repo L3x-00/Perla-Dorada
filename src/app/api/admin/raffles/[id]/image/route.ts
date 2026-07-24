@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 
 import { RAFFLE_IMAGES_BUCKET } from "@/config/storage";
 import { recordAuditEvent } from "@/lib/audit/log";
+import { requireActiveAdmin } from "@/lib/auth/admin";
 import {
   createRaffleImagePath,
   validateRaffleImage,
 } from "@/lib/storage/images";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -23,14 +23,6 @@ function jsonError(error: string, status: number): NextResponse {
   );
 }
 
-async function requireAdmin(): Promise<string | null> {
-  const sessionClient = await createClient();
-  const { data, error } = await sessionClient.auth.getClaims();
-  const adminUserId = data?.claims?.sub;
-
-  return error || typeof adminUserId !== "string" ? null : adminUserId;
-}
-
 /** Sube (o reemplaza) la foto del premio de una rifa. */
 export async function POST(
   request: Request,
@@ -42,7 +34,7 @@ export async function POST(
     return jsonError("El identificador de la rifa no es válido.", 400);
   }
 
-  const adminUserId = await requireAdmin();
+  const adminUserId = await requireActiveAdmin();
 
   if (!adminUserId) {
     return jsonError("No autorizado.", 401);
@@ -152,7 +144,7 @@ export async function DELETE(
     return jsonError("El identificador de la rifa no es válido.", 400);
   }
 
-  const adminUserId = await requireAdmin();
+  const adminUserId = await requireActiveAdmin();
 
   if (!adminUserId) {
     return jsonError("No autorizado.", 401);

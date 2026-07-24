@@ -87,15 +87,33 @@ export async function GET(request: Request): Promise<NextResponse> {
     processed += 1;
   }
 
+  /*
+   * Higiene de la tabla de rate limiting: se borra en el mismo paso diario
+   * para no acumular ventanas ya vencidas. Un fallo aquí no debe abortar la
+   * retención de comprobantes, así que solo se registra.
+   */
+  let purgedRateLimits = 0;
+
+  const { data: purged, error: purgeError } = await supabase.rpc(
+    "purge_rate_limits",
+    { p_retention_days: 2 },
+  );
+
+  if (purgeError) {
+    console.error("Error purgando rate limits:", purgeError);
+  } else {
+    purgedRateLimits = purged ?? 0;
+  }
+
   await recordAuditEvent({
     actorUserId: null,
     action: "payment_proof_retention",
     entity: "purchase_requests",
-    metadata: { processed, failed },
+    metadata: { processed, failed, purged_rate_limits: purgedRateLimits },
   });
 
   return NextResponse.json(
-    { ok: true, processed, failed },
+    { ok: true, processed, failed, purgedRateLimits },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -8,9 +8,16 @@ const currencyFormatter = new Intl.NumberFormat("es-PE", {
   currency: "PEN",
 });
 
+/*
+ * timeZone fijo a Lima: sin él, un Server Component (proceso en UTC) y un
+ * Client Component (navegador del visitante) formatearían el mismo instante
+ * a horas distintas, provocando desajustes de hidratación y fechas erróneas.
+ * El negocio es peruano, así que Lima es la zona correcta para mostrar.
+ */
 const dateTimeFormatter = new Intl.DateTimeFormat("es-PE", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "America/Lima",
 });
 
 export function formatCurrencyPEN(value: number): string {

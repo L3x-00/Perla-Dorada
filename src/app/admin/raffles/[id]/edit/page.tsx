@@ -9,6 +9,7 @@ import {
   type RaffleFormValues,
 } from "../../raffle-form";
 import { RaffleImageUpload } from "../../raffle-image-upload";
+import { isoToLimaInput } from "@/lib/datetime-lima";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,29 +18,6 @@ type EditRafflePageProps = {
     id: string;
   }>;
 };
-
-function toDateTimeLocal(
-  value: string | null,
-): string {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const offsetMilliseconds =
-    date.getTimezoneOffset() * 60_000;
-
-  return new Date(
-    date.getTime() - offsetMilliseconds,
-  )
-    .toISOString()
-    .slice(0, 16);
-}
 
 export default async function EditRafflePage({
   params,
@@ -59,6 +37,13 @@ export default async function EditRafflePage({
   }
 
   const { id } = await params;
+
+  const UUID_PATTERN =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  if (!UUID_PATTERN.test(id)) {
+    notFound();
+  }
 
   const adminClient = createAdminClient();
 
@@ -116,15 +101,9 @@ export default async function EditRafflePage({
     description: raffle.description ?? "",
     ticketPrice: String(raffle.ticket_price),
     totalTickets: String(raffle.total_tickets),
-    startsAt: toDateTimeLocal(
-      raffle.starts_at,
-    ),
-    closesAt: toDateTimeLocal(
-      raffle.closes_at,
-    ),
-    drawAt: toDateTimeLocal(
-      raffle.draw_at,
-    ),
+    startsAt: isoToLimaInput(raffle.starts_at),
+    closesAt: isoToLimaInput(raffle.closes_at),
+    drawAt: isoToLimaInput(raffle.draw_at),
   };
 
   return (

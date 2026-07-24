@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DeleteProofButton } from "@/app/admin/delete-proof-button";
 import { PaymentProofButton } from "@/app/admin/payment-proof-button";
 import { PurchaseRequestActions } from "@/app/admin/purchase-request-actions";
+import { DOCUMENT_LABELS, isDocumentType } from "@/lib/validation/document";
 import {
   AdminAlert,
   AdminPage,
@@ -97,6 +99,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
       `
         id,
         full_name,
+        document_type,
         dni,
         phone,
         whatsapp,
@@ -184,7 +187,10 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                       {request.full_name}
                     </p>
                     <p className="mt-1 text-xs text-muted">
-                      DNI: {request.dni}
+                      {isDocumentType(request.document_type)
+                        ? DOCUMENT_LABELS[request.document_type]
+                        : "DNI"}
+                      : {request.dni}
                     </p>
                     <p className="mt-1 font-mono text-xs text-gold-deep">
                       {request.tracking_code}
@@ -223,14 +229,30 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                   </td>
 
                   <td className="px-4 py-4">
-                    <PaymentProofButton
-                      purchaseRequestId={request.id}
-                      disabled={Boolean(request.payment_proof_deleted_at)}
-                    />
-
                     {request.payment_proof_deleted_at ? (
-                      <p className="mt-2 text-xs text-muted">Eliminado</p>
-                    ) : null}
+                      <p className="text-xs text-muted">Eliminado</p>
+                    ) : (
+                      <div className="flex flex-col items-start gap-2">
+                        <PaymentProofButton
+                          purchaseRequestId={request.id}
+                          client={{
+                            fullName: request.full_name,
+                            documentTypeLabel: isDocumentType(
+                              request.document_type,
+                            )
+                              ? DOCUMENT_LABELS[request.document_type]
+                              : "DNI",
+                            documentNumber: request.dni,
+                            phone: request.phone,
+                            whatsapp: request.whatsapp,
+                            trackingCode: request.tracking_code,
+                            requestedQuantity: request.requested_quantity,
+                          }}
+                        />
+
+                        <DeleteProofButton purchaseRequestId={request.id} />
+                      </div>
+                    )}
                   </td>
 
                   <td className="px-4 py-4">

@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+import { DocumentField } from "@/components/site/document-field";
+import { siteLabelClass } from "@/components/site/form-controls";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
+import type { DocumentType } from "@/lib/validation/document";
+import { normalizeTrackingCode } from "@/lib/validation/document";
 
 type TicketDocument = {
   raffleName: string;
@@ -22,7 +26,8 @@ type ApiResponse = {
 };
 
 export function TicketsDocument() {
-  const [dni, setDni] = useState("");
+  const [documentType, setDocumentType] = useState<DocumentType>("dni");
+  const [documentNumber, setDocumentNumber] = useState("");
   const [trackingCode, setTrackingCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +48,11 @@ export function TicketsDocument() {
       const response = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dni, trackingCode }),
+        body: JSON.stringify({
+          documentType,
+          dni: documentNumber,
+          trackingCode,
+        }),
       });
 
       const body = (await response.json()) as ApiResponse;
@@ -92,44 +101,31 @@ export function TicketsDocument() {
             onSubmit={submit}
             className="mt-6 space-y-5 rounded-2xl border border-line bg-ink-2 p-6"
           >
-            <div>
-              <label
-                htmlFor="tickets-dni"
-                className="eyebrow mb-2.5 block text-muted"
-              >
-                DNI
-              </label>
-              <input
-                id="tickets-dni"
-                value={dni}
-                onChange={(event) => setDni(event.target.value)}
-                required
-                minLength={6}
-                maxLength={20}
-                autoComplete="off"
-                inputMode="numeric"
-                className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-cream outline-none transition-colors focus:border-gold"
-              />
-            </div>
+            <DocumentField
+              idPrefix="tickets"
+              documentType={documentType}
+              onDocumentTypeChange={setDocumentType}
+              value={documentNumber}
+              onValueChange={setDocumentNumber}
+              showHint={false}
+            />
 
             <div>
-              <label
-                htmlFor="tickets-code"
-                className="eyebrow mb-2.5 block text-muted"
-              >
+              <label htmlFor="tickets-code" className={siteLabelClass}>
                 Código de seguimiento
               </label>
               <input
                 id="tickets-code"
                 value={trackingCode}
                 onChange={(event) =>
-                  setTrackingCode(event.target.value.toUpperCase())
+                  setTrackingCode(normalizeTrackingCode(event.target.value))
                 }
                 required
                 minLength={6}
                 maxLength={40}
                 autoComplete="off"
-                className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 font-mono uppercase text-cream outline-none transition-colors focus:border-gold"
+                placeholder="Ej. K7M2QX4B"
+                className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 font-mono uppercase tracking-[0.2em] text-cream outline-none transition-colors focus:border-gold"
               />
             </div>
 

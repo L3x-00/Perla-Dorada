@@ -1,6 +1,6 @@
 PD-CC-04 · Bitácora de errores y deuda técnica conocida
 
-Sistema Web de Gestión de Rifas — Joyería Perla Dorada · Última actualización: 22 jul 2026 (auditoría técnica inicial)
+Sistema Web de Gestión de Rifas — Joyería Perla Dorada · Última actualización: 23 jul 2026 (auditoría paralela + mejoras de formulario/panel)
 
 1. Propósito de este archivo
 
@@ -93,6 +93,55 @@ ERR-11 — 🟢 Corregido — Rate limit eludible rotando el User-Agent
 - Verificado: con User-Agent distinto en cada petición, las 15 primeras pasan y desde la 16ª devuelve 429 (antes pasaban todas).
 - Nota: `check_purchase_request_rate_limit` (RPC con topes fijos en SQL) queda sin uso; el código emplea ahora el RPC genérico `check_rate_limit`.
 - Detectado y corregido: 23 jul 2026, durante Fase 7.
+
+ERR-07 — 🟢 Corregido (23 jul 2026) — tracking_code sin retry en colisión de unicidad
+- Resuelto al acortar el código: `generate_tracking_code()` (migración `20260723191000`) genera 8 caracteres Crockford Base32 dentro de un bucle que reintenta hasta 12 veces ante colisión con el índice único, y lanza `TRACKING_CODE_GENERATION_FAILED` (55000) si no lo logra. Verificado contra la BD real (devuelve p. ej. `XE5EYG0Q`).
+
+ERR-12 — 🟢 Corregido — Rate limit eludible falsificando la IP (x-forwarded-for)
+- Área: `src/lib/security/request-fingerprint.ts`
+- Causa: `getClientIp()` leía `x-vercel-forwarded-for` (que en Render es puro input del cliente) con máxima prioridad, y de `x-forwarded-for` tomaba el elemento MÁS A LA IZQUIERDA (`split(",")[0]`), que es el que el cliente inyecta —los proxies añaden por la derecha—. Como esa IP es la única entrada de ambas huellas (IP+UA e IP sola), rotando la cabecera se abría un cubo nuevo por petición y el rate limit (incluida la defensa de ERR-11) quedaba anulado por completo: fuerza bruta ilimitada sobre DNI+código y alta ilimitada de solicitudes. Además permitía DoS dirigido: fijando la IP+UA de una víctima se le agotaba la cuota.
+- Fix aplicado 23 jul 2026: se elimina `x-vercel-forwarded-for`; de `x-forwarded-for` se toma la IP a N posiciones desde la DERECHA (las que añade la infraestructura de confianza), configurable con `TRUSTED_PROXY_HOPS` (por defecto 1, correcto para Render servido directo); se valida con `node:net isIP` y, sin IP verificable, todo cae a un único cubo `unknown` (fail-closed). Detectado por la auditoría paralela del 23 jul 2026 (hallazgo confirmado).
+- ⚠️ Si se pone un CDN (Cloudflare) por delante o se migra a Vercel, subir `TRUSTED_PROXY_HOPS` al número real de saltos, o el límite vuelve a ser eludible / agruparía a todos bajo la IP del CDN.
+
+ERR-13 — 🟢 Corregido — Editar una rifa desplazaba sus fechas (zona horaria)
+- Área: `src/app/admin/raffles/[id]/edit/page.tsx`, `raffle-form.tsx`
+- Causa: `toDateTimeLocal()` corría en un Server Component (proceso de Render en UTC) y usaba `getTimezoneOffset()` del servidor, inyectando la hora UTC en el `<input datetime-local>`; al guardar, el navegador la reinterpretaba con su zona (Lima, UTC-5). Cada edición desplazaba starts/closes/draw +5 h de forma silenciosa (los CHECK de orden se mantenían).
+- Fix aplicado 23 jul 2026: util compartido `src/lib/datetime-lima.ts` que ancla lectura (`isoToLimaInput`) y escritura (`limaInputToIso`) a America/Lima con `Intl`, sin restar horas a mano. `src/lib/format.ts` también fija `timeZone: America/Lima` para que Server y Client Components muestren la misma hora (evita desajustes de hidratación). Detectado por la auditoría paralela (hallazgo confirmado).
+
+ERR-14 — 🟢 Corregido — La tabla de rate limiting nunca se purgaba (fuga de disco)
+- Área: `private.purchase_request_rate_limits`, `check_rate_limit`
+- Causa: cada petición inserta 2 filas por huella (ventana de 15 min + diaria) que nunca se borraban. Crecimiento monótono permanente; combinado con ERR-12 era un primitivo de inserción anónima ilimitada capaz de llenar el disco de la instancia y dejar la base en solo-lectura.
+- Fix aplicado 23 jul 2026: `public.purge_rate_limits(p_retention_days=2)` (migración `20260723193000`, SECURITY DEFINER, solo service_role) borra ventanas vencidas usando el índice sobre `updated_at`; se invoca desde el cron diario de retención (`/api/cron/retention`). Detectado por la auditoría paralela (hallazgo confirmado).
+
+ERR-15 — 🟢 Corregido — Rutas admin sin verificar admin_profiles (solo sesión)
+- Área: `src/app/api/admin/settings/route.ts`, `.../purchase-requests/[id]/payment-proof/route.ts` (GET), `.../raffles/[id]/image/route.ts`
+- Causa: estas rutas tocan tablas/Storage con service_role SIN pasar por un RPC que llame a `assert_active_admin`, y solo comprobaban que hubiera sesión (`getClaims().sub`). Equiparaba "tener cuenta en Auth" con "ser administrador". Hoy no es explotable porque los únicos usuarios de Auth son administradores y no hay registro público, pero si Supabase tuviera el registro abierto, cualquiera leería comprobantes del bucket privado, escribiría `app_settings` o sobrescribiría la foto del premio.
+- Fix aplicado 23 jul 2026: helper `src/lib/auth/admin.ts` → `requireActiveAdmin()` (verifica sesión Y pertenencia a `admin_profiles` con is_active=true), cableado en esas rutas. Las demás operaciones admin ya estaban protegidas dentro del RPC (`assert_active_admin`). Detectado por la auditoría paralela.
+- Nota (deuda menor, 🟡): las PÁGINAS admin de solo lectura (`src/app/admin/**`) siguen mostrando PII tras comprobar solo sesión; mismo argumento de "solo admins tienen Auth". El proxy tampoco distingue admin de usuario autenticado. Defensa en profundidad pendiente: mover la verificación a un punto único (layout o middleware con un RPC booleano concedido a authenticated). Prioridad baja mientras no exista registro público.
+
+ERR-16 — 🟢 Corregido — Aprobar/Rechazar convertían todo conflicto en 500 (mapeo por idioma)
+- Área: `src/app/api/admin/purchase-requests/[id]/{approve,reject}/route.ts`
+- Causa: clasificaban el error buscando palabras en INGLÉS ("pending", "not found", "insufficient"…) en el mensaje, pero `approve_purchase_request` y `reject_purchase_request` lanzan sus mensajes en ESPAÑOL con `errcode` correctos. Ninguna coincidía, así que reserva vencida, solicitud ya revisada o inexistente devolvían un 500 genérico y el admin no sabía la causa.
+- Fix aplicado 23 jul 2026: `src/lib/purchase-requests/errors.ts` mapea por `error.code` (P0002→404, P0001→409, 42501→403, 22023→400), propagando el mensaje de negocio del RPC. Detectado por la auditoría paralela.
+
+ERR-17 — 🟡 Medio — Semántica de cierre/cancelación de rifa con solicitudes y tickets
+- Área: `close_raffle`, `cancel_raffle` (migración `20260722151255`)
+- Hallazgos de la auditoría paralela (SIN corregir; requieren decisión de negocio, no son fallos de código):
+  1. Cerrar o cancelar una rifa marca sus solicitudes `pending` —incluidas las ya pagadas y a la espera de revisión— como `expired`, indistinguible de un vencimiento por tiempo. El cliente que pagó ve "Expirada" sin explicación.
+  2. Cancelar una rifa deja vivos los tickets ya asignados: siguen imprimibles en el panel y descargables públicamente por DNI+código, pese a que la rifa ya no existe como evento válido.
+  3. `closes_at` es informativo: nada impide crear solicitudes tras esa fecha hasta que un admin cierra la rifa a mano (el cron de expiración solo vence reservas, no cierra rifas). 
+- Recomendación: (1) un estado/`motivo` distinto para pendientes anuladas por cierre; (2) decidir si cancelar debe invalidar tickets; (3) si se quiere cierre automático por fecha, añadirlo al cron. Pendiente de definición del cliente.
+- Detectado: 23 jul 2026, auditoría paralela.
+
+ERR-18 — 🟡 Bajo — Deuda menor detectada por la auditoría paralela (sin verificación adversarial completa)
+- La corrida de verificación se interrumpió por límite de sesión; estos hallazgos quedaron sin doble verificación. Revisar antes de actuar:
+  - `src/app/api/health/supabase/route.ts`: al parecer no contacta realmente con Supabase (responde ok:true siempre) y expone detalle de error sin auth. Revisar.
+  - `src/app/admin/raffles/[id]/winner/page.tsx`: ignora el error de sus consultas; si falla la lectura de `raffle_winners`, podría mostrar el formulario de registro de una rifa que ya tiene ganador. Revisar guardas.
+  - `src/lib/validation/purchase-request.ts` / RPC: `requestedQuantity` no tiene cota superior propia (más allá de la disponibilidad). Una sola solicitud puede reservar todo el inventario restante. Evaluar un tope por solicitud.
+  - `src/app/api/cron/*`: el Bearer `CRON_SECRET` se compara con `!==`, no en tiempo constante. Impacto práctico bajo (timing sobre red), pero se puede endurecer con `crypto.timingSafeEqual`.
+  - `next.config.ts`: la CSP se arma desde `process.env` sin validar; una variable ausente/con espacios generaría una política que bloquea login o imágenes en silencio.
+  - `src/app/api/admin/raffles/[id]/image/route.ts`: el DELETE borra el objeto de Storage antes de actualizar la fila y descarta el error de lectura de la rifa (reporta 404 ante fallo de BD). Orden y manejo mejorables.
+- Detectado: 23 jul 2026, auditoría paralela (8 dimensiones, ~49 hallazgos brutos; 3 confirmados con doble verificación → ERR-12/13/14, el resto quedó sin verificar por límite de sesión y se trianguló a mano).
 
 3. Decisiones pendientes (no son bugs, requieren definición del cliente)
 

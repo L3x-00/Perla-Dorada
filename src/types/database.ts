@@ -127,6 +127,7 @@ export type Database = {
         Row: {
           created_at: string
           dni: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
           expires_at: string
           full_name: string
           id: string
@@ -146,6 +147,7 @@ export type Database = {
         Insert: {
           created_at?: string
           dni: string
+          document_type?: Database["public"]["Enums"]["participant_document_type"]
           expires_at: string
           full_name: string
           id?: string
@@ -165,6 +167,7 @@ export type Database = {
         Update: {
           created_at?: string
           dni?: string
+          document_type?: Database["public"]["Enums"]["participant_document_type"]
           expires_at?: string
           full_name?: string
           id?: string
@@ -477,6 +480,7 @@ export type Database = {
       create_purchase_request: {
         Args: {
           p_dni: string
+          p_document_type: string
           p_full_name: string
           p_payment_proof_path: string
           p_phone: string
@@ -525,7 +529,26 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_payment_proof: {
+        Args: { p_admin_user_id: string; p_request_id: string }
+        Returns: {
+          already_deleted: boolean
+          payment_proof_path: string
+        }[]
+      }
+      delete_raffle: {
+        Args: { p_admin_user_id: string; p_raffle_id: string }
+        Returns: {
+          deleted_requests: number
+          deleted_tickets: number
+          image_path: string
+          payment_proof_paths: string[]
+          raffle_name: string
+          raffle_status: Database["public"]["Enums"]["raffle_status"]
+        }[]
+      }
       expire_purchase_requests: { Args: never; Returns: number }
+      generate_tracking_code: { Args: never; Returns: string }
       get_public_ticket_document: {
         Args: { p_dni: string; p_tracking_code: string }
         Returns: {
@@ -545,6 +568,12 @@ export type Database = {
           payment_proof_path: string
           request_id: string
         }[]
+      }
+      normalize_document_number: { Args: { p_value: string }; Returns: string }
+      normalize_tracking_code: { Args: { p_value: string }; Returns: string }
+      purge_rate_limits: {
+        Args: { p_retention_days?: number }
+        Returns: number
       }
       register_raffle_winner: {
         Args: {
@@ -593,6 +622,7 @@ export type Database = {
         Returns: {
           created_at: string
           dni: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
           expires_at: string
           full_name: string
           id: string
@@ -665,6 +695,7 @@ export type Database = {
       }
     }
     Enums: {
+      participant_document_type: "dni" | "cui"
       purchase_request_status: "pending" | "approved" | "rejected" | "expired"
       raffle_status: "draft" | "active" | "closed" | "cancelled"
       ticket_print_type: "original" | "reprint"
@@ -798,6 +829,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      participant_document_type: ["dni", "cui"],
       purchase_request_status: ["pending", "approved", "rejected", "expired"],
       raffle_status: ["draft", "active", "closed", "cancelled"],
       ticket_print_type: ["original", "reprint"],
