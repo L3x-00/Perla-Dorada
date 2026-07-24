@@ -126,7 +126,7 @@ body {
    * así que el resto de impresiones conserva su tamaño normal.
    */
   @page ticket {
-    size: 85mm 130mm;
+    size: A6 landscape;
     margin: 6mm;
   }
 

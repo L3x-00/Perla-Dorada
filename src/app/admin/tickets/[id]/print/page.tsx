@@ -198,7 +198,7 @@ export default async function TicketPrintPage({
       <PrintControls />
 
       {/* Mismo ticket que recibe el cliente: logo, sorteo, número y datos. */}
-      <div className="ticket-print mx-auto max-w-[20rem] print:max-w-none">
+      <div className="ticket-print mx-auto max-w-[34rem] print:max-w-none">
         <article className="relative overflow-hidden rounded-2xl border border-neutral-300 bg-white text-black shadow-lg print:rounded-lg print:shadow-none">
           <div
             className="h-1.5 w-full bg-gold"
@@ -208,48 +208,41 @@ export default async function TicketPrintPage({
             }}
           />
 
-          <div className="px-6 pt-5 text-center">
-            <BrandLogo className="mx-auto h-auto w-24" />
-            <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-              Ticket de sorteo
-            </p>
-            <h1 className="mt-1 font-display text-lg font-medium leading-snug">
-              {raffle.name}
-            </h1>
+          <div className="flex">
+            {/* Talón: logo, sorteo y número */}
+            <div className="flex w-[46%] flex-col items-center justify-center border-r border-dashed border-neutral-300 p-5 text-center">
+              <BrandLogo className="h-auto w-20" />
+              <h1 className="mt-2 font-display text-base font-medium leading-snug">
+                {raffle.name}
+              </h1>
+              <p className="mt-3 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                Número asignado
+              </p>
+              <p className="mt-0.5 font-display text-5xl font-black leading-none tabular-nums">
+                {formattedTicketNumber}
+              </p>
+            </div>
+
+            {/* Datos */}
+            <div className="flex flex-1 flex-col justify-center p-5">
+              <dl className="space-y-2.5 text-sm">
+                <TicketRow label="Nombre" value={purchaseRequest.full_name} />
+                <TicketRow label="DNI" value={purchaseRequest.dni} />
+                {formattedPurchasedAt ? (
+                  <TicketRow
+                    label="Fecha de compra"
+                    value={formattedPurchasedAt}
+                  />
+                ) : null}
+              </dl>
+
+              {/* Control de impresión (uso interno del panel). */}
+              <p className="mt-4 border-t border-dashed border-neutral-300 pt-2 text-[10px] text-neutral-500">
+                {reprintLabel}
+                {formattedPrintedAt ? ` · ${formattedPrintedAt}` : ""}
+              </p>
+            </div>
           </div>
-
-          <div className="my-4 flex items-center gap-2 px-6">
-            <span className="text-gold" style={{ printColorAdjust: "exact" }}>
-              ◆
-            </span>
-            <div className="flex-1 border-t border-dashed border-neutral-300" />
-            <span className="text-gold" style={{ printColorAdjust: "exact" }}>
-              ◆
-            </span>
-          </div>
-
-          <div className="px-6 text-center">
-            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-              Número asignado
-            </p>
-            <p className="mt-1 font-display text-6xl font-black leading-none tabular-nums">
-              {formattedTicketNumber}
-            </p>
-          </div>
-
-          <dl className="mt-6 space-y-2.5 px-6 text-sm">
-            <TicketRow label="Nombre" value={purchaseRequest.full_name} />
-            <TicketRow label="DNI" value={purchaseRequest.dni} />
-            {formattedPurchasedAt ? (
-              <TicketRow label="Fecha de compra" value={formattedPurchasedAt} />
-            ) : null}
-          </dl>
-
-          {/* Pie de control de impresión (uso interno del panel). */}
-          <footer className="mt-5 border-t border-dashed border-neutral-300 px-6 py-3 text-center text-[10px] text-neutral-500">
-            {reprintLabel}
-            {formattedPrintedAt ? ` · ${formattedPrintedAt}` : ""}
-          </footer>
         </article>
       </div>
     </main>

@@ -294,47 +294,37 @@ function TicketCard({
   ticketNumber: number;
 }) {
   return (
-    <div className="ticket-print mx-auto max-w-[20rem] print:max-w-none">
+    <div className="ticket-print mx-auto max-w-[34rem] print:max-w-none">
       <article className="relative overflow-hidden rounded-2xl border border-neutral-300 bg-white text-black shadow-md print:rounded-lg print:shadow-none">
         <div
           className="h-1.5 w-full bg-gold"
           style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
         />
 
-        <div className="px-6 pt-5 text-center">
-          <BrandLogo className="mx-auto h-auto w-24" />
-          <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-            Ticket de sorteo
-          </p>
-          <h2 className="mt-1 font-display text-lg font-medium leading-snug">
-            {raffleName}
-          </h2>
-        </div>
+        <div className="flex">
+          {/* Talón: logo, sorteo y número */}
+          <div className="flex w-[46%] flex-col items-center justify-center border-r border-dashed border-neutral-300 p-5 text-center">
+            <BrandLogo className="h-auto w-20" />
+            <h2 className="mt-2 font-display text-base font-medium leading-snug">
+              {raffleName}
+            </h2>
+            <p className="mt-3 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+              Número asignado
+            </p>
+            <p className="mt-0.5 font-display text-5xl font-black leading-none tabular-nums">
+              {String(ticketNumber).padStart(4, "0")}
+            </p>
+          </div>
 
-        <div className="my-4 flex items-center gap-2 px-6">
-          <span className="text-gold" style={{ printColorAdjust: "exact" }}>
-            ◆
-          </span>
-          <div className="flex-1 border-t border-dashed border-neutral-300" />
-          <span className="text-gold" style={{ printColorAdjust: "exact" }}>
-            ◆
-          </span>
+          {/* Datos */}
+          <dl className="flex flex-1 flex-col justify-center gap-2.5 p-5 text-sm">
+            <Row label="Nombre" value={fullName} />
+            <Row label="DNI" value={dni} />
+            {purchasedAt ? (
+              <Row label="Fecha de compra" value={purchasedAt} />
+            ) : null}
+          </dl>
         </div>
-
-        <div className="px-6 text-center">
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-            Número asignado
-          </p>
-          <p className="mt-1 font-display text-6xl font-black leading-none tabular-nums">
-            {String(ticketNumber).padStart(4, "0")}
-          </p>
-        </div>
-
-        <dl className="mt-6 space-y-2.5 px-6 pb-6 text-sm">
-          <Row label="Nombre" value={fullName} />
-          <Row label="DNI" value={dni} />
-          {purchasedAt ? <Row label="Fecha de compra" value={purchasedAt} /> : null}
-        </dl>
       </article>
     </div>
   );
