@@ -24,7 +24,7 @@ export function About() {
           src="/marca/vitrina/nosotros.webp"
           alt="Sobre nosotros - Perla Dorada"
           fill
-          className="object-cover object-center"
+          className="object-contain object-center"
           priority
           quality={100}
           sizes="100vw"
