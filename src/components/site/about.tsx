@@ -22,11 +22,18 @@ export function About() {
       {/*
         Imagen de fondo, importada como módulo (URL con hash de contenido:
         cada reemplazo cambia la URL, sin caché vieja bajo el mismo nombre).
-        El logo de la pieza está cerca del borde superior; esta sección suele
-        quedar más alta que ancha (el texto se apila encima), así que
-        "object-cover" con posición centrada recortaba justo esa zona. Con la
-        posición anclada arriba, el recorte se lo lleva la parte baja (fondo
-        liso) y el logo queda siempre visible.
+
+        El logo "Perla Dorada" vive en la esquina superior izquierda de la
+        imagen. Esta sección cambia de forma radicalmente según el ancho: en
+        móvil (una columna, texto apilado) queda mucho más alta que ancha, y
+        "cover" recorta en horizontal —ahí objectPosition-x es lo único que
+        importa, se ve el 100% del alto—; en escritorio (lg:grid-cols-2) es
+        mucho más ancha que alta, y "cover" recorta en vertical —ahí solo
+        importa objectPosition-y, se ve el 100% del ancho—. Son ejes
+        independientes que nunca compiten entre sí, así que un solo valor
+        anclado a la esquina superior izquierda (0% 0%) mantiene el logo
+        visible en cualquier tamaño de pantalla; verificado simulando el
+        recorte real en móvil/tablet/escritorio.
       */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -34,7 +41,7 @@ export function About() {
           alt="Sobre nosotros - Perla Dorada"
           fill
           placeholder="blur"
-          className="object-cover object-top"
+          className="object-cover object-[0%_0%]"
           priority
           quality={100}
           sizes="100vw"

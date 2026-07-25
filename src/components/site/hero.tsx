@@ -30,6 +30,14 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
         contenido, así que cada vez que se reemplaza la imagen cambia la URL
         y no puede quedar una copia vieja cacheada por el navegador o el CDN
         bajo el mismo nombre.
+
+        object-position 78% 50%: la sección es mucho más alta que ancha en
+        móvil (min-h-92vh), así que "cover" recorta en horizontal y solo se
+        ve una franja angosta del ancho total. El logo, el título y la caja
+        de regalo del banner están concentrados en el lado derecho de la
+        imagen (franja 65-91% del ancho); anclar el recorte ahí mantiene esa
+        franja visible en cualquier tamaño de pantalla, verificado
+        simulando el recorte real en móvil/tablet/escritorio.
       */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -37,7 +45,7 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
           alt="Fondo de Perla Dorada"
           fill
           placeholder="blur"
-          className="object-cover object-center"
+          className="object-cover object-[78%_50%]"
           priority
           quality={100}
           sizes="100vw"
