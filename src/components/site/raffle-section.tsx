@@ -3,7 +3,7 @@ import { HowToParticipate } from "@/components/site/how-to-participate";
 import { Participate } from "@/components/site/participate";
 import { PrizeShowcase } from "@/components/site/prize-showcase";
 import { Reveal } from "@/components/site/reveal";
-import { StageLights } from "@/components/site/stage-lights";
+import { StageRig } from "@/components/site/stage-rig";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import type { ActivePublicRaffle } from "@/lib/raffles/public-raffle";
 
@@ -61,7 +61,7 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
       id="sorteo"
       className="relative scroll-mt-24 overflow-hidden border-t border-line"
     >
-      <StageLights />
+      <StageRig />
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:py-28">
         <Reveal>

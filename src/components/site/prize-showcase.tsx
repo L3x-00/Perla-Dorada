@@ -1,7 +1,9 @@
 "use client";
 
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GemIcon } from "@/components/site/icons";
 
@@ -42,6 +44,7 @@ const ROTATE_MS = 4200;
 export function PrizeShowcase({ images, alt }: PrizeShowcaseProps) {
   const reduceMotion = useReducedMotion();
   const [index, setIndex] = useState(0);
+  const sheenRef = useRef<HTMLDivElement | null>(null);
 
   const hasImages = images.length > 0;
   const canRotate = images.length > 1 && !reduceMotion;
@@ -57,6 +60,38 @@ export function PrizeShowcase({ images, alt }: PrizeShowcaseProps) {
 
     return () => window.clearInterval(timer);
   }, [canRotate, images.length]);
+
+  /*
+   * El foco viajero del "escenario" (StageRig, arriba de toda la sección)
+   * recorre el ancho completo, así que en algún punto pasa por encima de
+   * esta carta. Este barrido replica ese destello directamente SOBRE la
+   * imagen: un brillo diagonal que cruza el recuadro y vuelve a pasar cada
+   * pocos segundos, como si la luz del escenario se reflejara en la pieza.
+   */
+  useGSAP(
+    () => {
+      if (reduceMotion || !hasImages || !sheenRef.current) {
+        return;
+      }
+
+      const tween = gsap.fromTo(
+        sheenRef.current,
+        { left: "-45%" },
+        {
+          left: "145%",
+          duration: 1.7,
+          ease: "power1.inOut",
+          repeat: -1,
+          repeatDelay: 3.6,
+        },
+      );
+
+      return () => {
+        tween.kill();
+      };
+    },
+    { scope: sheenRef, dependencies: [reduceMotion, hasImages] },
+  );
 
   const safeIndex = hasImages ? index % images.length : 0;
 
@@ -95,6 +130,21 @@ export function PrizeShowcase({ images, alt }: PrizeShowcaseProps) {
             <span className="eyebrow">Premio del sorteo</span>
           </div>
         )}
+
+        {!reduceMotion && hasImages ? (
+          <div
+            ref={sheenRef}
+            aria-hidden
+            className="pointer-events-none absolute top-[-25%] h-[150%] w-1/3 rotate-[18deg]"
+            style={{
+              left: "-45%",
+              background:
+                "linear-gradient(90deg, transparent, rgba(255,248,230,0.6), transparent)",
+              filter: "blur(3px)",
+              mixBlendMode: "screen",
+            }}
+          />
+        ) : null}
       </div>
 
       {!reduceMotion && hasImages ? (
