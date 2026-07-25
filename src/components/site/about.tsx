@@ -1,4 +1,5 @@
 import Image from "next/image";
+import aboutBanner from "@/assets/site/about-banner.webp";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -18,13 +19,22 @@ export function About() {
 
   return (
     <section id="nosotros" className="relative scroll-mt-24 overflow-hidden border-t border-line">
-      {/* Imagen de fondo */}
+      {/*
+        Imagen de fondo, importada como módulo (URL con hash de contenido:
+        cada reemplazo cambia la URL, sin caché vieja bajo el mismo nombre).
+        El logo de la pieza está cerca del borde superior; esta sección suele
+        quedar más alta que ancha (el texto se apila encima), así que
+        "object-cover" con posición centrada recortaba justo esa zona. Con la
+        posición anclada arriba, el recorte se lo lleva la parte baja (fondo
+        liso) y el logo queda siempre visible.
+      */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/marca/vitrina/nosotros.webp"
+          src={aboutBanner}
           alt="Sobre nosotros - Perla Dorada"
           fill
-          className="object-cover object-center"
+          placeholder="blur"
+          className="object-cover object-top"
           priority
           quality={100}
           sizes="100vw"

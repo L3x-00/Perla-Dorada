@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
+import heroBanner from "@/assets/site/hero-banner.webp";
 import { ArrowRightIcon } from "@/components/site/icons";
 import { brand } from "@/config/brand";
 
@@ -23,12 +24,19 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
 
   return (
     <section className="relative flex min-h-[92vh] items-center overflow-hidden">
-      {/* Imagen de fondo */}
+      {/*
+        Imagen de fondo. Se importa como módulo (no como ruta de public/) a
+        propósito: Next la sirve con un nombre de archivo con hash de su
+        contenido, así que cada vez que se reemplaza la imagen cambia la URL
+        y no puede quedar una copia vieja cacheada por el navegador o el CDN
+        bajo el mismo nombre.
+      */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/marca/vitrina/banner.webp"
+          src={heroBanner}
           alt="Fondo de Perla Dorada"
           fill
+          placeholder="blur"
           className="object-cover object-center"
           priority
           quality={100}
