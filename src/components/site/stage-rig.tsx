@@ -94,9 +94,17 @@ export function StageRig() {
         }}
       />
 
-      {/* Barra superior (truss): la línea de la que "cuelgan" los focos. */}
+      {/*
+        Barra superior (truss): la línea de la que "cuelgan" los focos. Se
+        deja un margen desde el borde (top-10, no top-0) a propósito: los
+        focos y el foco viajero tienen un halo (box-shadow) centrado sobre
+        esta línea, y como la sección tiene overflow-hidden, un halo pegado
+        justo al borde quedaba cortado a la mitad contra la sección del
+        Hero que viene arriba. Con este margen el halo completo cabe dentro
+        de los límites de la sección.
+      */}
       <div
-        className="absolute inset-x-0 top-0 h-px"
+        className="absolute inset-x-0 top-10 h-px"
         style={{
           background:
             "linear-gradient(90deg, transparent, rgba(201,162,77,0.7) 8%, rgba(201,162,77,0.7) 92%, transparent)",
@@ -107,7 +115,7 @@ export function StageRig() {
       {FIXED_FIXTURES.map((left, index) => (
         <div
           key={index}
-          className="stage-rig-fixture absolute top-0 -translate-x-1/2 -translate-y-1/2"
+          className="stage-rig-fixture absolute top-10 -translate-x-1/2 -translate-y-1/2"
           style={{
             left: `${left}%`,
             width: 8,
@@ -122,10 +130,11 @@ export function StageRig() {
       {/*
         Foco viajero: se anima con GSAP (left, en %). El haz es hijo suyo,
         así que se desplaza junto con el foco sin animarlo por separado.
+        Empieza en top-10 (igual que la barra) y baja hasta el fondo.
       */}
       <div
         ref={carriageRef}
-        className="absolute inset-y-0 w-[38vw] max-w-[22rem]"
+        className="absolute top-10 bottom-0 w-[38vw] max-w-[22rem]"
         style={{ left: "6%" }}
       >
         {/* Housing del foco, sobre la barra */}
