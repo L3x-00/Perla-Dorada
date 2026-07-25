@@ -43,22 +43,6 @@ export function normalizeDocumentNumber(value: string): string {
 }
 
 /**
- * Normaliza un código de seguimiento Crockford Base32.
- * Réplica exacta de public.normalize_tracking_code().
- *
- * El alfabeto excluye I, L, O y U, así que traducir I/L→1 y O→0 nunca
- * corrompe un código válido: solo corrige lo que el usuario confundió al
- * leerlo.
- */
-export function normalizeTrackingCode(value: string): string {
-  return value
-    .replace(/[^0-9A-Za-z]/g, "")
-    .toUpperCase()
-    .replace(/[IL]/g, "1")
-    .replace(/O/g, "0");
-}
-
-/**
  * Devuelve el mensaje de error o `null` si el número es válido para el
  * tipo indicado. Espera el valor YA normalizado.
  */

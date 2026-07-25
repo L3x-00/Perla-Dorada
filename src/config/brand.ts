@@ -11,7 +11,7 @@ export const brand = {
   shortName: "Perla Dorada",
   tagline: "Joyería fina",
   description:
-    "Joyería fina en oro y plata. Piezas seleccionadas para acompañar los momentos que se recuerdan.",
+    "Participa en los Premios Perla Dorada del Tío Freddy y gana lo que siempre has querido",
 
   /** Historia breve que aparece en la sección "Sobre nosotros". */
   about:
@@ -19,11 +19,11 @@ export const brand = {
 
   contact: {
     /** Solo dígitos con código de país, p. ej. "51987654321". */
-    whatsapp: "",
-    phone: "",
-    email: "",
+    whatsapp: "51956252677",
+    phone: "956252677",
+    email: "info@joyeriaperladorada.com",
     address: "",
-    city: "",
+    city: "Huancayo",
   },
 
   social: {

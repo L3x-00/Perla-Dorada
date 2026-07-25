@@ -5,27 +5,35 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/site/brand-logo";
 import { DocumentField } from "@/components/site/document-field";
-import { siteLabelClass } from "@/components/site/form-controls";
 import { formatDateTime } from "@/lib/format";
 import type { DocumentType } from "@/lib/validation/document";
-import { normalizeTrackingCode } from "@/lib/validation/document";
 
-type TicketDocument = {
+type Purchase = {
+  requestId: string;
   raffleName: string;
-  fullName: string;
-  dni: string;
   purchasedAt: string | null;
   ticketNumbers: number[];
 };
 
-type ApiResponse = {
-  document?: TicketDocument;
+type TicketsPayload = {
+  fullName: string;
+  dni: string;
+  purchases: Purchase[];
+};
+
+type ApiResponse = TicketsPayload & {
   error?: string;
 };
 
+type FlatTicket = {
+  raffleName: string;
+  purchasedAt: string | null;
+  ticketNumber: number;
+};
+
 /*
- * Clave de traspaso desde la consulta de estado (/seguimiento). Si el usuario
- * ya buscó su solicitud allí, llega con el DNI + código guardados y no se los
+ * Clave de traspaso desde la consulta de estado (/seguimiento). Si el
+ * usuario ya buscó su solicitud allí, llega con el DNI guardado y no se lo
  * volvemos a pedir: se cargan los tickets directo.
  */
 const LOOKUP_KEY = "pd:ticket-lookup";
@@ -33,44 +41,40 @@ const LOOKUP_KEY = "pd:ticket-lookup";
 export function TicketsDocument() {
   const [documentType, setDocumentType] = useState<DocumentType>("dni");
   const [documentNumber, setDocumentNumber] = useState("");
-  const [trackingCode, setTrackingCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [document, setDocument] = useState<TicketDocument | null>(null);
+  const [payload, setPayload] = useState<TicketsPayload | null>(null);
   const [autoLoading, setAutoLoading] = useState(false);
 
-  const fetchDocument = useCallback(
-    async (dt: DocumentType, dni: string, code: string) => {
-      setSubmitting(true);
-      setError(null);
-      setDocument(null);
+  const fetchDocument = useCallback(async (dt: DocumentType, dni: string) => {
+    setSubmitting(true);
+    setError(null);
+    setPayload(null);
 
-      try {
-        const response = await fetch("/api/tickets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentType: dt, dni, trackingCode: code }),
-        });
+    try {
+      const response = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentType: dt, dni }),
+      });
 
-        const body = (await response.json()) as ApiResponse;
+      const body = (await response.json()) as ApiResponse;
 
-        if (!response.ok || !body.document) {
-          throw new Error(body.error ?? "No se pudo obtener los tickets.");
-        }
-
-        setDocument(body.document);
-      } catch (caughtError) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : "Ocurrió un error inesperado.",
-        );
-      } finally {
-        setSubmitting(false);
+      if (!response.ok || !body.purchases) {
+        throw new Error(body.error ?? "No se pudo obtener los tickets.");
       }
-    },
-    [],
-  );
+
+      setPayload(body);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Ocurrió un error inesperado.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }, []);
 
   /* Carga automática si venimos de la consulta de estado. */
   useEffect(() => {
@@ -86,11 +90,7 @@ export function TicketsDocument() {
       return;
     }
 
-    let parsed: {
-      documentType?: unknown;
-      documentNumber?: unknown;
-      trackingCode?: unknown;
-    };
+    let parsed: { documentType?: unknown; documentNumber?: unknown };
     try {
       parsed = JSON.parse(raw);
     } catch {
@@ -99,26 +99,23 @@ export function TicketsDocument() {
 
     const dni =
       typeof parsed.documentNumber === "string" ? parsed.documentNumber : "";
-    const code =
-      typeof parsed.trackingCode === "string" ? parsed.trackingCode : "";
     const dt: DocumentType = parsed.documentType === "cui" ? "cui" : "dni";
 
-    if (!dni || !code) {
+    if (!dni) {
       return;
     }
 
     /*
      * El init va dentro de una función asíncrona a propósito: evita disparar
-     * setState de forma síncrona dentro del efecto (cascada de renders) y deja
-     * la carga como una tarea diferida.
+     * setState de forma síncrona dentro del efecto (cascada de renders) y
+     * deja la carga como una tarea diferida.
      */
     async function autoLoad() {
       setDocumentType(dt);
       setDocumentNumber(dni);
-      setTrackingCode(code);
       setAutoLoading(true);
       try {
-        await fetchDocument(dt, dni, code);
+        await fetchDocument(dt, dni);
       } finally {
         setAutoLoading(false);
       }
@@ -132,13 +129,13 @@ export function TicketsDocument() {
     if (submitting) {
       return;
     }
-    await fetchDocument(documentType, documentNumber, trackingCode);
+    await fetchDocument(documentType, documentNumber);
   }
 
   return (
     <div className="px-6 pt-32 pb-24 print:bg-white print:p-0 print:pt-0">
-      {document ? (
-        <TicketStack document={document} onReset={() => setDocument(null)} />
+      {payload ? (
+        <TicketStack payload={payload} onReset={() => setPayload(null)} />
       ) : autoLoading ? (
         <div className="mx-auto max-w-lg text-center">
           <p className="text-sm text-muted">Cargando tus tickets…</p>
@@ -161,8 +158,8 @@ export function TicketsDocument() {
             Descargar mis tickets
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Disponible solo para solicitudes aprobadas. Ingresa tu DNI y tu
-            código de seguimiento.
+            Disponible solo para solicitudes aprobadas. Ingresa tu documento y
+            verás todos tus tickets, de todas tus compras.
           </p>
 
           <form
@@ -177,25 +174,6 @@ export function TicketsDocument() {
               onValueChange={setDocumentNumber}
               showHint={false}
             />
-
-            <div>
-              <label htmlFor="tickets-code" className={siteLabelClass}>
-                Código de seguimiento
-              </label>
-              <input
-                id="tickets-code"
-                value={trackingCode}
-                onChange={(event) =>
-                  setTrackingCode(normalizeTrackingCode(event.target.value))
-                }
-                required
-                minLength={6}
-                maxLength={40}
-                autoComplete="off"
-                placeholder="Ej. K7M2QX4B"
-                className="w-full rounded-lg border border-line bg-ink px-4 py-3.5 font-mono uppercase tracking-[0.2em] text-cream outline-none transition-colors focus:border-gold"
-              />
-            </div>
 
             <button
               type="submit"
@@ -221,13 +199,24 @@ export function TicketsDocument() {
 }
 
 function TicketStack({
-  document,
+  payload,
   onReset,
 }: {
-  document: TicketDocument;
+  payload: TicketsPayload;
   onReset: () => void;
 }) {
-  const purchasedAt = formatDateTime(document.purchasedAt);
+  /*
+   * Un mismo documento puede tener varias compras aprobadas (en la misma
+   * rifa o en rifas distintas): se aplanan a una sola lista de tickets,
+   * cada uno con el nombre y la fecha de SU compra.
+   */
+  const tickets: FlatTicket[] = payload.purchases.flatMap((purchase) =>
+    purchase.ticketNumbers.map((ticketNumber) => ({
+      raffleName: purchase.raffleName,
+      purchasedAt: formatDateTime(purchase.purchasedAt),
+      ticketNumber,
+    })),
+  );
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -235,9 +224,7 @@ function TicketStack({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-light text-cream">
-              {document.ticketNumbers.length === 1
-                ? "Tu ticket"
-                : `Tus ${document.ticketNumbers.length} tickets`}
+              {tickets.length === 1 ? "Tu ticket" : `Tus ${tickets.length} tickets`}
             </h1>
             <p className="mt-1 text-sm text-muted">
               Cada ticket se imprime en su propia hoja. Usa Guardar como PDF
@@ -265,14 +252,14 @@ function TicketStack({
       </div>
 
       <div className="space-y-6 print:space-y-0">
-        {document.ticketNumbers.map((ticketNumber) => (
+        {tickets.map((ticket) => (
           <TicketCard
-            key={ticketNumber}
-            raffleName={document.raffleName}
-            fullName={document.fullName}
-            dni={document.dni}
-            purchasedAt={purchasedAt}
-            ticketNumber={ticketNumber}
+            key={`${ticket.raffleName}-${ticket.ticketNumber}`}
+            raffleName={ticket.raffleName}
+            fullName={payload.fullName}
+            dni={payload.dni}
+            purchasedAt={ticket.purchasedAt}
+            ticketNumber={ticket.ticketNumber}
           />
         ))}
       </div>

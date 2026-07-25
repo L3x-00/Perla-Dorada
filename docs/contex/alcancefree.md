@@ -192,6 +192,6 @@ La decisión de fondo no es Render vs Vercel (ya resuelta: se queda en Render, m
 - ✅ Purga de la tabla de rate-limit (ERR-14) — la BD no crece sin fin.
 - ✅ IP no falsificable en el rate-limit (ERR-12) — el volumen de abuso queda acotado.
 - ✅ Bloqueo atómico en compra/aprobación — sin sobreventa, a costa de serializar (techo conocido).
-- ⚠️ Pendiente (barato, alto impacto): compresión de comprobantes y optimización de la foto del premio.
+- ✅ **Compresión de imágenes en el navegador** (24 jul 2026), antes de subir — `src/lib/images/compress-client.ts`: redimensiona (≤1600-1920 px) y recomprime a WEBP (JPEG si el navegador no sabe codificar WEBP) apuntando a ~300 KB, sin ningún job de pago ni cambio de servidor. Cubre los tres puntos de subida de imágenes: comprobante de pago (asistente público), foto del premio mayor y foto de cada premio (panel, crear/editar rifa). Es "mejor esfuerzo": si falla, sube el archivo original y la validación real de tamaño/tipo sigue en el servidor.
 - ⚠️ Pendiente (config): verificar que se usa el **pooler** de Supabase en producción.
 - 🔜 Decisión de negocio: pasar Supabase a **Pro** cuando la web deba vivir todo el año o cuando una rifa supere ~300-400 solicitudes.

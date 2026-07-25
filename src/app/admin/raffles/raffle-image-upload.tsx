@@ -6,6 +6,10 @@ import { useState } from "react";
 import { btnGhost } from "@/components/admin/ui";
 
 import { PAYMENT_PROOF_MAX_SIZE_BYTES } from "@/config/storage";
+import {
+  RAFFLE_IMAGE_COMPRESSION,
+  compressImageFile,
+} from "@/lib/images/compress-client";
 import { raffleImageUrl } from "@/lib/storage/public-url";
 
 type RaffleImageUploadProps = {
@@ -35,8 +39,16 @@ export function RaffleImageUpload({
     setError(null);
 
     try {
+      /*
+       * Optimización en el navegador antes de subir (ver
+       * docs/contex/alcancefree.md §4.2 y §8): esta foto se sirve a todos
+       * los visitantes de la landing, así que su peso es el que más pesa en
+       * el egress público. Mejor esfuerzo: si falla, sube el original.
+       */
+      const optimized = await compressImageFile(file, RAFFLE_IMAGE_COMPRESSION);
+
       const body = new FormData();
-      body.set("image", file);
+      body.set("image", optimized);
 
       const response = await fetch(`/api/admin/raffles/${raffleId}/image`, {
         method: "POST",
@@ -128,7 +140,7 @@ export function RaffleImageUpload({
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <label className="inline-flex cursor-pointer items-center rounded-lg bg-gold px-4 py-2.5 text-sm font-medium text-ink transition-colors duration-200 hover:bg-gold-soft">
-          {busy ? "Procesando..." : preview ? "Cambiar foto" : "Subir foto"}
+          {busy ? "Optimizando y subiendo..." : preview ? "Cambiar foto" : "Subir foto"}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

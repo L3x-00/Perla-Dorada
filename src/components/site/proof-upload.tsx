@@ -14,6 +14,10 @@ import {
   PAYMENT_PROOF_ALLOWED_MIME_TYPES,
   PAYMENT_PROOF_MAX_SIZE_BYTES,
 } from "@/config/storage";
+import {
+  PROOF_COMPRESSION,
+  compressImageFile,
+} from "@/lib/images/compress-client";
 
 type ProofUploadProps = {
   file: File | null;
@@ -59,6 +63,23 @@ export function ProofUpload({
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  /*
+   * Optimiza la foto en el propio navegador antes de entregarla al padre:
+   * baja el peso del comprobante de hasta 5 MB a unos ~300 KB sin tocar el
+   * servidor (ver docs/contex/alcancefree.md §8). Es "mejor esfuerzo": si
+   * algo falla, se usa el archivo tal cual se recibió.
+   */
+  async function acceptFile(selected: File) {
+    setIsCompressing(true);
+    try {
+      const optimized = await compressImageFile(selected, PROOF_COMPRESSION);
+      onFileChange(optimized);
+    } finally {
+      setIsCompressing(false);
+    }
+  }
 
   /*
    * La URL de vista previa se deriva del archivo, no se guarda en estado, y
@@ -90,7 +111,7 @@ export function ProofUpload({
     const dropped = event.dataTransfer.files?.[0] ?? null;
 
     if (dropped) {
-      onFileChange(dropped);
+      void acceptFile(dropped);
     }
   }
 
@@ -118,10 +139,13 @@ export function ProofUpload({
         name="paymentProof"
         type="file"
         accept={ACCEPTED_FILE_TYPES}
-        disabled={disabled}
-        onChange={(event) =>
-          onFileChange(event.target.files?.[0] ?? null)
-        }
+        disabled={disabled || isCompressing}
+        onChange={(event) => {
+          const selected = event.target.files?.[0];
+          if (selected) {
+            void acceptFile(selected);
+          }
+        }}
         className="peer sr-only"
       />
 
@@ -138,19 +162,22 @@ export function ProofUpload({
             isDragging
               ? "border-gold bg-gold/5"
               : "border-line bg-ink hover:border-gold-deep hover:bg-ink-3/50"
-          } ${disabled ? "pointer-events-none opacity-50" : ""}`}
+          } ${disabled || isCompressing ? "pointer-events-none opacity-50" : ""}`}
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full border border-gold-deep/60 text-gold">
             <UploadIcon className="h-6 w-6" />
           </span>
 
           <span className="font-display text-xl font-light text-cream">
-            Adjuntar captura del Yape
+            {isCompressing
+              ? "Optimizando foto…"
+              : "Adjuntar captura del Yape"}
           </span>
 
           <span className="max-w-xs text-sm leading-relaxed text-muted">
-            Toca aquí para elegir la foto desde tu teléfono, o arrástrala si
-            estás en computadora.
+            {isCompressing
+              ? "Un momento, estamos reduciendo el peso de la imagen."
+              : "Toca aquí para elegir la foto desde tu teléfono, o arrástrala si estás en computadora."}
           </span>
 
           <span className="eyebrow text-gold-deep">

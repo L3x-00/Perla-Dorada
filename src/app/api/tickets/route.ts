@@ -10,9 +10,9 @@ import { trackingLookupSchema } from "@/lib/validation/tracking";
 
 export async function POST(request: Request): Promise<NextResponse> {
   /*
-   * Comparte ámbito de rate limit con /api/tracking: ambos se validan con
-   * DNI + código de seguimiento y no deben poder alternarse para duplicar
-   * la cuota. Falla en cerrado.
+   * Comparte ámbito de rate limit con /api/tracking: ambos se validan por
+   * DNI y no deben poder alternarse para duplicar la cuota. Falla en
+   * cerrado.
    */
   try {
     const rateLimit = await checkRateLimit(
@@ -77,7 +77,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const { data, error } = await adminClient.rpc(
     "get_public_ticket_document",
-    { p_dni: input.dni, p_tracking_code: input.trackingCode },
+    { p_dni: input.dni },
   );
 
   if (error) {
@@ -92,18 +92,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const document = data?.[0];
-
   /*
-   * El RPC solo devuelve filas para solicitudes aprobadas con DNI +
-   * tracking_code correctos. Cualquier otro caso (pendiente, rechazada,
-   * inexistente, ajena) llega aquí como vacío → 404 genérico.
+   * El RPC solo devuelve filas de solicitudes aprobadas con tickets
+   * asignados para ese DNI. Un mismo documento puede tener varias compras
+   * aprobadas: se devuelven todas, más recientes primero.
    */
-  if (!document || document.ticket_numbers.length === 0) {
+  if (!data || data.length === 0) {
     return NextResponse.json(
       {
         error:
-          "No encontramos tickets disponibles para descargar con los datos ingresados.",
+          "No encontramos tickets disponibles para descargar con el documento ingresado.",
       },
       { status: 404, headers: { "Cache-Control": "no-store" } },
     );
@@ -111,13 +109,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   return NextResponse.json(
     {
-      document: {
-        raffleName: document.raffle_name,
-        fullName: document.full_name,
-        dni: document.dni,
-        purchasedAt: document.purchased_at,
-        ticketNumbers: document.ticket_numbers,
-      },
+      fullName: data[0].full_name,
+      dni: data[0].dni,
+      purchases: data.map((purchase) => ({
+        requestId: purchase.request_id,
+        raffleName: purchase.raffle_name,
+        purchasedAt: purchase.purchased_at,
+        ticketNumbers: purchase.ticket_numbers,
+      })),
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );

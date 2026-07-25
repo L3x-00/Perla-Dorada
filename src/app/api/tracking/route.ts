@@ -10,9 +10,9 @@ import { trackingLookupSchema } from "@/lib/validation/tracking";
 
 export async function POST(request: Request): Promise<NextResponse> {
   /*
-   * Rate limit antes de tocar la base: la combinación DNI + código es el
-   * único secreto que protege esta consulta, así que se limita la fuerza
-   * bruta. Falla en cerrado si no se puede comprobar.
+   * Rate limit antes de tocar la base: el DNI es el único dato que protege
+   * esta consulta, así que se limita la fuerza bruta. Falla en cerrado si
+   * no se puede comprobar.
    */
   try {
     const rateLimit = await checkRateLimit(
@@ -77,7 +77,6 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const { data, error } = await adminClient.rpc("track_purchase_request", {
     p_dni: input.dni,
-    p_tracking_code: input.trackingCode,
   });
 
   if (error) {
@@ -92,44 +91,40 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const result = data?.[0];
-
   /*
-   * No indicamos si falló el DNI o el código por separado.
+   * Un mismo DNI puede tener varias solicitudes (no hay límite de una
+   * pendiente por documento). Se devuelven todas, más recientes primero.
    */
-  if (!result) {
+  if (!data || data.length === 0) {
     return NextResponse.json(
       {
         error:
-          "No encontramos una solicitud con los datos ingresados.",
+          "No encontramos solicitudes con el documento ingresado.",
       },
       { status: 404, headers: { "Cache-Control": "no-store" } },
     );
   }
 
-  /*
-   * Defensa adicional: aunque el RPC ya filtra los tickets, el endpoint
-   * vuelve a garantizar que solo se devuelvan si la solicitud está
-   * aprobada.
-   */
-  const ticketNumbers =
-    result.request_status === "approved" ? result.ticket_numbers : [];
+  const requests = data.map((result) => ({
+    requestId: result.request_id,
+    raffleName: result.raffle_name,
+    status: result.request_status,
+    requestedAt: result.requested_at,
+    expiresAt: result.expires_at,
+    reviewedAt: result.reviewed_at,
+    rejectionReason:
+      result.request_status === "rejected" ? result.rejection_reason : null,
+    /*
+     * Defensa adicional: aunque el RPC ya filtra los tickets, el endpoint
+     * vuelve a garantizar que solo se devuelvan si la solicitud está
+     * aprobada.
+     */
+    ticketNumbers:
+      result.request_status === "approved" ? result.ticket_numbers : [],
+  }));
 
   return NextResponse.json(
-    {
-      request: {
-        requestId: result.request_id,
-        raffleName: result.raffle_name,
-        status: result.request_status,
-        expiresAt: result.expires_at,
-        reviewedAt: result.reviewed_at,
-        rejectionReason:
-          result.request_status === "rejected"
-            ? result.rejection_reason
-            : null,
-        ticketNumbers,
-      },
-    },
+    { requests },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -3,6 +3,10 @@
 import { useState } from "react";
 
 import { PAYMENT_PROOF_MAX_SIZE_BYTES } from "@/config/storage";
+import {
+  RAFFLE_IMAGE_COMPRESSION,
+  compressImageFile,
+} from "@/lib/images/compress-client";
 import { raffleImageUrl } from "@/lib/storage/public-url";
 
 type StagedImageInputProps = {
@@ -43,8 +47,16 @@ export function StagedImageInput({
     setError(null);
 
     try {
+      /*
+       * Se optimiza en el navegador antes de subir: baja el peso de la foto
+       * (el egress público la sirve a todos los visitantes de la landing —
+       * ver docs/contex/alcancefree.md §4.2 y §8) sin usar ningún job de
+       * pago. Mejor esfuerzo: si falla, se sube el archivo original.
+       */
+      const optimized = await compressImageFile(file, RAFFLE_IMAGE_COMPRESSION);
+
       const body = new FormData();
-      body.set("image", file);
+      body.set("image", optimized);
 
       const response = await fetch("/api/admin/raffles/prize-image", {
         method: "POST",
@@ -92,7 +104,7 @@ export function StagedImageInput({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <label className="inline-flex cursor-pointer items-center rounded-lg border border-line px-3 py-1.5 text-xs text-cream transition-colors duration-200 hover:border-gold hover:text-gold">
-            {busy ? "Subiendo…" : preview ? "Cambiar" : addLabel}
+            {busy ? "Optimizando y subiendo…" : preview ? "Cambiar" : addLabel}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"

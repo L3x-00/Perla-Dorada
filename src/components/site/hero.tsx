@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
 import { ArrowRightIcon } from "@/components/site/icons";
@@ -22,17 +23,37 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
 
   return (
     <section className="relative flex min-h-[92vh] items-center overflow-hidden">
+      {/* Imagen de fondo */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/marca/vitrina/banner.webp"
+          alt="Fondo de Perla Dorada"
+          fill
+          className="object-cover object-center"
+          priority
+          quality={100}
+          sizes="100vw"
+          style={{ opacity: 0.5 }}
+        />
+      </div>
+
+      {/* Overlay oscuro para mejorar legibilidad */}
+      <div 
+        aria-hidden
+        className="absolute inset-0 z-1 bg-black/40"
+      />
+
       {/* Halo dorado muy tenue: da profundidad sin ensuciar el negro */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/3 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.16] blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-1/3 z-1 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.16] blur-[120px]"
         style={{
           background:
             "radial-gradient(circle, var(--color-gold) 0%, transparent 65%)",
         }}
       />
 
-      <div className="relative mx-auto w-full max-w-6xl px-6 pt-28 pb-20">
+      <div className="relative z-2 mx-auto w-full max-w-6xl px-6 pt-28 pb-20">
         <motion.p {...rise(0)} className="eyebrow text-gold">
           {brand.tagline}
         </motion.p>
@@ -41,11 +62,11 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
           {...rise(0.12)}
           className="mt-7 max-w-3xl font-display text-5xl font-light leading-[1.05] text-cream sm:text-6xl lg:text-7xl"
         >
-          Piezas que acompañan
+          Hoy puedes ganar
           <br />
-          <span className="text-metal italic">los momentos</span> que
+          <span className="text-metal italic">premios increíbles</span> con
           <br />
-          se recuerdan
+          Perla Dorada
         </motion.h1>
 
         <motion.p

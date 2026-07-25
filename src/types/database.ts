@@ -560,17 +560,14 @@ export type Database = {
       expire_purchase_requests: { Args: never; Returns: number }
       generate_tracking_code: { Args: never; Returns: string }
       get_public_ticket_document: {
-        Args: { p_dni: string; p_tracking_code: string }
+        Args: { p_dni: string }
         Returns: {
           dni: string
-          draw_at: string
           full_name: string
           purchased_at: string
-          raffle_description: string
           raffle_name: string
+          request_id: string
           ticket_numbers: number[]
-          ticket_price: number
-          tracking_code: string
         }[]
       }
       list_payment_proofs_for_retention: {
@@ -659,13 +656,14 @@ export type Database = {
         }
       }
       track_purchase_request: {
-        Args: { p_dni: string; p_tracking_code: string }
+        Args: { p_dni: string }
         Returns: {
           expires_at: string
           raffle_name: string
           rejection_reason: string
           request_id: string
           request_status: Database["public"]["Enums"]["purchase_request_status"]
+          requested_at: string
           reviewed_at: string
           ticket_numbers: number[]
         }[]
