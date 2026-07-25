@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -16,8 +17,28 @@ export function About() {
   const social = activeSocialLinks();
 
   return (
-    <section id="nosotros" className="scroll-mt-24 border-t border-line">
-      <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
+    <section id="nosotros" className="relative scroll-mt-24 overflow-hidden border-t border-line">
+      {/* Imagen de fondo */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/marca/vitrina/nosotros.webp"
+          alt="Sobre nosotros - Perla Dorada"
+          fill
+          className="object-cover object-center"
+          priority
+          quality={100}
+          sizes="100vw"
+          style={{ opacity: 0.5 }}
+        />
+      </div>
+
+      {/* Overlay oscuro para mejorar legibilidad */}
+      <div 
+        aria-hidden
+        className="absolute inset-0 z-1 bg-black/40"
+      />
+
+      <div className="relative z-2 mx-auto max-w-6xl px-6 py-24 sm:py-28">
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <div>
