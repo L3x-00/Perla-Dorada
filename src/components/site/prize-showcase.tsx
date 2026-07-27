@@ -96,7 +96,7 @@ export function PrizeShowcase({ images, alt }: PrizeShowcaseProps) {
   const safeIndex = hasImages ? index % images.length : 0;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-ink-2 to-ink">
+    <div className="prize-showcase relative overflow-visible">
       {!reduceMotion && hasImages ? (
         <motion.div
           aria-hidden
@@ -117,7 +117,7 @@ export function PrizeShowcase({ images, alt }: PrizeShowcaseProps) {
               key={`${safeIndex}-${images[safeIndex]}`}
               src={images[safeIndex]}
               alt={alt}
-              className="absolute inset-0 h-full w-full object-contain p-3 sm:p-4"
+              className="absolute inset-0 h-full w-full object-contain"
               initial={reduceMotion ? false : { opacity: 0, scale: 1.05 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0, scale: 0.97 }}
@@ -146,6 +146,13 @@ export function PrizeShowcase({ images, alt }: PrizeShowcaseProps) {
           />
         ) : null}
       </div>
+
+      {hasImages ? (
+        <div
+          aria-hidden
+          className="prize-showcase-edge-fade pointer-events-none absolute inset-0 z-[15]"
+        />
+      ) : null}
 
       {!reduceMotion && hasImages ? (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-20">

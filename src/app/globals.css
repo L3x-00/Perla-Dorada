@@ -175,40 +175,40 @@ body {
 .raffle-festive-wash {
   position: absolute;
   inset: 0;
-  opacity: 0.92;
+  opacity: 1;
   transition: background 500ms var(--ease-lux), opacity 300ms ease;
 }
 
 [data-festive-light="gold"] .raffle-festive-wash {
   background:
-    radial-gradient(48rem 22rem at 50% 4%, rgb(201 162 39 / 0.17), transparent 72%),
-    radial-gradient(28rem 20rem at 6% 64%, rgb(201 162 39 / 0.08), transparent 74%);
+    radial-gradient(56rem 28rem at 50% 4%, rgb(201 162 39 / 0.34), transparent 72%),
+    radial-gradient(34rem 28rem at 6% 64%, rgb(201 162 39 / 0.2), transparent 74%);
 }
 
 [data-festive-light="violet"] .raffle-festive-wash {
   background:
-    radial-gradient(48rem 24rem at 48% 5%, rgb(184 112 255 / 0.2), transparent 72%),
-    radial-gradient(30rem 24rem at 96% 70%, rgb(184 112 255 / 0.08), transparent 75%);
+    radial-gradient(56rem 30rem at 48% 5%, rgb(184 112 255 / 0.38), transparent 72%),
+    radial-gradient(34rem 28rem at 96% 70%, rgb(184 112 255 / 0.2), transparent 75%);
 }
 
 [data-festive-light="blue"] .raffle-festive-wash {
   background:
-    radial-gradient(48rem 24rem at 52% 5%, rgb(74 164 255 / 0.2), transparent 72%),
-    radial-gradient(30rem 24rem at 4% 70%, rgb(74 164 255 / 0.08), transparent 75%);
+    radial-gradient(56rem 30rem at 52% 5%, rgb(74 164 255 / 0.38), transparent 72%),
+    radial-gradient(34rem 28rem at 4% 70%, rgb(74 164 255 / 0.2), transparent 75%);
 }
 
 html[data-theme="light"] .raffle-festive-wash {
-  opacity: 0.64;
+  opacity: 0.8;
 }
 
 .raffle-festive-beam {
   position: absolute;
   top: 3.5rem;
-  width: min(42vw, 34rem);
-  height: 70%;
+  width: min(54vw, 42rem);
+  height: 88%;
   transform-origin: top center;
-  filter: blur(14px);
-  opacity: 0.06;
+  filter: blur(18px);
+  opacity: 0.14;
   transition:
     opacity 450ms var(--ease-lux),
     transform 600ms var(--ease-lux);
@@ -237,18 +237,18 @@ html[data-theme="light"] .raffle-festive-wash {
 [data-festive-light="gold"] .raffle-festive-beam--gold,
 [data-festive-light="violet"] .raffle-festive-beam--violet,
 [data-festive-light="blue"] .raffle-festive-beam--blue {
-  opacity: 0.48;
+  opacity: 0.7;
 }
 
 .raffle-serpentine {
   position: absolute;
-  width: clamp(6rem, 12vw, 10rem);
+  width: clamp(6rem, 14vw, 12rem);
   height: auto;
   fill: none;
-  filter: drop-shadow(0 0 5px currentColor);
-  opacity: 0.38;
+  filter: drop-shadow(0 0 8px currentColor);
+  opacity: 0.64;
   transform-origin: center top;
-  animation: serpentine-sway 6s ease-in-out infinite alternate;
+  animation: serpentine-sway 3.4s ease-in-out infinite alternate;
 }
 
 .raffle-serpentine path {
@@ -257,46 +257,34 @@ html[data-theme="light"] .raffle-festive-wash {
   stroke-width: 7;
 }
 
-.raffle-serpentine--one {
-  top: 8%;
-  left: -2%;
-  color: #cb7aff;
-  animation-delay: -1.4s;
-}
-
-.raffle-serpentine--two {
-  top: 14%;
-  right: -1%;
-  color: #63b5ff;
-  animation-delay: -3.2s;
-}
-
-.raffle-serpentine--three {
-  top: 42%;
-  left: 1%;
+.raffle-serpentine--gold {
   color: #f1c24f;
-  animation-delay: -2.1s;
 }
 
-.raffle-serpentine--four {
-  top: 58%;
-  right: 0;
+.raffle-serpentine--violet {
+  color: #cb7aff;
+}
+
+.raffle-serpentine--blue {
+  color: #63b5ff;
+}
+
+.raffle-serpentine--pink {
   color: #ff89b8;
-  animation-delay: -4.4s;
 }
 
-.raffle-serpentine--five {
-  bottom: 8%;
-  left: 8%;
+.raffle-serpentine--aqua {
   color: #8ed8ff;
-  animation-delay: -0.6s;
 }
 
-.raffle-serpentine--six {
-  right: 12%;
-  bottom: 5%;
+.raffle-serpentine--lilac {
   color: #d69cff;
-  animation-delay: -5.1s;
+}
+
+.prize-showcase-edge-fade {
+  background:
+    linear-gradient(90deg, var(--color-ink) 0%, transparent 13%, transparent 87%, var(--color-ink) 100%),
+    linear-gradient(180deg, var(--color-ink) 0%, transparent 12%, transparent 84%, var(--color-ink) 100%);
 }
 
 @keyframes serpentine-sway {
