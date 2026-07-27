@@ -1,6 +1,7 @@
 import { DrawCountdown } from "@/components/site/draw-countdown";
 import { HowToParticipate } from "@/components/site/how-to-participate";
 import { Participate } from "@/components/site/participate";
+import { RaffleCelebration } from "@/components/site/raffle-celebration";
 import { PrizeShowcase } from "@/components/site/prize-showcase";
 import { Reveal } from "@/components/site/reveal";
 import { StageRig } from "@/components/site/stage-rig";
@@ -62,6 +63,7 @@ export function RaffleSection({ raffle }: RaffleSectionProps) {
       className="relative scroll-mt-24 overflow-hidden border-t border-line"
     >
       <StageRig />
+      <RaffleCelebration />
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:py-28">
         <Reveal>
