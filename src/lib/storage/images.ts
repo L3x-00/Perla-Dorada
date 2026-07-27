@@ -1,18 +1,16 @@
 import "server-only";
 
 import { fileTypeFromBuffer } from "file-type";
+import sharp from "sharp";
 
 import {
   PAYMENT_PROOF_ALLOWED_MIME_TYPES,
   PAYMENT_PROOF_MAX_SIZE_BYTES,
+  RAFFLE_IMAGE_STORAGE_MAX_SIZE_BYTES,
   type PaymentProofMimeType,
 } from "@/config/storage";
 
-const FILE_EXTENSION_BY_MIME_TYPE: Record<PaymentProofMimeType, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
+const MAX_INPUT_PIXELS = 40_000_000;
 
 export type ValidatedImage = {
   buffer: Buffer;
@@ -22,31 +20,90 @@ export type ValidatedImage = {
 
 export type ImageValidationMessages = {
   empty: string;
+  inputTooLarge: string;
   tooLarge: string;
   invalidType: string;
 };
 
+type ImageStorageOptions = {
+  maxInputBytes: number;
+  maxStoredBytes: number;
+  maxDimension: number;
+};
+
 /*
- * Validación de imágenes subidas.
- *
- * No se confía en la extensión ni en el Content-Type declarado: se
- * inspeccionan los bytes reales del archivo, que es lo único que un
- * atacante no puede falsear con solo renombrar.
- *
- * Los mensajes se reciben por parámetro porque cada flujo muestra los
- * suyos y hay rutas que los comparan literalmente.
+ * Reencoda siempre antes de Storage. Esto cubre tanto el flujo normal
+ * (Canvas en el navegador) como navegadores sin Canvas o envíos directos al
+ * endpoint: nunca se conserva el original ni sus metadatos. Sharp elimina
+ * metadatos por defecto, respeta la orientación EXIF y limita los píxeles de
+ * entrada para evitar una imagen-bomba comprimida.
+ */
+async function optimizeForStorage(
+  input: Buffer,
+  maxStoredBytes: number,
+  maxDimension: number,
+  messages: ImageValidationMessages,
+): Promise<ValidatedImage> {
+  const profiles = [
+    { dimension: maxDimension, quality: 84 },
+    { dimension: maxDimension, quality: 80 },
+    { dimension: maxDimension, quality: 76 },
+    { dimension: maxDimension, quality: 72 },
+    { dimension: Math.round(maxDimension * 0.85), quality: 76 },
+    { dimension: Math.round(maxDimension * 0.7), quality: 72 },
+  ];
+
+  try {
+    for (const profile of profiles) {
+      const buffer = await sharp(input, {
+        limitInputPixels: MAX_INPUT_PIXELS,
+        failOn: "error",
+      })
+        .rotate()
+        .resize({
+          width: profile.dimension,
+          height: profile.dimension,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({
+          quality: profile.quality,
+          effort: 4,
+          smartSubsample: true,
+        })
+        .toBuffer();
+
+      if (buffer.byteLength <= maxStoredBytes) {
+        return {
+          buffer,
+          mimeType: "image/webp",
+          extension: "webp",
+        };
+      }
+    }
+  } catch {
+    throw new Error(messages.invalidType);
+  }
+
+  throw new Error(messages.tooLarge);
+}
+
+/*
+ * No se confía en extensión ni Content-Type: se inspeccionan bytes reales
+ * antes de decodificar. El tope de entrada evita presión de memoria y el de
+ * salida es el que realmente se aplica al objeto persistido en Storage.
  */
 export async function validateImageFile(
   file: File,
   messages: ImageValidationMessages,
-  maxSizeBytes: number = PAYMENT_PROOF_MAX_SIZE_BYTES,
+  options: ImageStorageOptions,
 ): Promise<ValidatedImage> {
   if (file.size <= 0) {
     throw new Error(messages.empty);
   }
 
-  if (file.size > maxSizeBytes) {
-    throw new Error(messages.tooLarge);
+  if (file.size > options.maxInputBytes) {
+    throw new Error(messages.inputTooLarge);
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -61,21 +118,30 @@ export async function validateImageFile(
     throw new Error(messages.invalidType);
   }
 
-  const mimeType = detectedType.mime as PaymentProofMimeType;
-
-  return {
+  return optimizeForStorage(
     buffer,
-    mimeType,
-    extension: FILE_EXTENSION_BY_MIME_TYPE[mimeType],
-  };
+    options.maxStoredBytes,
+    options.maxDimension,
+    messages,
+  );
 }
 
 export async function validateRaffleImage(file: File): Promise<ValidatedImage> {
-  return validateImageFile(file, {
-    empty: "La imagen está vacía.",
-    tooLarge: "La imagen no puede superar los 5 MB.",
-    invalidType: "El archivo no es una imagen JPG, PNG o WEBP válida.",
-  });
+  return validateImageFile(
+    file,
+    {
+      empty: "La imagen está vacía.",
+      inputTooLarge: "La imagen no puede superar los 5 MB.",
+      tooLarge:
+        "No pudimos optimizar la imagen lo suficiente. Elige otra foto o recórtala antes de subirla.",
+      invalidType: "El archivo no es una imagen JPG, PNG o WEBP válida.",
+    },
+    {
+      maxInputBytes: PAYMENT_PROOF_MAX_SIZE_BYTES,
+      maxStoredBytes: RAFFLE_IMAGE_STORAGE_MAX_SIZE_BYTES,
+      maxDimension: 1920,
+    },
+  );
 }
 
 export function createRaffleImagePath(

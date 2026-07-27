@@ -1,53 +1,63 @@
 "use client";
 
 /*
- * Compresión de imágenes EN EL NAVEGADOR, antes de subir.
+ * Compresión obligatoria de imágenes en el navegador.
  *
- * Motivo (ver docs/contex/alcancefree.md §4 y §8): en el plan gratuito de
- * Supabase, el Storage (1 GB) y el egress (5 GB/mes) son los límites que este
- * sistema toca primero. Cada comprobante puede pesar hasta 5 MB de foto de
- * celular sin comprimir, y la foto del premio se sirve a todos los
- * visitantes de la landing. Recomprimir en el cliente antes de subir
- * multiplica por ~5-10 la capacidad efectiva sin pagar ningún servicio de
- * jobs ni tocar el servidor: usa el Canvas del propio navegador del usuario.
- *
- * Es "mejor esfuerzo": si algo falla (navegador viejo, imagen corrupta,
- * SVG, etc.) se devuelve el archivo original sin tocar. La validación real
- * de tamaño/tipo sigue en el servidor (src/lib/storage/images.ts), que
- * inspecciona los bytes reales — esto es solo una optimización, nunca la
- * fuente de verdad de qué se acepta.
+ * El archivo que llega a Storage nunca es el original: se vuelve a dibujar
+ * en Canvas, lo que elimina metadatos EXIF (incluida ubicación) y permite
+ * aplicar un límite real de dimensiones y peso. El servidor impone un tope
+ * complementario porque el cliente se puede manipular.
  */
 
 export type CompressImageOptions = {
   /** Lado más largo permitido, en píxeles. */
   maxDimension?: number;
-  /** Tamaño objetivo a no superar, en bytes. */
+  /** Tamaño máximo del archivo resultante, en bytes. */
   maxBytes?: number;
-  /** Formato de salida preferido. Si el navegador no sabe codificarlo, cae a JPEG. */
+  /** Formato de salida preferido. Si no está disponible, se usa JPEG. */
   preferredMimeType?: "image/webp" | "image/jpeg";
-  /** Piso de calidad: por debajo de esto se deja de bajar más (evita bloques visibles). */
+  /** Calidad mínima para no sacrificar legibilidad. */
   minQuality?: number;
 };
 
 const DEFAULTS: Required<CompressImageOptions> = {
   maxDimension: 1600,
-  maxBytes: 320 * 1024,
+  maxBytes: 512 * 1024,
   preferredMimeType: "image/webp",
-  minQuality: 0.45,
+  minQuality: 0.6,
 };
 
-/** Presets alineados a docs/contex/alcancefree.md §8 (comprimir ≤ ~300 KB). */
+/* Comprobantes: prioriza texto legible; el servidor acepta hasta 600 KiB. */
 export const PROOF_COMPRESSION: CompressImageOptions = {
-  maxDimension: 1600,
-  maxBytes: 320 * 1024,
+  maxDimension: 2000,
+  maxBytes: 512 * 1024,
   preferredMimeType: "image/webp",
+  minQuality: 0.65,
 };
 
+/* Fotos públicas: se sirven a todos los visitantes, por eso son más ligeras. */
 export const RAFFLE_IMAGE_COMPRESSION: CompressImageOptions = {
   maxDimension: 1920,
   maxBytes: 300 * 1024,
   preferredMimeType: "image/webp",
+  minQuality: 0.55,
 };
+
+type LoadedImage = {
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  release: () => void;
+};
+
+export class ImageCompressionError extends Error {
+  constructor() {
+    super(
+      "No pudimos optimizar la imagen sin perder legibilidad. Elige otra foto más nítida o recórtala antes de enviarla.",
+    );
+    this.name = "ImageCompressionError";
+  }
+}
 
 function canvasToBlob(
   canvas: HTMLCanvasElement,
@@ -63,31 +73,83 @@ function withoutExtension(fileName: string): string {
   return fileName.replace(/\.[^./\\]+$/, "");
 }
 
+async function loadWithImageElement(file: File): Promise<LoadedImage> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.decoding = "async";
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new ImageCompressionError());
+      element.src = objectUrl;
+    });
+
+    if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+      throw new ImageCompressionError();
+    }
+
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      release: () => URL.revokeObjectURL(objectUrl),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+}
+
+async function loadImage(file: File): Promise<LoadedImage> {
+  if (typeof createImageBitmap === "function") {
+    const bitmap = await createImageBitmap(file, {
+      imageOrientation: "from-image",
+    });
+
+    if (bitmap.width <= 0 || bitmap.height <= 0) {
+      bitmap.close();
+      throw new ImageCompressionError();
+    }
+
+    return {
+      source: bitmap,
+      width: bitmap.width,
+      height: bitmap.height,
+      release: () => bitmap.close(),
+    };
+  }
+
+  if (typeof Image === "undefined" || typeof URL === "undefined") {
+    throw new ImageCompressionError();
+  }
+
+  return loadWithImageElement(file);
+}
+
 /**
- * Redimensiona y recomprime una imagen en el navegador. Nunca devuelve algo
- * más pesado que el original: si la compresión no ayuda o falla, se
- * devuelve el archivo tal cual llegó.
+ * Redimensiona y recomprime una imagen antes de subirla.
+ *
+ * A diferencia de la versión anterior, nunca devuelve el original como
+ * fallback: si no puede producir un archivo dentro del límite sin bajar de
+ * la calidad mínima, el llamador debe pedir otra foto. Esto evita que una
+ * incompatibilidad del navegador anule el ahorro de Storage y egress.
  */
 export async function compressImageFile(
   file: File,
   options: CompressImageOptions = {},
 ): Promise<File> {
-  const opts = { ...DEFAULTS, ...options };
-
-  if (
-    typeof window === "undefined" ||
-    typeof document === "undefined" ||
-    typeof createImageBitmap !== "function"
-  ) {
-    return file;
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    throw new ImageCompressionError();
   }
 
-  let bitmap: ImageBitmap | null = null;
+  const opts = { ...DEFAULTS, ...options };
+  let loaded: LoadedImage | null = null;
 
   try {
-    bitmap = await createImageBitmap(file);
+    loaded = await loadImage(file);
 
-    let { width, height } = bitmap;
+    let { width, height } = loaded;
     const longestSide = Math.max(width, height);
 
     if (longestSide > opts.maxDimension) {
@@ -100,56 +162,52 @@ export async function compressImageFile(
     canvas.width = width;
     canvas.height = height;
 
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { alpha: false });
 
     if (!context) {
-      return file;
+      throw new ImageCompressionError();
     }
 
-    context.drawImage(bitmap, 0, 0, width, height);
+    context.drawImage(loaded.source, 0, 0, width, height);
 
     let mimeType: string = opts.preferredMimeType;
-    let quality = 0.82;
+    let quality = 0.88;
     let blob = await canvasToBlob(canvas, mimeType, quality);
 
-    /*
-     * Algunos navegadores no saben codificar WEBP y devuelven null (o un
-     * blob de otro tipo). Se cae a JPEG, universalmente soportado.
-     */
     if (!blob || blob.type !== mimeType) {
       mimeType = "image/jpeg";
       blob = await canvasToBlob(canvas, mimeType, quality);
     }
 
-    if (!blob) {
-      return file;
-    }
-
     let attempts = 0;
-
     while (
       blob &&
       blob.size > opts.maxBytes &&
       quality > opts.minQuality &&
-      attempts < 6
+      attempts < 7
     ) {
-      quality = Math.max(opts.minQuality, quality - 0.12);
+      quality = Math.max(opts.minQuality, quality - 0.06);
       blob = await canvasToBlob(canvas, mimeType, quality);
       attempts += 1;
     }
 
-    if (!blob || blob.size >= file.size) {
-      return file;
+    if (!blob || blob.size > opts.maxBytes) {
+      throw new ImageCompressionError();
     }
 
     const extension = mimeType === "image/webp" ? "webp" : "jpg";
 
     return new File([blob], `${withoutExtension(file.name)}.${extension}`, {
       type: mimeType,
+      lastModified: Date.now(),
     });
-  } catch {
-    return file;
+  } catch (error) {
+    if (error instanceof ImageCompressionError) {
+      throw error;
+    }
+
+    throw new ImageCompressionError();
   } finally {
-    bitmap?.close();
+    loaded?.release();
   }
 }

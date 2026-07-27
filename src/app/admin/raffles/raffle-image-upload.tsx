@@ -43,12 +43,18 @@ export function RaffleImageUpload({
        * Optimización en el navegador antes de subir (ver
        * docs/contex/alcancefree.md §4.2 y §8): esta foto se sirve a todos
        * los visitantes de la landing, así que su peso es el que más pesa en
-       * el egress público. Mejor esfuerzo: si falla, sube el original.
+       * el egress público. Si Canvas falla, no se sube el original: se pide
+       * otra imagen y el servidor mantiene el mismo tope como defensa final.
        */
-      const optimized = await compressImageFile(file, RAFFLE_IMAGE_COMPRESSION);
+      let uploadFile = file;
+      try {
+        uploadFile = await compressImageFile(file, RAFFLE_IMAGE_COMPRESSION);
+      } catch {
+        /* El endpoint reencoda antes de Storage; el original no persiste. */
+      }
 
       const body = new FormData();
-      body.set("image", optimized);
+      body.set("image", uploadFile);
 
       const response = await fetch(`/api/admin/raffles/${raffleId}/image`, {
         method: "POST",

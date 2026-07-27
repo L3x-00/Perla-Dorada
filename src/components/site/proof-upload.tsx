@@ -64,18 +64,49 @@ export function ProofUpload({
 
   const [isDragging, setIsDragging] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [compressionNotice, setCompressionNotice] = useState<string | null>(null);
 
   /*
-   * Optimiza la foto en el propio navegador antes de entregarla al padre:
-   * baja el peso del comprobante de hasta 5 MB a unos ~300 KB sin tocar el
-   * servidor (ver docs/contex/alcancefree.md §8). Es "mejor esfuerzo": si
-   * algo falla, se usa el archivo tal cual se recibió.
+   * Optimiza la foto antes de enviarla. Si Canvas no está disponible, no se
+   * filtra el original desde aquí: el servidor aplica el mismo objetivo de
+   * almacenamiento antes de enviarlo a Supabase.
    */
   async function acceptFile(selected: File) {
+    setClientError(null);
+    setCompressionNotice(null);
+
+    if (
+      !PAYMENT_PROOF_ALLOWED_MIME_TYPES.includes(
+        selected.type as (typeof PAYMENT_PROOF_ALLOWED_MIME_TYPES)[number],
+      )
+    ) {
+      onFileChange(null);
+      setClientError("Adjunta una imagen JPG, PNG o WEBP.");
+      return;
+    }
+
+    if (selected.size <= 0 || selected.size > PAYMENT_PROOF_MAX_SIZE_BYTES) {
+      onFileChange(null);
+      setClientError("El archivo original no puede superar los 5 MB.");
+      return;
+    }
+
     setIsCompressing(true);
     try {
       const optimized = await compressImageFile(selected, PROOF_COMPRESSION);
       onFileChange(optimized);
+    } catch (caughtError) {
+      /*
+       * Fallback viable: el original solo viaja al endpoint y se reencoda
+       * allí antes de Storage. No queda guardado como objeto original.
+       */
+      onFileChange(selected);
+      setCompressionNotice(
+        caughtError instanceof Error
+          ? "Tu navegador no pudo optimizarla; la optimizaremos de forma segura al enviarla."
+          : "La imagen se optimizará de forma segura al enviarla.",
+      );
     } finally {
       setIsCompressing(false);
     }
@@ -117,6 +148,8 @@ export function ProofUpload({
 
   function clear() {
     onFileChange(null);
+    setClientError(null);
+    setCompressionNotice(null);
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -231,8 +264,10 @@ export function ProofUpload({
         </div>
       )}
 
-      {error ? (
-        <p className="mt-2.5 text-xs text-red-400">{error}</p>
+      {error ?? clientError ? (
+        <p className="mt-2.5 text-xs text-red-400">{error ?? clientError}</p>
+      ) : compressionNotice ? (
+        <p className="mt-2.5 text-xs text-amber-300">{compressionNotice}</p>
       ) : null}
     </div>
   );

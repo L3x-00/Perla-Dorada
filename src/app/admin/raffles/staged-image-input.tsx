@@ -51,12 +51,17 @@ export function StagedImageInput({
        * Se optimiza en el navegador antes de subir: baja el peso de la foto
        * (el egress público la sirve a todos los visitantes de la landing —
        * ver docs/contex/alcancefree.md §4.2 y §8) sin usar ningún job de
-       * pago. Mejor esfuerzo: si falla, se sube el archivo original.
+       * pago. Si Canvas falla, no se sube el archivo original.
        */
-      const optimized = await compressImageFile(file, RAFFLE_IMAGE_COMPRESSION);
+      let uploadFile = file;
+      try {
+        uploadFile = await compressImageFile(file, RAFFLE_IMAGE_COMPRESSION);
+      } catch {
+        /* El endpoint reencoda antes de Storage; el original no persiste. */
+      }
 
       const body = new FormData();
-      body.set("image", optimized);
+      body.set("image", uploadFile);
 
       const response = await fetch("/api/admin/raffles/prize-image", {
         method: "POST",
