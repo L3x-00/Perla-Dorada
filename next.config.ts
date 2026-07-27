@@ -7,8 +7,26 @@ const isProduction = process.env.NODE_ENV === "production";
  * que su origen debe permitirse en connect-src. Se incluye también el
  * equivalente wss:// por si en el futuro se usa Realtime.
  */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const supabaseWsUrl = supabaseUrl.replace(/^https:/, "wss:");
+function getAllowedOrigin(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value.trim());
+
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+const supabaseUrl = getAllowedOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseWsUrl = supabaseUrl
+  ? supabaseUrl.replace(/^http/, "ws")
+  : null;
 
 const connectSrc = ["'self'", supabaseUrl, supabaseWsUrl]
   .filter(Boolean)

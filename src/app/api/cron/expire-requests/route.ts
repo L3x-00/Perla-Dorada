@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { hasValidCronAuthorization } from "@/lib/security/cron-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -18,23 +19,19 @@ export const dynamic = "force-dynamic";
  * `pending` cuya reserva ya venció. Es idempotente.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret) {
-    console.error("CRON_SECRET no está configurada.");
+  try {
+    if (!hasValidCronAuthorization(request)) {
+      return NextResponse.json(
+        { error: "No autorizado." },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  } catch (error) {
+    console.error("Cron de expiración sin configuración válida:", error);
 
     return NextResponse.json(
       { error: "El servicio no está configurado." },
       { status: 500, headers: { "Cache-Control": "no-store" } },
-    );
-  }
-
-  const authorization = request.headers.get("authorization");
-
-  if (authorization !== `Bearer ${cronSecret}`) {
-    return NextResponse.json(
-      { error: "No autorizado." },
-      { status: 401, headers: { "Cache-Control": "no-store" } },
     );
   }
 

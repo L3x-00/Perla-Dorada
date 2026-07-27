@@ -1,45 +1,48 @@
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
-    const { data, error } = await supabase.auth.getSession();
+    const { error } = await supabase
+      .from("app_settings")
+      .select("id", { head: true, count: "exact" })
+      .eq("id", true);
 
     if (error) {
       return NextResponse.json(
         {
           ok: false,
           service: "supabase",
-          error: error.message,
+          error: "No fue posible verificar la base de datos.",
         },
-        { status: 502 },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-      service: "supabase",
-      connected: true,
-      authenticated: Boolean(data.session),
-      message: "Cliente SSR conectado correctamente con Supabase.",
-      checkedAt: new Date().toISOString(),
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        service: "supabase",
+        connected: true,
+        checkedAt: new Date().toISOString(),
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
+    console.error("Health check de Supabase falló:", error);
+
     return NextResponse.json(
       {
         ok: false,
         service: "supabase",
-        error:
-          error instanceof Error
-            ? error.message
-            : "No fue posible conectar con Supabase.",
+        error: "No fue posible verificar la base de datos.",
       },
-      { status: 502 },
+      { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }
 }
