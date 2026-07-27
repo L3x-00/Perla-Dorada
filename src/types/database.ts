@@ -123,6 +123,48 @@ export type Database = {
         }
         Relationships: []
       }
+      participant_tracking_code_aliases: {
+        Row: {
+          created_at: string
+          document_number: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
+          tracking_code: string
+        }
+        Insert: {
+          created_at?: string
+          document_number: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
+          tracking_code: string
+        }
+        Update: {
+          created_at?: string
+          document_number?: string
+          document_type?: Database["public"]["Enums"]["participant_document_type"]
+          tracking_code?: string
+        }
+        Relationships: []
+      }
+      participant_tracking_codes: {
+        Row: {
+          created_at: string
+          document_number: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
+          tracking_code: string
+        }
+        Insert: {
+          created_at?: string
+          document_number: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
+          tracking_code: string
+        }
+        Update: {
+          created_at?: string
+          document_number?: string
+          document_type?: Database["public"]["Enums"]["participant_document_type"]
+          tracking_code?: string
+        }
+        Relationships: []
+      }
       purchase_requests: {
         Row: {
           created_at: string
@@ -594,6 +636,22 @@ export type Database = {
             }[]
           }
         | {
+            Args: {
+              p_document_type: string
+              p_dni: string
+              p_tracking_code: string
+            }
+            Returns: {
+              dni: string
+              full_name: string
+              purchased_at: string
+              raffle_name: string
+              request_id: string
+              ticket_numbers: number[]
+              ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
+            }[]
+          }
+        | {
             Args: { p_dni: string; p_tracking_code: string }
             Returns: {
               dni: string
@@ -714,6 +772,23 @@ export type Database = {
               request_status: Database["public"]["Enums"]["purchase_request_status"]
               requested_at: string
               reviewed_at: string
+              ticket_numbers: number[]
+            }[]
+          }
+        | {
+            Args: {
+              p_document_type: string
+              p_dni: string
+              p_tracking_code: string
+            }
+            Returns: {
+              expires_at: string
+              raffle_name: string
+              rejection_reason: string | null
+              request_id: string
+              request_status: Database["public"]["Enums"]["purchase_request_status"]
+              requested_at: string
+              reviewed_at: string | null
               ticket_numbers: number[]
             }[]
           }

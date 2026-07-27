@@ -18,8 +18,8 @@ export default function TrackingPage() {
         </h1>
 
         <p className="mt-4 text-base leading-relaxed text-muted">
-          Ingresa el DNI y el código de seguimiento que recibiste al registrar
-          tu solicitud.
+          Ingresa tu DNI y tu código único de seguimiento para consultar todas
+          tus solicitudes.
         </p>
       </header>
 

@@ -62,10 +62,10 @@ export default function TerminosPage() {
 
       <LegalSection title="5. Código de seguimiento">
         <p>
-          Al registrar una solicitud se entrega un código de seguimiento que,
-          junto con el DNI, permite consultar su estado y descargar los boletos
-          aprobados. Es responsabilidad del participante conservarlo y no
-          compartirlo.
+          Al registrar la primera solicitud se entrega un código único de seguimiento
+          que se reutiliza en las compras posteriores del mismo documento. Junto con
+          el DNI, permite consultar todas sus solicitudes y descargar los boletos
+          aprobados. Es responsabilidad del participante conservarlo y no compartirlo.
         </p>
       </LegalSection>
 

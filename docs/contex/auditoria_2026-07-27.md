@@ -5,6 +5,7 @@ Estado: cambios locales validados; la migración aún no se ha aplicado al remot
 ## Correcciones implementadas
 
 - Privacidad: seguimiento y descarga de tickets vuelven a requerir **DNI + código de seguimiento**. Las firmas antiguas quedan cerradas con un error controlado para que una ventana de despliegue no exponga datos por DNI.
+- Seguimiento: el código ahora identifica al participante (tipo de documento + número), no a cada solicitud. Todas sus compras reutilizan el mismo código; las solicitudes y boletos conservan su trazabilidad independiente. Los códigos históricos se mantienen como alias de migración y el código canónico se muestra en adelante.
 - Tickets: cancelar una rifa congela los tickets emitidos. La reasignación requiere un administrador activo y una rifa nueva activa; crea un ticket nuevo trazable y conserva el original como `reassigned`.
 - Integridad: solo se elimina un borrador totalmente vacío. Nunca se eliminan solicitudes, tickets ni ganadores por borrar una rifa.
 - Compra: límite autoritativo de 30 tickets por solicitud, en interfaz, Zod y PostgreSQL.

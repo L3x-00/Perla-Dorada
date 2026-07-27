@@ -139,7 +139,7 @@ export function TrackingForm() {
             className="h-11 w-full rounded-lg border border-line bg-ink px-3 font-mono text-sm uppercase text-cream outline-none transition placeholder:font-sans placeholder:text-muted/50 focus:border-gold focus:ring-2 focus:ring-gold/20"
           />
           <p className="mt-2 text-xs text-muted">
-            Lo recibiste al registrar tu solicitud.
+            Es el mismo código para todas las compras que hagas con este documento.
           </p>
         </div>
 

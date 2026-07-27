@@ -78,6 +78,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { data, error } = await adminClient.rpc(
     "get_public_ticket_document",
     {
+      p_document_type: input.documentType,
       p_dni: input.dni,
       p_tracking_code: input.trackingCode,
     },

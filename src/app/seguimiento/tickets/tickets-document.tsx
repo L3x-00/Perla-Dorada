@@ -180,7 +180,7 @@ export function TicketsDocument() {
           </h1>
           <p className="mt-2 text-sm text-muted">
             Disponible solo para solicitudes aprobadas. Ingresa tu documento y
-            tu código de seguimiento para ver tus tickets vigentes e historial.
+            tu código único de seguimiento para ver todos tus tickets vigentes e historial.
           </p>
 
           <form

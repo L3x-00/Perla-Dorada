@@ -45,7 +45,7 @@ export default function BasesPage() {
             "Elegir la cantidad de boletos en el formulario del sitio web.",
             "Pagar por Yape el monto exacto correspondiente a la cantidad elegida.",
             "Completar el formulario con nombre completo, DNI, teléfono y WhatsApp, adjuntando la captura del comprobante de pago.",
-            "Conservar el código de seguimiento entregado al registrar la solicitud.",
+            "Conservar el código único de seguimiento entregado al registrar la primera solicitud.",
           ]}
         />
         <p>

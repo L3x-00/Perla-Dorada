@@ -685,8 +685,8 @@ function SuccessStep({
       </h3>
       <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
         Tu solicitud quedó <span className="text-cream">pendiente de aprobación</span>.
-        Verificamos tu comprobante y te asignamos tus boletos. Guarda tu código:
-        lo necesitarás junto con tu documento para consultar el estado.
+        Verificamos tu comprobante y te asignamos tus boletos. Guarda este código
+        único: junto con tu documento podrás consultar todas tus compras.
       </p>
 
       <div className="mx-auto mt-7 flex w-fit flex-col items-center gap-3">
