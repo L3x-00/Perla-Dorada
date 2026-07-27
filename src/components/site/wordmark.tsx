@@ -18,16 +18,14 @@ type WordmarkProps = {
  */
 export function Wordmark({ className, inverted = false }: WordmarkProps) {
   return (
-    <span className={`inline-flex items-center gap-3 ${className ?? ""}`}>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/20 p-1.5 shadow-[0_0_18px_rgba(201,162,39,0.28)]">
-        <Image
-          src="/marca/logo/logo.webp"
-          alt=""
-          width={44}
-          height={44}
-          className="h-full w-full object-contain"
-        />
-      </span>
+    <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
+      <Image
+        src="/marca/logo/logo.webp"
+        alt=""
+        width={1280}
+        height={1280}
+        className="h-14 w-14 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(201,162,39,0.3)] sm:h-16 sm:w-16"
+      />
       <span className="inline-flex flex-col items-start">
         <span
           className={`font-display text-xl font-light leading-none tracking-[0.18em] sm:text-2xl ${
