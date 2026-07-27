@@ -338,8 +338,8 @@ export type Database = {
           raffle_id: string
           reassigned_at: string | null
           reassigned_by: string | null
-          ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
           ticket_number: number
+          ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
         }
         Insert: {
           assigned_at?: string
@@ -350,8 +350,8 @@ export type Database = {
           raffle_id: string
           reassigned_at?: string | null
           reassigned_by?: string | null
-          ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
           ticket_number: number
+          ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
         }
         Update: {
           assigned_at?: string
@@ -362,10 +362,17 @@ export type Database = {
           raffle_id?: string
           reassigned_at?: string | null
           reassigned_by?: string | null
-          ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
           ticket_number?: number
+          ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "tickets_origin_ticket_id_fkey"
+            columns: ["origin_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tickets_purchase_request_id_fkey"
             columns: ["purchase_request_id"]
@@ -378,13 +385,6 @@ export type Database = {
             columns: ["raffle_id"]
             isOneToOne: false
             referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tickets_origin_ticket_id_fkey"
-            columns: ["origin_ticket_id"]
-            isOneToOne: false
-            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -581,18 +581,30 @@ export type Database = {
       }
       expire_purchase_requests: { Args: never; Returns: number }
       generate_tracking_code: { Args: never; Returns: string }
-      get_public_ticket_document: {
-        Args: { p_dni: string; p_tracking_code: string }
-        Returns: {
-          dni: string
-          full_name: string
-          purchased_at: string
-          raffle_name: string
-          request_id: string
-          ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
-          ticket_numbers: number[]
-        }[]
-      }
+      get_public_ticket_document:
+        | {
+            Args: { p_dni: string }
+            Returns: {
+              dni: string
+              full_name: string
+              purchased_at: string
+              raffle_name: string
+              request_id: string
+              ticket_numbers: number[]
+            }[]
+          }
+        | {
+            Args: { p_dni: string; p_tracking_code: string }
+            Returns: {
+              dni: string
+              full_name: string
+              purchased_at: string
+              raffle_name: string
+              request_id: string
+              ticket_numbers: number[]
+              ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
+            }[]
+          }
       list_payment_proofs_for_retention: {
         Args: { p_retention_days?: number }
         Returns: {
@@ -606,6 +618,19 @@ export type Database = {
       purge_rate_limits: {
         Args: { p_retention_days?: number }
         Returns: number
+      }
+      reassign_frozen_ticket: {
+        Args: {
+          p_admin_user_id: string
+          p_source_ticket_id: string
+          p_target_raffle_id: string
+        }
+        Returns: {
+          reassigned_ticket_id: string
+          reassigned_ticket_number: number
+          source_ticket_id: string
+          target_raffle_name: string
+        }[]
       }
       register_raffle_winner: {
         Args: {
@@ -645,19 +670,6 @@ export type Database = {
           ticket_number: number
         }[]
       }
-      reassign_frozen_ticket: {
-        Args: {
-          p_admin_user_id: string
-          p_source_ticket_id: string
-          p_target_raffle_id: string
-        }
-        Returns: {
-          reassigned_ticket_id: string
-          reassigned_ticket_number: number
-          source_ticket_id: string
-          target_raffle_name: string
-        }[]
-      }
       reject_purchase_request: {
         Args: {
           p_admin_user_id: string
@@ -691,19 +703,33 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      track_purchase_request: {
-        Args: { p_dni: string; p_tracking_code: string }
-        Returns: {
-          expires_at: string
-          raffle_name: string
-          rejection_reason: string
-          request_id: string
-          request_status: Database["public"]["Enums"]["purchase_request_status"]
-          requested_at: string
-          reviewed_at: string
-          ticket_numbers: number[]
-        }[]
-      }
+      track_purchase_request:
+        | {
+            Args: { p_dni: string }
+            Returns: {
+              expires_at: string
+              raffle_name: string
+              rejection_reason: string
+              request_id: string
+              request_status: Database["public"]["Enums"]["purchase_request_status"]
+              requested_at: string
+              reviewed_at: string
+              ticket_numbers: number[]
+            }[]
+          }
+        | {
+            Args: { p_dni: string; p_tracking_code: string }
+            Returns: {
+              expires_at: string
+              raffle_name: string
+              rejection_reason: string
+              request_id: string
+              request_status: Database["public"]["Enums"]["purchase_request_status"]
+              requested_at: string
+              reviewed_at: string
+              ticket_numbers: number[]
+            }[]
+          }
       update_raffle: {
         Args: {
           p_admin_user_id: string
@@ -881,6 +907,7 @@ export const Constants = {
       participant_document_type: ["dni", "cui"],
       purchase_request_status: ["pending", "approved", "rejected", "expired"],
       raffle_status: ["draft", "active", "closed", "cancelled"],
+      ticket_lifecycle_status: ["active", "frozen", "reassigned"],
       ticket_print_type: ["original", "reprint"],
     },
   },
