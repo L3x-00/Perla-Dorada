@@ -3,7 +3,7 @@
 import { useState, type CSSProperties } from "react";
 
 type FestiveLight = "gold" | "violet" | "blue";
-type SerpentineTone = "gold" | "violet" | "blue" | "pink" | "aqua" | "lilac";
+type StarTone = "gold" | "violet" | "blue" | "pink" | "aqua" | "lilac";
 
 const LIGHTS: Array<{ id: FestiveLight; label: string; color: string }> = [
   { id: "gold", label: "Dorada", color: "#f1c24f" },
@@ -11,7 +11,7 @@ const LIGHTS: Array<{ id: FestiveLight; label: string; color: string }> = [
   { id: "blue", label: "Azul", color: "#63b5ff" },
 ];
 
-const SERPENTINE_TONES: SerpentineTone[] = [
+const STAR_TONES: StarTone[] = [
   "gold",
   "violet",
   "blue",
@@ -20,28 +20,24 @@ const SERPENTINE_TONES: SerpentineTone[] = [
   "lilac",
 ];
 
-/* Más densidad y posiciones deterministas: no rompe la hidratación. */
-const SERPENTINES = Array.from({ length: 42 }, (_, index) => {
+/* Posiciones deterministas para que las estrellas no rompan la hidratación. */
+const TWINKLE_STARS = Array.from({ length: 42 }, (_, index) => {
   const leftColumn = index % 2 === 0;
   const style: CSSProperties = {
     top: `${4 + ((index * 17) % 88)}%`,
-    left: `${leftColumn ? -8 + ((index * 11) % 24) : 84 + ((index * 13) % 20)}%`,
+    left: `${leftColumn ? -2 + ((index * 11) % 26) : 77 + ((index * 13) % 22)}%`,
     animationDelay: `-${(index * 0.43).toFixed(2)}s`,
-    animationDuration: `${2.7 + (index % 4) * 0.42}s`,
+    animationDuration: `${2.4 + (index % 4) * 0.38}s`,
   };
 
   return {
-    id: `serpentine-${index}`,
-    tone: SERPENTINE_TONES[index % SERPENTINE_TONES.length],
+    id: `star-${index}`,
+    tone: STAR_TONES[index % STAR_TONES.length],
     style,
   };
 });
 
-/*
- * Las luces son controles reales (teclado y lector de pantalla), no una
- * animación que se dispara sola. La selección cambia el baño de color de
- * toda la sección sin interferir con la compra ni con los modales.
- */
+/* Las tres luces son controles; la paleta elegida también realza sus estrellas. */
 export function RaffleCelebration() {
   const [activeLight, setActiveLight] = useState<FestiveLight>("gold");
 
@@ -58,18 +54,14 @@ export function RaffleCelebration() {
         <div className="raffle-festive-beam raffle-festive-beam--blue" />
 
         <div className="absolute inset-0">
-          {SERPENTINES.map((serpentine) => (
+          {TWINKLE_STARS.map((star) => (
             <svg
-              key={serpentine.id}
-              viewBox="0 0 160 240"
-              style={serpentine.style}
-              className={`raffle-serpentine raffle-serpentine--${serpentine.tone}`}
+              key={star.id}
+              viewBox="0 0 24 24"
+              style={star.style}
+              className={`raffle-twinkle raffle-twinkle--${star.tone}`}
             >
-              <path d="M18 4c72 8-4 45 66 61s-20 47 50 64-5 47 26 67-24 31-4 40" />
-              <path
-                d="M31 8c72 8-4 45 66 61s-20 47 50 64-5 47 26 67-24 31-4 40"
-                opacity="0.45"
-              />
+              <path d="M12 0 14.2 9.8 24 12l-9.8 2.2L12 24l-2.2-9.8L0 12l9.8-2.2Z" />
             </svg>
           ))}
         </div>

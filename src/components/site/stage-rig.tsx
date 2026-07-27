@@ -137,7 +137,7 @@ export function StageRig() {
             carriageRefs.current[index] = element;
           }}
           className="absolute top-10 bottom-0 w-[38vw] max-w-[22rem]"
-          style={{ left: movingLight.start }}
+          style={{ left: movingLight.start, opacity: 0.35 }}
         >
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"

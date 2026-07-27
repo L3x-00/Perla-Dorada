@@ -240,45 +240,45 @@ html[data-theme="light"] .raffle-festive-wash {
   opacity: 0.7;
 }
 
-.raffle-serpentine {
+.raffle-twinkle {
   position: absolute;
-  width: clamp(6rem, 14vw, 12rem);
+  --twinkle-peak: 0.3;
+  width: clamp(0.8rem, 1.8vw, 1.35rem);
   height: auto;
-  fill: none;
-  filter: drop-shadow(0 0 8px currentColor);
-  opacity: 0.64;
-  transform-origin: center top;
-  animation: serpentine-sway 3.4s ease-in-out infinite alternate;
+  fill: currentColor;
+  filter: drop-shadow(0 0 4px currentColor);
+  opacity: 0.22;
+  animation: raffle-twinkle 2.8s ease-in-out infinite;
 }
 
-.raffle-serpentine path {
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 7;
-}
-
-.raffle-serpentine--gold {
+.raffle-twinkle--gold {
   color: #f1c24f;
 }
 
-.raffle-serpentine--violet {
+.raffle-twinkle--violet {
   color: #cb7aff;
 }
 
-.raffle-serpentine--blue {
+.raffle-twinkle--blue {
   color: #63b5ff;
 }
 
-.raffle-serpentine--pink {
+.raffle-twinkle--pink {
   color: #ff89b8;
 }
 
-.raffle-serpentine--aqua {
+.raffle-twinkle--aqua {
   color: #8ed8ff;
 }
 
-.raffle-serpentine--lilac {
+.raffle-twinkle--lilac {
   color: #d69cff;
+}
+
+[data-festive-light="gold"] .raffle-twinkle--gold,
+[data-festive-light="violet"] .raffle-twinkle--violet,
+[data-festive-light="blue"] .raffle-twinkle--blue {
+  --twinkle-peak: 0.38;
 }
 
 .prize-showcase-edge-fade {
@@ -287,12 +287,15 @@ html[data-theme="light"] .raffle-festive-wash {
     linear-gradient(180deg, var(--color-ink) 0%, transparent 12%, transparent 84%, var(--color-ink) 100%);
 }
 
-@keyframes serpentine-sway {
-  from {
-    transform: rotate(-5deg) translateY(0);
+@keyframes raffle-twinkle {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(0.6) rotate(0deg);
   }
-  to {
-    transform: rotate(7deg) translateY(18px);
+  50% {
+    opacity: var(--twinkle-peak);
+    transform: scale(1) rotate(14deg);
   }
 }
 
