@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Wordmark } from "@/components/site/wordmark";
+import { ThemeToggle } from "@/components/site/theme-toggle";
 import { brand } from "@/config/brand";
 
 type NavItem = { label: string; href: string };
@@ -39,7 +40,7 @@ export function SiteHeader() {
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" aria-label={`Ir al inicio de ${brand.name}`}>
-          <Wordmark />
+          <Wordmark inverted={!scrolled} />
         </Link>
 
         <nav className="hidden items-center gap-9 md:flex">
@@ -47,31 +48,37 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="eyebrow text-muted transition-colors duration-300 hover:text-gold"
+              className={`eyebrow transition-colors duration-300 hover:text-gold ${
+                scrolled ? "text-muted" : "text-white/75"
+              }`}
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-label="Abrir menú"
-          className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
-        >
-          <span
-            className={`h-px w-6 bg-cream transition-transform duration-300 ${
-              open ? "translate-y-[3.5px] rotate-45" : ""
-            }`}
-          />
-          <span
-            className={`h-px w-6 bg-cream transition-transform duration-300 ${
-              open ? "-translate-y-[3.5px] -rotate-45" : ""
-            }`}
-          />
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle variant={scrolled ? "default" : "on-image"} />
+
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
+          >
+            <span
+              className={`h-px w-6 transition-transform duration-300 ${
+                scrolled ? "bg-cream" : "bg-white"
+              } ${open ? "translate-y-[3.5px] rotate-45" : ""}`}
+            />
+            <span
+              className={`h-px w-6 transition-transform duration-300 ${
+                scrolled ? "bg-cream" : "bg-white"
+              } ${open ? "-translate-y-[3.5px] -rotate-45" : ""}`}
+            />
+          </button>
+        </div>
       </div>
 
       {open ? (

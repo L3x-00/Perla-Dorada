@@ -31,8 +31,41 @@
 }
 
 :root {
-  --background: #09090b;
-  --foreground: #f6f3ed;
+  color-scheme: dark;
+  --background: var(--color-ink);
+  --foreground: var(--color-cream);
+
+  /* Las secciones con fotografía conservan contraste en ambos temas. */
+  --image-scrim: rgb(0 0 0 / 0.46);
+  --image-foreground: #fffdf7;
+  --image-muted: #e9e2d4;
+  --image-gold: #e3ce8e;
+}
+
+/*
+ * El sistema usa los mismos tokens en todos los componentes (incluidos los
+ * modales y el panel administrativo). Al sobrescribirlos aquí, las clases
+ * de Tailwind como bg-ink, text-cream o border-line cambian de tema sin
+ * tener que mantener dos árboles de estilos.
+ */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-ink: #f8f4eb;
+  --color-ink-2: #fffdf8;
+  --color-ink-3: #eee6d7;
+  --color-line: #d7cbb9;
+
+  --color-gold: #856317;
+  --color-gold-soft: #a77b20;
+  --color-gold-deep: #63480e;
+
+  --color-cream: #251e14;
+  --color-muted: #6b6256;
+
+  --image-scrim: rgb(12 9 5 / 0.5);
+  --image-foreground: #fffdf7;
+  --image-muted: #f4e9d3;
+  --image-gold: #f2ce69;
 }
 
 body {
@@ -40,6 +73,43 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.image-scrim {
+  background: var(--image-scrim);
+}
+
+.image-foreground {
+  color: var(--image-foreground);
+}
+
+.image-muted {
+  color: var(--image-muted);
+}
+
+.image-gold {
+  color: var(--image-gold);
+}
+
+.hero-metal {
+  background-image: linear-gradient(
+    100deg,
+    var(--image-gold) 0%,
+    #fff1bd 45%,
+    var(--image-gold) 70%,
+    var(--image-gold) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Etiqueta pequeña en versalitas: firma visual de joyería */

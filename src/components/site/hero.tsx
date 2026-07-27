@@ -47,17 +47,14 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
           placeholder="blur"
           className="object-cover object-[78%_50%]"
           priority
-          quality={100}
+          quality={90}
           sizes="100vw"
           style={{ opacity: 0.5 }}
         />
       </div>
 
       {/* Overlay oscuro para mejorar legibilidad */}
-      <div 
-        aria-hidden
-        className="absolute inset-0 z-1 bg-black/40"
-      />
+      <div aria-hidden className="image-scrim absolute inset-0 z-1" />
 
       {/* Halo dorado muy tenue: da profundidad sin ensuciar el negro */}
       <div
@@ -70,24 +67,24 @@ export function Hero({ hasActiveRaffle }: HeroProps) {
       />
 
       <div className="relative z-2 mx-auto w-full max-w-6xl px-6 pt-28 pb-20">
-        <motion.p {...rise(0)} className="eyebrow text-gold">
+        <motion.p {...rise(0)} className="eyebrow image-gold">
           {brand.tagline}
         </motion.p>
 
         <motion.h1
           {...rise(0.12)}
-          className="mt-7 max-w-3xl font-display text-5xl font-light leading-[1.05] text-cream sm:text-6xl lg:text-7xl"
+          className="image-foreground mt-7 max-w-3xl font-display text-5xl font-light leading-[1.05] sm:text-6xl lg:text-7xl"
         >
           Hoy puedes ganar
           <br />
-          <span className="text-metal italic">premios increíbles</span> con
+          <span className="hero-metal italic">premios increíbles</span> con
           <br />
           Perla Dorada
         </motion.h1>
 
         <motion.p
           {...rise(0.24)}
-          className="mt-8 max-w-md text-base leading-relaxed text-muted"
+          className="image-muted mt-8 max-w-md text-base leading-relaxed"
         >
           {brand.description}
         </motion.p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminNav } from "./admin-nav";
+import { ThemeToggle } from "@/components/site/theme-toggle";
 import { Wordmark } from "@/components/site/wordmark";
 
 type AdminLayoutProps = {
@@ -27,6 +28,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Link href="/admin" aria-label="Panel administrativo">
                 <Wordmark />
               </Link>
+
+              <div className="shrink-0 lg:order-3">
+                <ThemeToggle />
+              </div>
 
               <Link
                 href="/"

@@ -50,17 +50,14 @@ export function About() {
       </div>
 
       {/* Overlay oscuro para mejorar legibilidad */}
-      <div 
-        aria-hidden
-        className="absolute inset-0 z-1 bg-black/40"
-      />
+      <div aria-hidden className="image-scrim absolute inset-0 z-1" />
 
       <div className="relative z-2 mx-auto max-w-6xl px-6 py-24 sm:py-28">
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
             <div>
-              <p className="eyebrow text-gold">Nosotros</p>
-              <h2 className="mt-4 font-display text-4xl font-light leading-tight text-cream sm:text-5xl">
+              <p className="eyebrow image-gold">Nosotros</p>
+              <h2 className="image-foreground mt-4 font-display text-4xl font-light leading-tight sm:text-5xl">
                 {brand.name}
               </h2>
             </div>
@@ -68,13 +65,13 @@ export function About() {
 
           <Reveal delay={0.1}>
             <div>
-              <p className="text-base leading-relaxed text-muted">
+              <p className="image-muted text-base leading-relaxed">
                 {brand.about}
               </p>
 
               {social.length > 0 ? (
                 <div className="mt-10">
-                  <p className="eyebrow text-muted">Síguenos</p>
+                  <p className="eyebrow image-muted">Síguenos</p>
                   <ul className="mt-5 flex flex-wrap gap-3">
                     {social.map(({ network, url }) => {
                       const { label, Icon } = SOCIAL_META[network];
@@ -84,7 +81,7 @@ export function About() {
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group inline-flex items-center gap-2.5 rounded-full border border-line px-5 py-2.5 text-sm text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
+                            className="image-foreground group inline-flex items-center gap-2.5 rounded-full border border-white/35 px-5 py-2.5 text-sm transition-colors duration-300 hover:border-gold hover:text-gold"
                           >
                             <Icon className="h-4 w-4" />
                             {label}
