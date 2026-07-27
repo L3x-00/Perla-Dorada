@@ -8,6 +8,16 @@ Registro vivo de bugs y deuda técnica confirmados por lectura directa de códig
 
 Estados: 🔴 abierto (bloqueante) · 🟡 abierto (no bloqueante) · 🟢 corregido · ⚪ decisión pendiente (no es bug)
 
+## Actualización de auditoría — 27 jul 2026 (pendiente de despliegue)
+
+- **ERR-17 — 🟢 Corregido en migración local:** cancelar una rifa congela los tickets emitidos; se bloquean impresión y ganador, y la reasignación administrativa a una rifa activa crea un ticket nuevo trazable. La semántica acordada está documentada en `auditoria_2026-07-27.md`.
+- **ERR-18 — 🟢 Corregidos los ítems confirmados:** health verifica una tabla real de Supabase y no expone detalle; cantidad máxima de compra 30 en UI/Zod/BD; crons usan comparación en tiempo constante; CSP valida origen; las rutas/páginas admin exigen perfil activo; la eliminación de rifa queda limitada a borrador vacío.
+- **PRIV-01 — 🟢 Corregido en migración local:** DNI aislado exponía solicitudes, nombres y tickets. Seguimiento y documento público requieren DNI + tracking code; las firmas heredadas quedan cerradas durante el despliegue.
+- **IMG-01 — 🟢 Corregido local:** la compresión dejó de ser "mejor esfuerzo" que persistía originales. Cliente y servidor reencodan antes de Storage; el servidor es el fallback para Canvas no disponible.
+- **DEP-01 — 🟢 Corregido para dependencias de producción:** Next/React/Supabase se actualizaron y se fuerzan `postcss@8.5.23` y `sharp@0.35.3`. `npm audit --omit=dev` devuelve 0 vulnerabilidades. El `npm audit` completo conserva vulnerabilidades de herramientas de lint que solo se resuelven con cambios mayores de ESLint y no alcanzan producción.
+
+No marcar estas correcciones como verificadas en producción hasta aplicar `20260727171136_harden_ticket_lifecycle_and_purchase_limits.sql`, regenerar tipos y completar la lista de pruebas de `auditoria_2026-07-27.md`.
+
 2. Bugs activos
 
 ERR-01 — 🟢 Corregido — Aprobar/Rechazar/Ver comprobante devuelven 404 en admin

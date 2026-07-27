@@ -28,21 +28,21 @@ Fase 7 — Despliegue y aceptación	⚠️ Desplegada y probada 23 jul 2026	EN R
 3. Reglas de negocio invariantes
 Estados de entidades
 Entidad	Estados / Regla
-Rifa	draft → active → closed; cancelación permitida. Solo una activa.
+Rifa	draft → active → closed; cancelación permitida. Solo una activa. Al cancelar, los tickets emitidos se congelan.
 Solicitud	pending → approved | rejected | expired. Estados terminales no se revierten.
-Ticket	Se crea/asigna tras aprobación. Número único por rifa. Nunca reutilizable.
+Ticket	Se crea/asigna tras aprobación. Número único por rifa. Nunca reutilizable. `frozen` solo puede generar un nuevo ticket `active` por reasignación explícita; el original queda `reassigned` como historial.
 Ganador	no registrado → registrado. Inmutable.
 Comprobante	Privado; elegible para eliminación 15 días después del cierre de la rifa.
 Reglas operativas
 Una solicitud pendiente por DNI y rifa
 Reserva de 60 minutos (reservation_minutes en app_settings, configurable)
 Pago por Yape con validación manual del administrador
-Comprobante JPG/PNG/WEBP, máximo 5 MB, bucket privado
+Comprobante JPG/PNG/WEBP, entrada máxima 5 MB y objeto final máximo 600 KiB/2000 px, bucket privado; navegador y servidor reencodan antes de Storage
 Aprobación y asignación de tickets atómicas (todo o nada)
 Tickets correlativos por rifa, únicos
 Máximo de reimpresiones configurable (valor actual: 5)
 Ganador manual, único e irreversible
-Consulta pública por DNI + tracking code
+Consulta pública por DNI + tracking code (ambos obligatorios)
 Dos cuentas administrativas creadas manualmente
 ticket_price × requestedQuantity calculado en backend; nunca confiar en total del cliente
 4. Bloque A — Portal público y venta unitaria — 🟢 COMPLETADO (22 jul 2026)
@@ -249,3 +249,5 @@ PR-01	Retención	Elimina objetos elegibles; conserva metadatos
  Producción pasa smoke tests y cliente acepta
 
 PD-CC-02 · Transferencia técnica Joyería Perla Dorada
+
+> Actualización 27 jul 2026 — auditoría local terminada, pendiente de despliegue coordinado. La migración `20260727171136_harden_ticket_lifecycle_and_purchase_limits.sql` incorpora el límite de 30 tickets por solicitud, el ciclo `active → frozen → reassigned`, reasignación explícita desde el panel y consultas públicas con DNI + código. Ver `auditoria_2026-07-27.md` antes de aplicar la migración.

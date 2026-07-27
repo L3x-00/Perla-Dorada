@@ -16,7 +16,7 @@ Senior Software Engineer dentro de un repo existente. Inspeccionar → comprende
 
 ## Stack (versiones exactas — ver estado_proyecto.md §3)
 
-Next.js 16.2.10 (App Router) · React 19.2.4 · TypeScript 5.9.3 estricto · Tailwind CSS v4 (sin config.js) · Supabase (PostgreSQL/Auth/Storage/Realtime) · Zod v4.4.3 (no v3) · Vercel.
+Next.js 16.2.12 (App Router) · React 19.2.8 · TypeScript 5.9.3 estricto · Tailwind CSS v4 (sin config.js) · Supabase (PostgreSQL/Auth/Storage/Realtime) · Zod v4.4.3 (no v3) · Render.
 
 ## No negociable
 
@@ -28,6 +28,9 @@ Next.js 16.2.10 (App Router) · React 19.2.4 · TypeScript 5.9.3 estricto · Tai
 - `service_role` solo en servidor (`src/lib/supabase/admin.ts`), nunca en cliente ni en `NEXT_PUBLIC_*`.
 - Comprobantes en Storage privado, URLs firmadas de vida corta.
 - Ganador manual, único, irreversible. Nunca automatizar selección de ganador.
+- Un ticket de rifa cancelada se congela. Reasignarlo crea otro ticket trazable en una rifa activa; nunca se mueve, reutiliza, imprime ni elige como ganador el original.
+- Seguimiento y documento público requieren DNI + código de seguimiento. El DNI no es un secreto suficiente.
+- Toda imagen se reencoda antes de Storage: el navegador reduce primero y el servidor es el respaldo autoritativo; no persistir originales.
 - No agregar dependencias sin justificar explícitamente (ver DEC-02 en errores.md sobre PDF).
 
 ## Estado — ver docs/contex/errores.md para el detalle completo
@@ -55,6 +58,8 @@ Migraciones aplicadas al remoto (proyecto iewcowhkfsywdiyligsq): `20260722160000
 **Bloques A–G completos y verificados. Fase 7 ejecutada el 23 jul 2026:** desplegado en **https://perla-dorada.onrender.com** y batería crítica completa (PF-01…PR-01, PC-01/02, PS-01) **PASA** contra producción, con limpieza total de datos de prueba. Durante la campaña se detectó y corrigió **ERR-11** (el rate limit era eludible rotando el User-Agent; ahora se evalúa también un cubo por IP sola).
 
 Pendiente: aceptación del cliente, los 2 Render Cron Jobs, rotar las claves expuestas por ERR-10, y el rediseño visual del portal (decidido: se queda en Render; migrar a Vercel NO requiere reestructurar nada, es solo cuestión de costo/plan).
+
+**Auditoría 27 jul 2026 (cambios locales, pendiente despliegue coordinado):** ver `docs/contex/auditoria_2026-07-27.md`. Incluye la migración de ciclo de tickets, protección de consultas públicas y compresión obligatoria antes de Storage.
 
 **Despliegue: el proyecto va en RENDER (no Vercel).** El `vercel.json` con crons NO aplica en Render. Hay DOS tareas programadas, cada una como un Render Cron Job que hace curl con `Authorization: Bearer <CRON_SECRET>`:
 - `/api/cron/expire-requests` — cada ~15 min (marca solicitudes vencidas).

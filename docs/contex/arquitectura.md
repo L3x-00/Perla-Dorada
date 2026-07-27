@@ -2,6 +2,8 @@ PD-CC-03 · Arquitectura, convenciones y prompt maestro
 
 Sistema Web de Gestión de Rifas — Joyería Perla Dorada Cliente: Freydi · Responsable técnico: Alexander Huanaco Quispe · 22 jul 2026 · Árbol de carpetas y stack corregidos tras auditoría técnica del código el 22 jul 2026 (ver docs/contex/estado_proyecto.md §1.1 para hallazgos completos)
 
+> Addendum 27 jul 2026 (pendiente de despliegue): el contrato de seguimiento público es DNI + `tracking_code`; los tickets tienen ciclo `active`, `frozen`, `reassigned`; y las imágenes se reencodan en navegador y servidor antes de Storage. El detalle operativo está en `auditoria_2026-07-27.md`.
+
 1. Rol esperado de Claude Code
 
 Actuar como Senior Software Engineer dentro de un repositorio existente. Inspeccionar → comprender → extender. No iniciar proyecto nuevo ni sustituir decisiones aprobadas.
@@ -38,6 +40,13 @@ Servicios/lib	Reglas reutilizables, mapeo de errores, adaptadores	Depender de co
 RPC/PostgreSQL	Invariantes, locking, atomicidad, secuencias, estados terminales	Emitir mensajes de UI acoplados
 Storage	Persistir comprobantes privados	Exponer rutas públicas permanentes
 Realtime	Notificar cambios	Ser fuente de verdad
+
+### 2.1 Invariantes incorporadas en la auditoría 27 jul 2026
+
+- Un ticket congelado procede de una rifa cancelada, no puede imprimirse ni ganar.
+- Reasignar requiere administrador activo y una rifa destino activa; inserta un ticket nuevo correlativo con `origin_ticket_id` y conserva el anterior como `reassigned`.
+- Las consultas públicas nunca se autorizan con DNI aislado.
+- La entrada de imagen se limita a 5 MB; el objeto persistido se limita a 600 KiB para comprobantes o 350 KiB para imágenes públicas. El backend es la defensa final.
 3. Estructura de carpetas — real (verificada por inspección directa, 22 jul 2026)
 src/
 ├── proxy.ts                 ← Next.js 16: reemplaza el antiguo middleware.ts. ⚠️ Hay un proxy.ts duplicado en la raíz del repo con matcher distinto — resolver antes de tocar auth (ver estado_proyecto.md §1.1)

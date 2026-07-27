@@ -67,7 +67,7 @@ Además, **la pausa por inactividad del plan Free es incompatible con una vitrin
 |---|---|---|---|---|
 | Ver la landing (sin rifa) | 1 lectura | — | HTML + foto de marca | — |
 | Ver la landing (con rifa) | 2-3 lecturas | — | HTML + **foto del premio** | — |
-| Registrar solicitud | 1 RPC (varias queries) | **+1 imagen (≤5 MB)** | subida | **FOR UPDATE sobre la rifa activa** |
+| Registrar solicitud | 1 RPC (varias queries) | **+1 WebP (≤600 KiB)** | subida | **FOR UPDATE sobre la rifa activa** |
 | Consultar estado / tickets | 1 RPC + 2 escrituras de rate-limit | — | pequeño | — |
 | Admin: ver comprobante | 1 lectura + URL firmada | — | **descarga de la imagen** | — |
 | Aprobar solicitud | 1 RPC (asigna tickets) | — | — | FOR UPDATE sobre la rifa |
@@ -75,7 +75,7 @@ Además, **la pausa por inactividad del plan Free es incompatible con una vitrin
 
 Dos cosas a retener de esta tabla:
 
-- **Cada solicitud sube una imagen de hasta 5 MB al Storage.** Es el gasto de almacenamiento dominante.
+- **Cada solicitud acepta hasta 5 MB de entrada, pero Storage recibe un WebP de hasta 600 KiB.** Es el gasto de almacenamiento dominante, ahora acotado de forma autoritativa.
 - **Las escrituras críticas (crear solicitud, aprobar) toman un bloqueo de fila sobre la rifa activa.** Es correcto —garantiza que no se vendan más boletos de los que hay— pero define el techo de escrituras por segundo (sección 5).
 
 ---
@@ -177,7 +177,7 @@ La decisión de fondo no es Render vs Vercel (ya resuelta: se queda en Render, m
 
 ## 8. Cosas baratas que suben el techo sin cambiar de plan
 
-1. **Comprimir el comprobante al subir** (5 MB → ~300 KB): multiplica por ~5-10 la capacidad de Storage y reduce egress de admin. La de mayor impacto por esfuerzo.
+1. **Comprimir el comprobante al subir** (implementado 27 jul 2026): navegador y servidor reencodan a WebP, con 600 KiB/2000 px máximos; el servidor cubre navegadores sin Canvas y no persiste el original.
 2. **Optimizar la foto del premio** (< 300 KB WEBP) antes de subirla desde el panel: corta el egress público, que es el que se dispara en campañas.
 3. **Confirmar la cadena del pooler** en la variable de conexión: evita el colapso por conexiones en picos, coste cero.
 4. **Cachear las imágenes públicas** (cabeceras de caché ya se pueden ajustar; una CDN delante si hace falta): egress casi nulo en picos.
@@ -192,6 +192,6 @@ La decisión de fondo no es Render vs Vercel (ya resuelta: se queda en Render, m
 - ✅ Purga de la tabla de rate-limit (ERR-14) — la BD no crece sin fin.
 - ✅ IP no falsificable en el rate-limit (ERR-12) — el volumen de abuso queda acotado.
 - ✅ Bloqueo atómico en compra/aprobación — sin sobreventa, a costa de serializar (techo conocido).
-- ✅ **Compresión de imágenes en el navegador** (24 jul 2026), antes de subir — `src/lib/images/compress-client.ts`: redimensiona (≤1600-1920 px) y recomprime a WEBP (JPEG si el navegador no sabe codificar WEBP) apuntando a ~300 KB, sin ningún job de pago ni cambio de servidor. Cubre los tres puntos de subida de imágenes: comprobante de pago (asistente público), foto del premio mayor y foto de cada premio (panel, crear/editar rifa). Es "mejor esfuerzo": si falla, sube el archivo original y la validación real de tamaño/tipo sigue en el servidor.
+- ✅ **Compresión de imágenes en navegador y servidor** (27 jul 2026, pendiente despliegue): `src/lib/images/compress-client.ts` reduce antes de enviar; `src/lib/storage/images.ts` vuelve a validar bytes, corrige orientación, elimina metadatos, limita píxeles y reencoda antes de Supabase Storage. Comprobantes: ≤600 KiB/2000 px; imágenes públicas: ≤350 KiB/1920 px. Si Canvas falla, el servidor procesa la entrada (≤5 MB); el original nunca persiste.
 - ⚠️ Pendiente (config): verificar que se usa el **pooler** de Supabase en producción.
 - 🔜 Decisión de negocio: pasar Supabase a **Pro** cuando la web deba vivir todo el año o cuando una rifa supere ~300-400 solicitudes.
