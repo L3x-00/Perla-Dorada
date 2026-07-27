@@ -66,7 +66,7 @@ const actionConfiguration: Record<
     pendingLabel: "Cancelando...",
     title: "Cancelar rifa",
     confirmation:
-      "La rifa se marcará como cancelada y dejará de estar disponible. Esta operación no debe realizarse por accidente.",
+      "La rifa se marcará como cancelada. Los tickets emitidos quedarán congelados y solo podrán reasignarse de forma trazable a una nueva rifa activa. Esta operación no debe realizarse por accidente.",
     confirmLabel: "Sí, cancelar rifa",
     tone: "danger",
   },
@@ -95,11 +95,12 @@ export function RaffleActions({
     pendingAction !== null;
 
   /*
-   * Borrar es irreversible y arrastra solicitudes, tickets y ganador. Se
-   * exige escribir el nombre exacto de la rifa, no basta un confirm(), para
-   * que no ocurra por accidente.
+   * Solo se puede borrar un borrador vacío. Se exige escribir el nombre
+   * exacto para que ni siquiera ese caso reversible ocurra por accidente.
    */
-  const canDelete = deleteConfirmText.trim() === raffleName.trim();
+  const canDelete =
+    status === "draft" &&
+    deleteConfirmText.trim() === raffleName.trim();
 
   async function deleteRaffle(): Promise<void> {
     if (!canDelete || isDeleting) {
@@ -254,25 +255,27 @@ export function RaffleActions({
           </button>
         ) : null}
 
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => {
-            setShowDelete((current) => !current);
-            setDeleteConfirmText("");
-            setErrorMessage(null);
-          }}
-          className={`${btnDanger} ${btnSmall}`}
-        >
-          Eliminar
-        </button>
+        {status === "draft" ? (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              setShowDelete((current) => !current);
+              setDeleteConfirmText("");
+              setErrorMessage(null);
+            }}
+            className={`${btnDanger} ${btnSmall}`}
+          >
+            Eliminar borrador
+          </button>
+        ) : null}
       </div>
 
       {showDelete ? (
         <div className="rounded-lg border border-red-900/70 bg-red-950/20 p-3 lg:max-w-64">
           <p className="text-xs leading-relaxed text-red-200">
-            Esto borra la rifa y <strong>todas</strong> sus solicitudes,
-            tickets, impresiones y el ganador. No se puede deshacer. Escribe{" "}
+            Esto borra solo un borrador vacío y no se puede deshacer. Una
+            rifa con solicitudes, tickets o ganador nunca se elimina. Escribe{" "}
             <span className="font-mono text-cream">{raffleName}</span> para
             confirmar.
           </p>

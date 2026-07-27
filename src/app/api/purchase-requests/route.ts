@@ -62,6 +62,13 @@ function getPublicDatabaseError(
         status: 400,
       };
 
+    case "23514":
+      return {
+        message:
+          "Puedes solicitar como máximo 30 tickets por compra.",
+        status: 400,
+      };
+
     case "P0002":
       return {
         message:
@@ -391,12 +398,12 @@ export async function POST(
        * de la validación local del archivo.
        */
       if (
-        error.message ===
-          "El comprobante está vacío." ||
-        error.message ===
-          "El comprobante no puede superar los 5 MB." ||
-        error.message ===
-          "El archivo no es una imagen JPG, PNG o WEBP válida."
+        [
+          "El comprobante está vacío.",
+          "El comprobante no puede superar los 5 MB.",
+          "No pudimos optimizar el comprobante lo suficiente. Elige una foto más nítida o recórtala antes de enviarla.",
+          "El archivo no es una imagen JPG, PNG o WEBP válida.",
+        ].includes(error.message)
       ) {
         return errorResponse(error.message, 400);
       }

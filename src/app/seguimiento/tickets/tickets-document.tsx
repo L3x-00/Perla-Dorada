@@ -6,12 +6,18 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { BrandLogo } from "@/components/site/brand-logo";
 import { DocumentField } from "@/components/site/document-field";
 import { formatDateTime } from "@/lib/format";
-import type { DocumentType } from "@/lib/validation/document";
+import {
+  normalizeTrackingCode,
+  type DocumentType,
+} from "@/lib/validation/document";
+
+type TicketStatus = "active" | "frozen" | "reassigned";
 
 type Purchase = {
   requestId: string;
   raffleName: string;
   purchasedAt: string | null;
+  ticketStatus: TicketStatus;
   ticketNumbers: number[];
 };
 
@@ -28,6 +34,7 @@ type ApiResponse = TicketsPayload & {
 type FlatTicket = {
   raffleName: string;
   purchasedAt: string | null;
+  status: TicketStatus;
   ticketNumber: number;
 };
 
@@ -41,12 +48,17 @@ const LOOKUP_KEY = "pd:ticket-lookup";
 export function TicketsDocument() {
   const [documentType, setDocumentType] = useState<DocumentType>("dni");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [trackingCode, setTrackingCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<TicketsPayload | null>(null);
   const [autoLoading, setAutoLoading] = useState(false);
 
-  const fetchDocument = useCallback(async (dt: DocumentType, dni: string) => {
+  const fetchDocument = useCallback(async (
+    dt: DocumentType,
+    dni: string,
+    code: string,
+  ) => {
     setSubmitting(true);
     setError(null);
     setPayload(null);
@@ -55,7 +67,7 @@ export function TicketsDocument() {
       const response = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentType: dt, dni }),
+        body: JSON.stringify({ documentType: dt, dni, trackingCode: code }),
       });
 
       const body = (await response.json()) as ApiResponse;
@@ -90,7 +102,11 @@ export function TicketsDocument() {
       return;
     }
 
-    let parsed: { documentType?: unknown; documentNumber?: unknown };
+    let parsed: {
+      documentType?: unknown;
+      documentNumber?: unknown;
+      trackingCode?: unknown;
+    };
     try {
       parsed = JSON.parse(raw);
     } catch {
@@ -100,8 +116,12 @@ export function TicketsDocument() {
     const dni =
       typeof parsed.documentNumber === "string" ? parsed.documentNumber : "";
     const dt: DocumentType = parsed.documentType === "cui" ? "cui" : "dni";
+    const code =
+      typeof parsed.trackingCode === "string"
+        ? normalizeTrackingCode(parsed.trackingCode)
+        : "";
 
-    if (!dni) {
+    if (!dni || !code) {
       return;
     }
 
@@ -113,9 +133,10 @@ export function TicketsDocument() {
     async function autoLoad() {
       setDocumentType(dt);
       setDocumentNumber(dni);
+      setTrackingCode(code);
       setAutoLoading(true);
       try {
-        await fetchDocument(dt, dni);
+        await fetchDocument(dt, dni, code);
       } finally {
         setAutoLoading(false);
       }
@@ -129,7 +150,7 @@ export function TicketsDocument() {
     if (submitting) {
       return;
     }
-    await fetchDocument(documentType, documentNumber);
+    await fetchDocument(documentType, documentNumber, trackingCode);
   }
 
   return (
@@ -159,7 +180,7 @@ export function TicketsDocument() {
           </h1>
           <p className="mt-2 text-sm text-muted">
             Disponible solo para solicitudes aprobadas. Ingresa tu documento y
-            verás todos tus tickets, de todas tus compras.
+            tu código de seguimiento para ver tus tickets vigentes e historial.
           </p>
 
           <form
@@ -174,6 +195,27 @@ export function TicketsDocument() {
               onValueChange={setDocumentNumber}
               showHint={false}
             />
+
+            <div>
+              <label htmlFor="ticket-tracking-code" className="sr-only">
+                Código de seguimiento
+              </label>
+              <input
+                id="ticket-tracking-code"
+                value={trackingCode}
+                onChange={(event) =>
+                  setTrackingCode(
+                    normalizeTrackingCode(event.target.value).slice(0, 16),
+                  )
+                }
+                required
+                minLength={8}
+                maxLength={16}
+                autoComplete="off"
+                placeholder="Código de seguimiento"
+                className="h-11 w-full rounded-lg border border-line bg-ink px-3 font-mono text-sm uppercase text-cream outline-none transition placeholder:font-sans placeholder:text-muted/50 focus:border-gold focus:ring-2 focus:ring-gold/20"
+              />
+            </div>
 
             <button
               type="submit"
@@ -214,8 +256,15 @@ function TicketStack({
     purchase.ticketNumbers.map((ticketNumber) => ({
       raffleName: purchase.raffleName,
       purchasedAt: formatDateTime(purchase.purchasedAt),
+      status: purchase.ticketStatus,
       ticketNumber,
     })),
+  );
+
+  const printableTickets = tickets.filter((ticket) => ticket.status === "active");
+  const frozenTickets = tickets.filter((ticket) => ticket.status === "frozen");
+  const reassignedTickets = tickets.filter(
+    (ticket) => ticket.status === "reassigned",
   );
 
   return (
@@ -224,22 +273,26 @@ function TicketStack({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-light text-cream">
-              {tickets.length === 1 ? "Tu ticket" : `Tus ${tickets.length} tickets`}
+              {printableTickets.length === 1
+                ? "Tu ticket vigente"
+                : `Tus ${printableTickets.length} tickets vigentes`}
             </h1>
             <p className="mt-1 text-sm text-muted">
-              Cada ticket se imprime en su propia hoja. Usa Guardar como PDF
-              para descargarlos.
+              Cada ticket vigente se imprime en su propia hoja. Usa Guardar
+              como PDF para descargarlos.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft"
-            >
-              Imprimir / Guardar PDF
-            </button>
+            {printableTickets.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft"
+              >
+                Imprimir / Guardar PDF
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onReset}
@@ -251,8 +304,30 @@ function TicketStack({
         </div>
       </div>
 
+      {frozenTickets.length > 0 ? (
+        <StatusNotice>
+          {frozenTickets.length === 1
+            ? "Un ticket está congelado porque su rifa fue cancelada. El equipo puede reasignarlo a una nueva rifa activa."
+            : `${frozenTickets.length} tickets están congelados porque su rifa fue cancelada. El equipo puede reasignarlos a una nueva rifa activa.`}
+        </StatusNotice>
+      ) : null}
+
+      {reassignedTickets.length > 0 ? (
+        <StatusNotice>
+          {reassignedTickets.length === 1
+            ? "Un ticket anterior fue reasignado; se conserva solo como historial y no es válido para imprimir."
+            : `${reassignedTickets.length} tickets anteriores fueron reasignados; se conservan solo como historial y no son válidos para imprimir.`}
+        </StatusNotice>
+      ) : null}
+
+      {printableTickets.length === 0 ? (
+        <p className="mt-6 rounded-xl border border-line bg-ink-2 p-4 text-sm text-muted print:hidden">
+          No hay tickets vigentes para imprimir en este momento.
+        </p>
+      ) : null}
+
       <div className="space-y-6 print:space-y-0">
-        {tickets.map((ticket) => (
+        {printableTickets.map((ticket) => (
           <TicketCard
             key={`${ticket.raffleName}-${ticket.ticketNumber}`}
             raffleName={ticket.raffleName}
@@ -264,6 +339,14 @@ function TicketStack({
         ))}
       </div>
     </div>
+  );
+}
+
+function StatusNotice({ children }: { children: string }) {
+  return (
+    <p className="mt-6 rounded-xl border border-amber-800/70 bg-amber-950/30 p-4 text-sm text-amber-100 print:hidden">
+      {children}
+    </p>
   );
 }
 

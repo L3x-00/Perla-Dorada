@@ -96,6 +96,7 @@ export default async function TicketPrintPage({
           raffle_id,
           purchase_request_id,
           ticket_number,
+          ticket_status,
           assigned_at
         `,
       )
@@ -113,7 +114,7 @@ export default async function TicketPrintPage({
     );
   }
 
-  if (!ticket) {
+  if (!ticket || ticket.ticket_status !== "active") {
     notFound();
   }
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { MAX_TICKETS_PER_PURCHASE_REQUEST } from "@/config/purchase";
 import {
   DOCUMENT_TYPES,
   normalizeDocumentNumber,
@@ -50,7 +51,11 @@ export const purchaseRequestSchema = z
     requestedQuantity: z.coerce
       .number()
       .int("La cantidad debe ser un número entero.")
-      .positive("La cantidad debe ser mayor que cero."),
+      .positive("La cantidad debe ser mayor que cero.")
+      .max(
+        MAX_TICKETS_PER_PURCHASE_REQUEST,
+        `Puedes solicitar como máximo ${MAX_TICKETS_PER_PURCHASE_REQUEST} boletos por operación.`,
+      ),
   })
   .superRefine((value, ctx) => {
     const message = validateDocumentNumber(

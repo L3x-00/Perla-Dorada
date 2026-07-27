@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 
+import { TicketReassignAction } from "@/app/admin/ticket-reassign-action";
 import { TicketPrintAction } from "@/app/admin/ticket-print-action";
 import {
   AdminPage,
   AdminPageHeader,
+  Badge,
   EmptyState,
 } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/format";
@@ -40,6 +42,7 @@ export default async function AdminTicketsPage() {
   const [
     ticketsResult,
     settingsResult,
+    activeRafflesResult,
   ] = await Promise.all([
     adminClient
       .from("tickets")
@@ -49,6 +52,8 @@ export default async function AdminTicketsPage() {
           raffle_id,
           purchase_request_id,
           ticket_number,
+          ticket_status,
+          origin_ticket_id,
           assigned_at
         `,
       )
@@ -62,6 +67,12 @@ export default async function AdminTicketsPage() {
       .select("max_reprints")
       .limit(1)
       .maybeSingle(),
+
+    adminClient
+      .from("raffles")
+      .select("id, name")
+      .eq("status", "active")
+      .order("created_at", { ascending: false }),
   ]);
 
   if (ticketsResult.error) {
@@ -77,12 +88,13 @@ export default async function AdminTicketsPage() {
 
   if (
     settingsResult.error ||
-    !settingsResult.data
+    !settingsResult.data ||
+    activeRafflesResult.error
   ) {
-    console.error(
-      "Could not load app settings",
-      settingsResult.error,
-    );
+    console.error("Could not load ticket settings", {
+      settingsError: settingsResult.error,
+      activeRafflesError: activeRafflesResult.error,
+    });
 
     throw new Error(
       "No se pudo cargar la configuración de reimpresiones.",
@@ -92,6 +104,7 @@ export default async function AdminTicketsPage() {
   const tickets = ticketsResult.data ?? [];
   const maxReprints =
     settingsResult.data.max_reprints;
+  const activeRaffles = activeRafflesResult.data ?? [];
 
   const raffleIds = [
     ...new Set(
@@ -212,7 +225,7 @@ export default async function AdminTicketsPage() {
       <AdminPageHeader
         eyebrow="Panel"
         title="Tickets asignados"
-        description="Impresión original y control de reimpresiones. Se muestran los 200 más recientes."
+        description="Impresión, reimpresiones y reasignación trazable de tickets congelados. Se muestran los 200 más recientes."
       />
 
       {tickets.length === 0 ? (
@@ -243,6 +256,9 @@ export default async function AdminTicketsPage() {
                     <p className="mt-0.5 text-xs text-muted">
                       DNI {request?.dni ?? "—"} · {raffleName}
                     </p>
+                    <div className="mt-2">
+                      <TicketStatusBadge status={ticket.ticket_status} />
+                    </div>
                   </div>
                 </div>
 
@@ -266,12 +282,22 @@ export default async function AdminTicketsPage() {
                 </dl>
 
                 <div className="mt-4 border-t border-line pt-4">
-                  {request?.status === "approved" ? (
+                  {request?.status === "approved" &&
+                  ticket.ticket_status === "active" ? (
                     <TicketPrintAction
                       ticketId={ticket.id}
                       previousPrints={previousPrints}
                       maxReprints={maxReprints}
                     />
+                  ) : ticket.ticket_status === "frozen" ? (
+                    <TicketReassignAction
+                      ticketId={ticket.id}
+                      activeRaffles={activeRaffles}
+                    />
+                  ) : ticket.ticket_status === "reassigned" ? (
+                    <p className="text-xs text-muted">
+                      Reasignado: se conserva solo como historial.
+                    </p>
                   ) : (
                     <p className="text-xs text-red-400">
                       La solicitud no está aprobada.
@@ -301,6 +327,9 @@ export default async function AdminTicketsPage() {
                 </th>
                 <th className="px-4 py-3">
                   Asignado
+                </th>
+                <th className="px-4 py-3">
+                  Estado
                 </th>
                 <th className="px-4 py-3">
                   Impresiones
@@ -359,6 +388,10 @@ export default async function AdminTicketsPage() {
                     </td>
 
                     <td className="px-4 py-4">
+                      <TicketStatusBadge status={ticket.ticket_status} />
+                    </td>
+
+                    <td className="px-4 py-4">
                       <p>
                         Total:{" "}
                         {previousPrints}
@@ -375,8 +408,8 @@ export default async function AdminTicketsPage() {
                     </td>
 
                     <td className="px-4 py-4">
-                      {purchaseRequest?.status ===
-                      "approved" ? (
+                      {purchaseRequest?.status === "approved" &&
+                      ticket.ticket_status === "active" ? (
                         <TicketPrintAction
                           ticketId={ticket.id}
                           previousPrints={
@@ -386,6 +419,15 @@ export default async function AdminTicketsPage() {
                             maxReprints
                           }
                         />
+                      ) : ticket.ticket_status === "frozen" ? (
+                        <TicketReassignAction
+                          ticketId={ticket.id}
+                          activeRaffles={activeRaffles}
+                        />
+                      ) : ticket.ticket_status === "reassigned" ? (
+                        <p className="text-xs text-muted">
+                          Reasignado: se conserva solo como historial.
+                        </p>
                       ) : (
                         <p className="text-xs text-red-400">
                           La solicitud no está
@@ -403,4 +445,19 @@ export default async function AdminTicketsPage() {
       )}
     </AdminPage>
   );
+}
+
+function TicketStatusBadge({
+  status,
+}: {
+  status: "active" | "frozen" | "reassigned";
+}) {
+  switch (status) {
+    case "active":
+      return <Badge tone="approved">Vigente</Badge>;
+    case "frozen":
+      return <Badge tone="gold">Congelado</Badge>;
+    case "reassigned":
+      return <Badge>Reasignado</Badge>;
+  }
 }

@@ -77,6 +77,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const { data, error } = await adminClient.rpc("track_purchase_request", {
     p_dni: input.dni,
+    p_tracking_code: input.trackingCode,
   });
 
   if (error) {

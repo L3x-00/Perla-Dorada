@@ -25,6 +25,12 @@ function mapDatabaseError(message: string) {
         error: "El ticket no existe.",
       };
 
+    case "TICKET_NOT_ACTIVE":
+      return {
+        status: 409,
+        error: "El ticket está congelado o fue reasignado y no se puede imprimir.",
+      };
+
     case "PURCHASE_REQUEST_NOT_APPROVED":
       return {
         status: 409,

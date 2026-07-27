@@ -17,6 +17,7 @@ import {
 import { CheckIcon, CopyIcon } from "@/components/site/icons";
 import { ProofUpload } from "@/components/site/proof-upload";
 import { brand, hasPaymentInfo } from "@/config/brand";
+import { MAX_TICKETS_PER_PURCHASE_REQUEST } from "@/config/purchase";
 import { PAYMENT_PROOF_MAX_SIZE_BYTES } from "@/config/storage";
 import { useClipboard } from "@/lib/clipboard";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
@@ -70,7 +71,10 @@ export function PurchaseWizard({
   onFinished,
 }: PurchaseWizardProps) {
   const reduceMotion = useReducedMotion();
-  const maxQuantity = Math.max(available, 1);
+  const maxQuantity = Math.min(
+    Math.max(available, 1),
+    MAX_TICKETS_PER_PURCHASE_REQUEST,
+  );
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [direction, setDirection] = useState(1);

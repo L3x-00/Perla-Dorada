@@ -3,7 +3,9 @@ import { z } from "zod";
 import {
   DOCUMENT_TYPES,
   normalizeDocumentNumber,
+  normalizeTrackingCode,
   validateDocumentNumber,
+  validateTrackingCode,
 } from "@/lib/validation/document";
 
 /*
@@ -28,6 +30,10 @@ export const trackingLookupSchema = z
     dni: z
       .string({ message: "El documento no es válido." })
       .transform(normalizeDocumentNumber),
+
+    trackingCode: z
+      .string({ message: "El código de seguimiento no es válido." })
+      .transform(normalizeTrackingCode),
   })
   .superRefine((value, ctx) => {
     const message = validateDocumentNumber(
@@ -40,6 +46,16 @@ export const trackingLookupSchema = z
         code: "custom",
         message,
         path: ["dni"],
+      });
+    }
+
+    const trackingMessage = validateTrackingCode(value.trackingCode);
+
+    if (trackingMessage) {
+      ctx.addIssue({
+        code: "custom",
+        message: trackingMessage,
+        path: ["trackingCode"],
       });
     }
   });

@@ -27,6 +27,9 @@ export const DOCUMENT_MAX_LENGTH: Record<DocumentType, number> = {
   cui: 20,
 };
 
+export const TRACKING_CODE_MIN_LENGTH = 8;
+export const TRACKING_CODE_MAX_LENGTH = 16;
+
 export function isDocumentType(value: unknown): value is DocumentType {
   return (
     typeof value === "string" &&
@@ -40,6 +43,24 @@ export function isDocumentType(value: unknown): value is DocumentType {
  */
 export function normalizeDocumentNumber(value: string): string {
   return value.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+}
+
+/** Réplica de public.normalize_tracking_code(). */
+export function normalizeTrackingCode(value: string): string {
+  return value
+    .replace(/[^0-9A-Za-z]/g, "")
+    .toUpperCase()
+    .replaceAll("I", "1")
+    .replaceAll("L", "1")
+    .replaceAll("O", "0");
+}
+
+export function validateTrackingCode(value: string): string | null {
+  return new RegExp(
+    `^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{${TRACKING_CODE_MIN_LENGTH},${TRACKING_CODE_MAX_LENGTH}}$`,
+  ).test(value)
+    ? null
+    : "El código de seguimiento no es válido.";
 }
 
 /**

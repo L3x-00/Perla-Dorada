@@ -77,7 +77,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const { data, error } = await adminClient.rpc(
     "get_public_ticket_document",
-    { p_dni: input.dni },
+    {
+      p_dni: input.dni,
+      p_tracking_code: input.trackingCode,
+    },
   );
 
   if (error) {
@@ -115,6 +118,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         requestId: purchase.request_id,
         raffleName: purchase.raffle_name,
         purchasedAt: purchase.purchased_at,
+        ticketStatus: purchase.ticket_status,
         ticketNumbers: purchase.ticket_numbers,
       })),
     },

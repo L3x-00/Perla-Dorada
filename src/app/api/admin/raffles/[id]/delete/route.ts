@@ -18,13 +18,10 @@ function jsonError(error: string, status: number): NextResponse {
 }
 
 /*
- * Borra una rifa completa y todo lo que cuelga de ella.
+ * Elimina únicamente un borrador sin solicitudes, tickets ni ganador.
  *
- * delete_raffle (SECURITY DEFINER, valida admin) elimina las filas dentro de
- * una transacción y devuelve las rutas de Storage a limpiar (comprobantes +
- * foto del premio). Aquí se borran esos objetos: si eso falla, las filas ya
- * no existen y quedan huérfanos, que es el modo de fallo aceptado y queda en
- * el log. DESTRUCTIVO e irreversible.
+ * delete_raffle valida esa invariante en PostgreSQL y devuelve solo las rutas
+ * de imagen a limpiar. Nunca borra comprobantes, tickets ni datos históricos.
  */
 export async function DELETE(
   _request: Request,
@@ -59,6 +56,16 @@ export async function DELETE(
 
     if (error.code === "P0002") {
       return jsonError("La rifa no existe.", 404);
+    }
+
+    if (
+      error.message.includes("RAFFLE_DELETE_ONLY_DRAFT") ||
+      error.message.includes("RAFFLE_DELETE_HAS_ACTIVITY")
+    ) {
+      return jsonError(
+        "Solo se pueden eliminar borradores sin solicitudes, tickets ni ganador.",
+        409,
+      );
     }
 
     if (error.message.includes("ADMIN_NOT_ACTIVE")) {

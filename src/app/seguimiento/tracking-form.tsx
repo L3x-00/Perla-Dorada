@@ -6,7 +6,10 @@ import { FormEvent, useState } from "react";
 import { Countdown } from "@/app/countdown";
 import { DocumentField } from "@/components/site/document-field";
 import { siteButtonClass } from "@/components/site/form-controls";
-import type { DocumentType } from "@/lib/validation/document";
+import {
+  normalizeTrackingCode,
+  type DocumentType,
+} from "@/lib/validation/document";
 
 type PurchaseRequestStatus = "pending" | "approved" | "rejected" | "expired";
 
@@ -54,6 +57,7 @@ function formatDate(value: string | null) {
 export function TrackingForm() {
   const [documentType, setDocumentType] = useState<DocumentType>("dni");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [trackingCode, setTrackingCode] = useState("");
 
   const [results, setResults] = useState<TrackingResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +81,7 @@ export function TrackingForm() {
         body: JSON.stringify({
           documentType,
           dni: documentNumber,
+          trackingCode,
         }),
       });
 
@@ -99,7 +104,7 @@ export function TrackingForm() {
   }
 
   const hasApprovedTickets =
-    results?.some((result) => result.ticketNumbers.length > 0) ?? false;
+    results?.some((result) => result.status === "approved") ?? false;
 
   return (
     <div className="mx-auto max-w-lg">
@@ -115,6 +120,28 @@ export function TrackingForm() {
           onValueChange={setDocumentNumber}
           showHint={false}
         />
+
+        <div>
+          <label htmlFor="tracking-code" className="sr-only">
+            Código de seguimiento
+          </label>
+          <input
+            id="tracking-code"
+            value={trackingCode}
+            onChange={(event) =>
+              setTrackingCode(normalizeTrackingCode(event.target.value).slice(0, 16))
+            }
+            required
+            minLength={8}
+            maxLength={16}
+            autoComplete="off"
+            placeholder="Código de seguimiento"
+            className="h-11 w-full rounded-lg border border-line bg-ink px-3 font-mono text-sm uppercase text-cream outline-none transition placeholder:font-sans placeholder:text-muted/50 focus:border-gold focus:ring-2 focus:ring-gold/20"
+          />
+          <p className="mt-2 text-xs text-muted">
+            Lo recibiste al registrar tu solicitud.
+          </p>
+        </div>
 
         <button type="submit" disabled={submitting} className={siteButtonClass}>
           {submitting ? "Consultando..." : "Consultar estado"}
@@ -154,7 +181,11 @@ export function TrackingForm() {
                 try {
                   sessionStorage.setItem(
                     "pd:ticket-lookup",
-                    JSON.stringify({ documentType, documentNumber }),
+                    JSON.stringify({
+                      documentType,
+                      documentNumber,
+                      trackingCode,
+                    }),
                   );
                 } catch {
                   /* Modo privado sin storage: pedirá el dato una vez. */
