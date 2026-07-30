@@ -198,52 +198,58 @@ export default async function TicketPrintPage({
     <main className="min-h-screen bg-neutral-100 p-6 text-black print:min-h-0 print:bg-white print:p-0">
       <PrintControls />
 
-      {/* Mismo ticket que recibe el cliente: logo, sorteo, número y datos. */}
-      <div className="ticket-print mx-auto max-w-[34rem] print:max-w-none">
-        <article className="relative overflow-hidden rounded-2xl border border-neutral-300 bg-white text-black shadow-lg print:rounded-lg print:shadow-none">
-          <div
-            className="h-1.5 w-full bg-gold"
-            style={{
-              printColorAdjust: "exact",
-              WebkitPrintColorAdjust: "exact",
-            }}
-          />
-
-          <div className="flex">
-            {/* Talón: logo, sorteo y número */}
-            <div className="flex w-[46%] flex-col items-center justify-center border-r border-dashed border-neutral-300 p-5 text-center">
-              <BrandLogo className="h-auto w-20" />
-              <h1 className="mt-2 font-display text-base font-medium leading-snug">
-                {raffle.name}
-              </h1>
-              <p className="mt-3 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-neutral-500">
-                Número asignado
-              </p>
-              <p className="mt-0.5 font-display text-5xl font-black leading-none tabular-nums">
-                {formattedTicketNumber}
-              </p>
-            </div>
-
-            {/* Datos */}
-            <div className="flex flex-1 flex-col justify-center p-5">
-              <dl className="space-y-2.5 text-sm">
-                <TicketRow label="Nombre" value={purchaseRequest.full_name} />
-                <TicketRow label="DNI" value={purchaseRequest.dni} />
-                {formattedPurchasedAt ? (
-                  <TicketRow
-                    label="Fecha de compra"
-                    value={formattedPurchasedAt}
-                  />
-                ) : null}
-              </dl>
-
-              {/* Control de impresión (uso interno del panel). */}
-              <p className="mt-4 border-t border-dashed border-neutral-300 pt-2 text-[10px] text-neutral-500">
-                {reprintLabel}
-                {formattedPrintedAt ? ` · ${formattedPrintedAt}` : ""}
-              </p>
-            </div>
+      {/*
+        Formato de recibo térmico de 80mm (impresora portátil, 203 DPI):
+        mismo diseño que recibe el cliente en /seguimiento/tickets. En
+        pantalla es una tira angosta (vista previa honesta); al imprimir,
+        .ticket-print fija 72mm dentro de la página de 80mm (@page "ticket"
+        en globals.css) y aquí se agrega el margen interior de 2mm.
+      */}
+      <div className="ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px]">
+        <article className="rounded-lg border border-neutral-300 bg-white p-4 font-mono text-black shadow-sm print:rounded-none print:border-0 print:px-[2mm] print:py-0 print:shadow-none">
+          <div className="flex flex-col items-center text-center">
+            <BrandLogo className="h-auto w-12" />
+            <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.18em]">
+              Ticket de sorteo
+            </p>
           </div>
+
+          <h1 className="mt-2 text-center text-sm font-bold leading-snug">
+            {raffle.name}
+          </h1>
+
+          <div className="my-3 border-t border-dashed border-neutral-500" />
+
+          <div className="text-center">
+            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
+              Número asignado
+            </p>
+            <p className="mt-1 text-6xl font-black leading-none tabular-nums">
+              {formattedTicketNumber}
+            </p>
+          </div>
+
+          <div className="my-3 border-t border-dashed border-neutral-500" />
+
+          <dl className="space-y-2 text-xs">
+            <TicketRow label="Nombre" value={purchaseRequest.full_name} />
+            <TicketRow label="DNI" value={purchaseRequest.dni} />
+            {formattedPurchasedAt ? (
+              <TicketRow
+                label="Fecha de compra"
+                value={formattedPurchasedAt}
+              />
+            ) : null}
+          </dl>
+
+          {/* Control de impresión (uso interno del panel). */}
+          <p className="mt-3 border-t border-dashed border-neutral-500 pt-2 text-[0.6rem] text-neutral-500">
+            {reprintLabel}
+            {formattedPrintedAt ? ` · ${formattedPrintedAt}` : ""}
+          </p>
+
+          {/* Avance final: que el corte/rasgado no pise el texto. */}
+          <div className="hidden print:block" style={{ height: "16mm" }} />
         </article>
       </div>
     </main>
@@ -252,9 +258,11 @@ export default async function TicketPrintPage({
 
 function TicketRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-neutral-200 pb-2 last:border-0">
-      <dt className="shrink-0 text-neutral-500">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+    <div>
+      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
+        {label}
+      </dt>
+      <dd className="mt-0.5 font-semibold leading-snug break-words">{value}</dd>
     </div>
   );
 }

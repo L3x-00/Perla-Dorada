@@ -363,48 +363,63 @@ function TicketCard({
   purchasedAt: string | null;
   ticketNumber: number;
 }) {
+  /*
+   * Formato de recibo térmico de 80mm (impresora portátil tipo HOIN HQ300,
+   * 203 DPI): angosto y vertical, no la tarjeta horizontal de antes. En
+   * pantalla se ve como una tira angosta (vista previa honesta de lo que
+   * realmente va a salir); al imprimir, .ticket-print fija 72mm de ancho
+   * dentro de la página de 80mm (ver @page "ticket" en globals.css) y aquí
+   * se agregan los 2mm de margen interior a cada lado.
+   */
   return (
-    <div className="ticket-print mx-auto max-w-[34rem] print:max-w-none">
-      <article className="relative overflow-hidden rounded-2xl border border-neutral-300 bg-white text-black shadow-md print:rounded-lg print:shadow-none">
-        <div
-          className="h-1.5 w-full bg-gold"
-          style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
-        />
-
-        <div className="flex">
-          {/* Talón: logo, sorteo y número */}
-          <div className="flex w-[46%] flex-col items-center justify-center border-r border-dashed border-neutral-300 p-5 text-center">
-            <BrandLogo className="h-auto w-20" />
-            <h2 className="mt-2 font-display text-base font-medium leading-snug">
-              {raffleName}
-            </h2>
-            <p className="mt-3 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-neutral-500">
-              Número asignado
-            </p>
-            <p className="mt-0.5 font-display text-5xl font-black leading-none tabular-nums">
-              {String(ticketNumber).padStart(4, "0")}
-            </p>
-          </div>
-
-          {/* Datos */}
-          <dl className="flex flex-1 flex-col justify-center gap-2.5 p-5 text-sm">
-            <Row label="Nombre" value={fullName} />
-            <Row label="DNI" value={dni} />
-            {purchasedAt ? (
-              <Row label="Fecha de compra" value={purchasedAt} />
-            ) : null}
-          </dl>
+    <div className="ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px]">
+      <article className="rounded-lg border border-neutral-300 bg-white p-4 font-mono text-black shadow-sm print:rounded-none print:border-0 print:px-[2mm] print:py-0 print:shadow-none">
+        {/* Logo + encabezado */}
+        <div className="flex flex-col items-center text-center">
+          <BrandLogo className="h-auto w-12" />
+          <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.18em]">
+            Ticket de sorteo
+          </p>
         </div>
+
+        <p className="mt-2 text-center text-sm font-bold leading-snug">
+          {raffleName}
+        </p>
+
+        <div className="my-3 border-t border-dashed border-neutral-500" />
+
+        {/* Número: lo más grande y visible del recibo */}
+        <div className="text-center">
+          <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
+            Número asignado
+          </p>
+          <p className="mt-1 text-6xl font-black leading-none tabular-nums">
+            {String(ticketNumber).padStart(4, "0")}
+          </p>
+        </div>
+
+        <div className="my-3 border-t border-dashed border-neutral-500" />
+
+        <dl className="space-y-2 text-xs">
+          <Field label="Nombre" value={fullName} />
+          <Field label="DNI" value={dni} />
+          {purchasedAt ? <Field label="Fecha de compra" value={purchasedAt} /> : null}
+        </dl>
+
+        {/* Avance final: que el corte/rasgado no pise el texto. */}
+        <div className="hidden print:block" style={{ height: "16mm" }} />
       </article>
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-neutral-200 pb-2 last:border-0">
-      <dt className="shrink-0 text-neutral-500">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+    <div>
+      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
+        {label}
+      </dt>
+      <dd className="mt-0.5 font-semibold leading-snug break-words">{value}</dd>
     </div>
   );
 }

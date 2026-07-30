@@ -318,14 +318,19 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 
   /*
-   * Página con forma de TICKET (no A4/C4). Cada boleto sale en su propia
-   * hoja pequeña: si el cliente compró 100, son 100 tickets independientes,
-   * uno por página. Se aplica solo a los elementos con la clase .ticket-print,
-   * así que el resto de impresiones conserva su tamaño normal.
+   * Página con el ancho real del rollo térmico de 80mm (impresora portátil
+   * tipo HOIN HQ300, 203 DPI): "auto" en el alto porque el papel es un
+   * rollo continuo, no una hoja de tamaño fijo. Margen en 0 porque el
+   * margen de seguridad ya lo pone el propio .ticket-print (72mm de ancho,
+   * centrado, con 2mm de relleno interior) — poner margen aquí además
+   * sería un doble margen. Cada boleto sale en su propio corte de papel: si
+   * el cliente compró 100, son 100 tickets independientes, uno tras otro.
+   * Se aplica solo a los elementos con la clase .ticket-print, así que el
+   * resto de impresiones conserva su tamaño normal (A4).
    */
   @page ticket {
-    size: A6 landscape;
-    margin: 6mm;
+    size: 80mm auto;
+    margin: 0mm;
   }
 
   html,
