@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { promotionImageSrc, type Promotion } from "@/config/promotions";
+import type { PublicPromotion } from "@/lib/promotions/public-promotions";
 
 type PromoSlideProps = {
-  promo: Promotion;
+  promo: PublicPromotion;
   /** El primer slide visible no debe esperar lazy-loading. */
   eager?: boolean;
 };
@@ -18,15 +18,12 @@ function isInternalHref(href: string): boolean {
  * nunca va horneado en la imagen, así que funciona igual con o sin foto.
  */
 export function PromoSlide({ promo, eager = false }: PromoSlideProps) {
-  const imageSrc = promotionImageSrc(promo);
-  const compact = promo.layout === "compact";
-
   return (
     <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-ink-3 via-ink-2 to-ink">
-      {imageSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element -- SVG local: next/image no optimiza SVG sin dangerouslyAllowSVG.
+      {promo.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- imagen remota de Supabase Storage: next.config no tiene remotePatterns configurados.
         <img
-          src={imageSrc}
+          src={promo.imageUrl}
           alt=""
           loading={eager ? "eager" : "lazy"}
           className="absolute inset-0 h-full w-full object-cover"
@@ -40,38 +37,33 @@ export function PromoSlide({ promo, eager = false }: PromoSlideProps) {
           {promo.title}
         </h3>
 
-        {compact ? null : (
+        {promo.description ? (
           <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-white/80">
             {promo.description}
           </p>
-        )}
+        ) : null}
 
-        <PromoCta promo={promo} />
+        <PromoCta ctaText={promo.ctaText} ctaHref={promo.ctaHref} />
       </div>
     </div>
   );
 }
 
-function PromoCta({ promo }: { promo: Promotion }) {
+function PromoCta({ ctaText, ctaHref }: { ctaText: string; ctaHref: string }) {
   const className =
     "mt-4 inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft";
 
-  if (isInternalHref(promo.ctaUrl)) {
+  if (isInternalHref(ctaHref)) {
     return (
-      <Link href={promo.ctaUrl} className={className}>
-        {promo.ctaText}
+      <Link href={ctaHref} className={className}>
+        {ctaText}
       </Link>
     );
   }
 
   return (
-    <a
-      href={promo.ctaUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={className}
-    >
-      {promo.ctaText}
+    <a href={ctaHref} target="_blank" rel="noopener noreferrer" className={className}>
+      {ctaText}
     </a>
   );
 }

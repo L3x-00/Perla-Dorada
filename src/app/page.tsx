@@ -8,6 +8,7 @@ import { RealtimeRaffleWatcher } from "@/components/site/realtime-raffle-watcher
 import { Showcase } from "@/components/site/showcase";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { getActivePublicPromotions } from "@/lib/promotions/public-promotions";
 import {
   getActivePublicRaffle,
   type ActivePublicRaffle,
@@ -43,12 +44,25 @@ export default async function HomePage() {
    */
   const showRaffle = !loadFailed && raffle !== null;
 
+  /*
+   * No crítico para la portada: si falla, simplemente no hay modal de
+   * promociones, no debe tumbar la página.
+   */
+  let promotions: Awaited<ReturnType<typeof getActivePublicPromotions>> = [];
+  try {
+    promotions = await getActivePublicPromotions();
+  } catch (error) {
+    console.error("Error cargando promociones:", error);
+  }
+
   return (
     <>
       <RealtimeRaffleWatcher />
-      <Suspense fallback={null}>
-        <PromoCarouselModal />
-      </Suspense>
+      {promotions.length > 0 ? (
+        <Suspense fallback={null}>
+          <PromoCarouselModal promotions={promotions} />
+        </Suspense>
+      ) : null}
       <SiteHeader />
 
       <main className="flex-1">

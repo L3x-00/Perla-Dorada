@@ -165,6 +165,65 @@ export type Database = {
         }
         Relationships: []
       }
+      promotions: {
+        Row: {
+          created_at: string
+          cta_kind: Database["public"]["Enums"]["promotion_cta_kind"]
+          cta_raffle_id: string | null
+          cta_text: string
+          cta_url: string | null
+          description: string
+          display_order: number
+          enabled: boolean
+          ends_at: string | null
+          id: string
+          image_path: string | null
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta_kind?: Database["public"]["Enums"]["promotion_cta_kind"]
+          cta_raffle_id?: string | null
+          cta_text?: string
+          cta_url?: string | null
+          description?: string
+          display_order?: number
+          enabled?: boolean
+          ends_at?: string | null
+          id?: string
+          image_path?: string | null
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta_kind?: Database["public"]["Enums"]["promotion_cta_kind"]
+          cta_raffle_id?: string | null
+          cta_text?: string
+          cta_url?: string | null
+          description?: string
+          display_order?: number
+          enabled?: boolean
+          ends_at?: string | null
+          id?: string
+          image_path?: string | null
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_cta_raffle_id_fkey"
+            columns: ["cta_raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_requests: {
         Row: {
           created_at: string
@@ -849,6 +908,7 @@ export type Database = {
     }
     Enums: {
       participant_document_type: "dni" | "cui"
+      promotion_cta_kind: "raffle" | "url"
       purchase_request_status: "pending" | "approved" | "rejected" | "expired"
       raffle_status: "draft" | "active" | "closed" | "cancelled"
       ticket_lifecycle_status: "active" | "frozen" | "reassigned"
@@ -984,6 +1044,7 @@ export const Constants = {
   public: {
     Enums: {
       participant_document_type: ["dni", "cui"],
+      promotion_cta_kind: ["raffle", "url"],
       purchase_request_status: ["pending", "approved", "rejected", "expired"],
       raffle_status: ["draft", "active", "closed", "cancelled"],
       ticket_lifecycle_status: ["active", "frozen", "reassigned"],

@@ -4,7 +4,6 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -15,7 +14,7 @@ import { CloseIcon } from "@/components/site/icons";
 import { PromoIndicators } from "@/components/site/promo-indicators";
 import { PromoNavigation } from "@/components/site/promo-navigation";
 import { PromoSlide } from "@/components/site/promo-slide";
-import { getActivePromotions } from "@/config/promotions";
+import type { PublicPromotion } from "@/lib/promotions/public-promotions";
 import { useLockBodyScroll } from "@/lib/use-lock-body-scroll";
 
 const SESSION_KEY = "pd:promo-modal-shown";
@@ -41,16 +40,23 @@ function useMounted(): boolean {
   );
 }
 
+type PromoCarouselModalProps = {
+  /*
+   * Ya filtradas por vigencia y `enabled` en el servidor
+   * (getActivePublicPromotions, llamada desde page.tsx) — el componente no
+   * vuelve a filtrar, solo las muestra.
+   */
+  promotions: PublicPromotion[];
+};
+
 /*
  * Modal de bienvenida con carrusel de promociones.
  *
  * Se abre solo una vez por sesión (sessionStorage), 2 segundos después de
- * cargar la portada, y solo si hay al menos una promoción vigente
- * (getActivePromotions ya filtra por fecha y por `enabled`). Si no hay
+ * cargar la portada, y solo si hay al menos una promoción vigente. Si no hay
  * ninguna, el componente no hace nada — ni siquiera arma el temporizador.
  */
-export function PromoCarouselModal() {
-  const promotions = useMemo(() => getActivePromotions(), []);
+export function PromoCarouselModal({ promotions }: PromoCarouselModalProps) {
   const reduceMotion = useReducedMotion();
   const mounted = useMounted();
 

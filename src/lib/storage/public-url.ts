@@ -20,3 +20,9 @@ export function raffleImageUrl(path: string | null | undefined): string | null {
 
   return `${base}/storage/v1/object/public/${RAFFLE_IMAGES_BUCKET}/${path}`;
 }
+
+/*
+ * Las fotos de promociones viven en el mismo bucket público que las de
+ * rifas (carpeta promotions/), así que la resolución de URL es idéntica.
+ */
+export const promotionImageUrl = raffleImageUrl;

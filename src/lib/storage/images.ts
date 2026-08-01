@@ -159,3 +159,30 @@ export function createRaffleImagePath(
 export function createStagedPrizeImagePath(extension: string): string {
   return `prizes/${crypto.randomUUID()}.${extension}`;
 }
+
+/*
+ * Foto de una promoción del carrusel de bienvenida. Mismo perfil de
+ * optimización que la foto de premio (mismo propósito: imagen de marketing
+ * pública), en la carpeta "promotions/" del mismo bucket público.
+ */
+export async function validatePromotionImage(file: File): Promise<ValidatedImage> {
+  return validateImageFile(
+    file,
+    {
+      empty: "La imagen está vacía.",
+      inputTooLarge: "La imagen no puede superar los 5 MB.",
+      tooLarge:
+        "No pudimos optimizar la imagen lo suficiente. Elige otra foto o recórtala antes de subirla.",
+      invalidType: "El archivo no es una imagen JPG, PNG o WEBP válida.",
+    },
+    {
+      maxInputBytes: PAYMENT_PROOF_MAX_SIZE_BYTES,
+      maxStoredBytes: RAFFLE_IMAGE_STORAGE_MAX_SIZE_BYTES,
+      maxDimension: 1920,
+    },
+  );
+}
+
+export function createPromotionImagePath(extension: string): string {
+  return `promotions/${crypto.randomUUID()}.${extension}`;
+}

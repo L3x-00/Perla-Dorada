@@ -62,28 +62,6 @@ respaldo (`src/components/site/raffle-section.tsx`).
 
 ---
 
-## `promo/`
-
-Fotos para el carrusel del modal de bienvenida (`src/config/promotions.ts`).
-
-- **Nombres:** los que uses, mientras coincidan con el campo `image` de cada
-  promoción en `src/config/promotions.ts` (solo el nombre de archivo, sin
-  la ruta — el código antepone `/marca/promo/`).
-- **Formato:** `.webp` de preferencia. También sirve `.jpg`/`.png`.
-- **Relación de aspecto:** 16:9 (el slide recorta con `object-cover`, así
-  que no hace falta que la foto sea exacta).
-- Si una promoción no tiene foto (`image: null`), el slide usa un fondo
-  degradado propio — no hace falta subir nada para publicar una promo de
-  solo texto.
-
-Los 4 archivos `promo-*.svg` que vienen por defecto son fondos decorativos
-generados en código (sin fotografía real) para que el carrusel se vea
-completo mientras no haya fotos propias. Reemplázalos cuando tengas
-fotografía de las campañas reales; el archivo `.svg` puede seguir
-existiendo sin problema si prefieres dejarlo como respaldo.
-
----
-
 ## `iconos/`
 
 Solo si usas iconos propios en SVG. Los iconos de interfaz ya vienen dibujados
@@ -96,3 +74,11 @@ en código, así que esta carpeta puede quedarse vacía.
 **No van aquí.** Se suben desde el panel administrativo, en el formulario de la
 rifa (`/admin/raffles`), y se guardan en Supabase Storage. Así puedes cambiar el
 premio en cada sorteo sin tocar el código ni desplegar.
+
+## Fotos de promociones (carrusel de bienvenida)
+
+**Tampoco van aquí.** Se suben desde `/admin/promotions`, junto con el título,
+la descripción y a dónde redirige el botón (a la sección del sorteo o a un
+enlace propio). Se guardan en el mismo bucket público que las fotos de rifa.
+Si una promoción no tiene foto, el slide usa un fondo degradado propio — no
+hace falta subir nada para publicar una promo de solo texto.
