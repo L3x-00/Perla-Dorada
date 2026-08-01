@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+
 import { About } from "@/components/site/about";
 import { Hero } from "@/components/site/hero";
 import { NoRaffle } from "@/components/site/no-raffle";
@@ -10,6 +12,17 @@ import {
   getActivePublicRaffle,
   type ActivePublicRaffle,
 } from "@/lib/raffles/public-raffle";
+
+/*
+ * Cargado perezoso: el modal de promociones no es parte del camino crítico
+ * de la portada (aparece recién a los 2s), así que su JS no debe sumarse al
+ * bundle inicial.
+ */
+const PromoCarouselModal = lazy(() =>
+  import("@/components/site/promo-carousel-modal").then((mod) => ({
+    default: mod.PromoCarouselModal,
+  })),
+);
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +46,9 @@ export default async function HomePage() {
   return (
     <>
       <RealtimeRaffleWatcher />
+      <Suspense fallback={null}>
+        <PromoCarouselModal />
+      </Suspense>
       <SiteHeader />
 
       <main className="flex-1">
