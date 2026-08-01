@@ -250,20 +250,20 @@ export function PurchaseWizard({
       };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full max-w-full">
       <Stepper current={step} />
 
-      <div className="relative mt-8 overflow-hidden">
+      <div className="relative mt-6 md:mt-8 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           {step === 1 ? (
-            <motion.div key="step-1" {...slide}>
+            <motion.div key="step-1" {...slide} className="px-0.5">
               <StepHeader
                 eyebrow="Paso 1 de 3"
                 title="Tus datos"
                 description="Con esto identificamos tu participación. Nada se comparte."
               />
 
-              <div className="mt-7 space-y-6">
+              <div className="mt-6 md:mt-7 space-y-5 md:space-y-6">
                 <div>
                   <label htmlFor="wiz-name" className={siteLabelClass}>
                     Nombre completo
@@ -355,7 +355,7 @@ export function PurchaseWizard({
                 </AnimatePresence>
               </div>
 
-              <div className="mt-9">
+              <div className="mt-8 md:mt-9">
                 <button
                   type="button"
                   onClick={handleContinue}
@@ -368,21 +368,21 @@ export function PurchaseWizard({
           ) : null}
 
           {step === 2 ? (
-            <motion.div key="step-2" {...slide}>
+            <motion.div key="step-2" {...slide} className="px-0.5">
               <StepHeader
                 eyebrow="Paso 2 de 3"
                 title="Paga y adjunta tu comprobante"
                 description="Yapea el monto exacto y sube la captura. Verificamos cada pago a mano."
               />
 
-              <form onSubmit={submit} noValidate className="mt-7">
-                <fieldset disabled={submitting} className="space-y-7">
-                  <div className="grid gap-7 md:grid-cols-2 md:items-start">
+              <form onSubmit={submit} noValidate className="mt-6 md:mt-7">
+                <fieldset disabled={submitting} className="space-y-6 md:space-y-7">
+                  <div className="grid gap-6 md:gap-7 md:grid-cols-2 md:items-start">
                     {/* Datos de pago Yape */}
                     <YapePanel />
 
                     {/* Cantidad + total + comprobante */}
-                    <div className="space-y-6">
+                    <div className="space-y-5 md:space-y-6">
                       <div>
                         <p className={siteLabelClass}>Cantidad de boletos</p>
                         <div className="flex items-center gap-3">
@@ -437,7 +437,7 @@ export function PurchaseWizard({
                           initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.25 }}
-                          className="font-display text-3xl font-light tabular-nums text-gold"
+                          className="font-display text-2xl sm:text-3xl font-light tabular-nums text-gold"
                         >
                           {total}
                         </motion.span>
@@ -505,7 +505,7 @@ export function PurchaseWizard({
           ) : null}
 
           {step === 3 && success ? (
-            <motion.div key="step-3" {...slide}>
+            <motion.div key="step-3" {...slide} className="px-0.5">
               <SuccessStep data={success} onFinished={onFinished} />
             </motion.div>
           ) : null}
@@ -517,16 +517,16 @@ export function PurchaseWizard({
 
 function Stepper({ current }: { current: 1 | 2 | 3 }) {
   return (
-    <ol className="flex items-center gap-2">
+    <ol className="flex items-center gap-1 sm:gap-2">
       {STEPS.map((item, index) => {
         const done = item.id < current;
         const active = item.id === current;
 
         return (
-          <li key={item.id} className="flex flex-1 items-center gap-2">
-            <div className="flex items-center gap-2.5">
+          <li key={item.id} className="flex flex-1 items-center gap-1 sm:gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm tabular-nums transition-colors duration-500 ${
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full border text-xs sm:text-sm tabular-nums transition-colors duration-500 ${
                   active
                     ? "border-gold bg-gold font-medium text-ink"
                     : done
@@ -534,10 +534,10 @@ function Stepper({ current }: { current: 1 | 2 | 3 }) {
                       : "border-line text-muted"
                 }`}
               >
-                {done ? <CheckIcon className="h-4 w-4" /> : item.id}
+                {done ? <CheckIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : item.id}
               </span>
               <span
-                className={`hidden text-sm transition-colors duration-500 sm:inline ${
+                className={`hidden xs:inline text-xs sm:text-sm transition-colors duration-500 truncate ${
                   active ? "text-cream" : "text-muted"
                 }`}
               >
@@ -546,7 +546,7 @@ function Stepper({ current }: { current: 1 | 2 | 3 }) {
             </div>
 
             {index < STEPS.length - 1 ? (
-              <span className="relative mx-1 h-px flex-1 overflow-hidden bg-line">
+              <span className="relative mx-0.5 sm:mx-1 h-px flex-1 min-w-[12px] overflow-hidden bg-line">
                 <motion.span
                   className="absolute inset-0 bg-gold-deep"
                   initial={false}
@@ -574,11 +574,13 @@ function StepHeader({
 }) {
   return (
     <div>
-      <p className="eyebrow text-gold">{eyebrow}</p>
-      <h3 className="mt-3 font-display text-2xl font-light text-cream sm:text-3xl">
+      <p className="eyebrow text-gold text-xs sm:text-sm">{eyebrow}</p>
+      <h3 className="mt-2 sm:mt-3 font-display text-xl sm:text-2xl md:text-3xl font-light text-cream leading-tight">
         {title}
       </h3>
-      <p className="mt-2.5 text-sm leading-relaxed text-muted">{description}</p>
+      <p className="mt-2 sm:mt-2.5 text-xs sm:text-sm leading-relaxed text-muted">
+        {description}
+      </p>
     </div>
   );
 }
@@ -592,48 +594,50 @@ function YapePanel() {
   const { state, copy } = useClipboard();
 
   return (
-    <div className="rounded-2xl border border-line bg-ink p-5">
-      <p className="eyebrow text-gold">Paga con Yape</p>
+    <div className="rounded-2xl border border-line bg-ink p-4 sm:p-5">
+      <p className="eyebrow text-gold text-xs sm:text-sm">Paga con Yape</p>
 
       {configured ? (
         <>
           {brand.payment.qrImage ? (
-            <div className="mx-auto mt-5 w-fit rounded-xl border border-line bg-cream p-3">
+            <div className="mx-auto mt-4 sm:mt-5 w-fit rounded-xl border border-line bg-cream p-2 sm:p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={brand.payment.qrImage}
                 alt="Código QR de Yape"
                 width={170}
                 height={170}
-                className="h-[170px] w-[170px] object-contain"
+                className="h-[120px] w-[120px] sm:h-[150px] sm:w-[150px] md:h-[170px] md:w-[170px] object-contain"
               />
             </div>
           ) : null}
 
-          <dl className="mt-5 space-y-3.5">
+          <dl className="mt-4 sm:mt-5 space-y-3 sm:space-y-3.5">
             {brand.payment.holder ? (
               <div>
-                <dt className="eyebrow text-muted">Titular</dt>
-                <dd className="mt-1 text-cream">{brand.payment.holder}</dd>
+                <dt className="eyebrow text-muted text-xs sm:text-sm">Titular</dt>
+                <dd className="mt-1 text-sm sm:text-base text-cream break-words">
+                  {brand.payment.holder}
+                </dd>
               </div>
             ) : null}
 
             {brand.payment.yapeNumber ? (
               <div>
-                <dt className="eyebrow text-muted">Número</dt>
-                <dd className="mt-1 flex flex-wrap items-center gap-3">
-                  <span className="font-display text-xl font-light tabular-nums text-gold">
+                <dt className="eyebrow text-muted text-xs sm:text-sm">Número</dt>
+                <dd className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                  <span className="font-display text-base sm:text-xl font-light tabular-nums text-gold break-all">
                     {brand.payment.yapeNumber}
                   </span>
                   <button
                     type="button"
                     onClick={() => void copy(brand.payment.yapeNumber)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-cream transition-colors duration-300 hover:border-gold hover:text-gold flex-shrink-0"
                   >
                     {state === "copied" ? (
-                      <CheckIcon className="h-3.5 w-3.5" />
+                      <CheckIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     ) : (
-                      <CopyIcon className="h-3.5 w-3.5" />
+                      <CopyIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     )}
                     {state === "copied" ? "Copiado" : "Copiar"}
                   </button>
@@ -642,13 +646,13 @@ function YapePanel() {
             ) : null}
           </dl>
 
-          <p className="mt-5 text-xs leading-relaxed text-muted">
+          <p className="mt-4 sm:mt-5 text-xs leading-relaxed text-muted">
             Transfiere el <span className="text-cream">monto exacto</span> y
             sube la captura al costado.
           </p>
         </>
       ) : (
-        <p className="mt-4 text-sm leading-relaxed text-muted">
+        <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed text-muted">
           Los datos de pago se coordinan por WhatsApp. Escríbenos y te
           indicamos cómo yapear antes de subir tu comprobante.
         </p>
@@ -674,60 +678,66 @@ function SuccessStep({
         initial={reduceMotion ? false : { scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-gold bg-gold/10 text-gold"
+        className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border border-gold bg-gold/10 text-gold"
       >
-        <CheckIcon className="h-8 w-8" />
+        <CheckIcon className="h-6 w-6 sm:h-8 sm:w-8" />
       </motion.div>
 
-      <p className="eyebrow mt-6 text-gold">¡Gracias por participar!</p>
-      <h3 className="mt-3 font-display text-3xl font-light text-cream">
+      <p className="eyebrow mt-5 sm:mt-6 text-gold text-xs sm:text-sm">
+        ¡Gracias por participar!
+      </p>
+      <h3 className="mt-2 sm:mt-3 font-display text-2xl sm:text-3xl font-light text-cream leading-tight">
         Solicitud registrada
       </h3>
-      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
+      <p className="mx-auto mt-2 sm:mt-3 max-w-md text-xs sm:text-sm leading-relaxed text-muted">
         Tu solicitud quedó <span className="text-cream">pendiente de aprobación</span>.
         Verificamos tu comprobante y te asignamos tus boletos. Guarda este código
         único: junto con tu documento podrás consultar todas tus compras.
       </p>
 
-      <div className="mx-auto mt-7 flex w-fit flex-col items-center gap-3">
-        <p className="font-mono text-4xl font-semibold tracking-[0.25em] text-gold">
+      <div className="mx-auto mt-5 sm:mt-7 flex w-fit flex-col items-center gap-3">
+        <p className="font-mono text-2xl sm:text-3xl md:text-4xl font-semibold tracking-[0.2em] sm:tracking-[0.25em] text-gold break-all">
           {data.trackingCode}
         </p>
         <button
           type="button"
           onClick={() => void copy(data.trackingCode)}
-          className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
+          className="inline-flex items-center gap-2 rounded-full border border-line px-3.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
         >
           {state === "copied" ? (
-            <CheckIcon className="h-4 w-4" />
+            <CheckIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           ) : (
-            <CopyIcon className="h-4 w-4" />
+            <CopyIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           )}
           {state === "copied" ? "Código copiado" : "Copiar código"}
         </button>
       </div>
 
       {expiresAt ? (
-        <div className="mx-auto mt-7 max-w-xs border-t border-line pt-5">
-          <p className="eyebrow text-muted">Reserva válida hasta</p>
-          <p className="mt-2 text-cream">{expiresAt}</p>
-          <p className="mt-1 text-sm">
+        <div className="mx-auto mt-5 sm:mt-7 max-w-xs border-t border-line pt-4 sm:pt-5">
+          <p className="eyebrow text-muted text-xs sm:text-sm">
+            Reserva válida hasta
+          </p>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-cream">
+            {expiresAt}
+          </p>
+          <p className="mt-1 text-xs sm:text-sm">
             <Countdown expiresAt={data.expiresAt} />
           </p>
         </div>
       ) : null}
 
-      <div className="mt-8 flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center">
+      <div className="mt-6 sm:mt-8 flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center">
         <button
           type="button"
           onClick={onFinished}
-          className="rounded-full border border-line px-7 py-3.5 text-sm font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
+          className="w-full sm:w-auto rounded-full border border-line px-5 sm:px-7 py-3 sm:py-3.5 text-xs sm:text-sm font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
         >
           Cerrar
         </button>
         <Link
           href="/seguimiento"
-          className="rounded-full bg-gold px-7 py-3.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft"
+          className="w-full sm:w-auto rounded-full bg-gold px-5 sm:px-7 py-3 sm:py-3.5 text-xs sm:text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft text-center"
         >
           Ver estado de mi solicitud
         </Link>
@@ -741,7 +751,7 @@ function FieldError({ message }: { message?: string }) {
     return null;
   }
 
-  return <p className="mt-2.5 text-xs text-red-400">{message}</p>;
+  return <p className="mt-2 text-xs text-red-400">{message}</p>;
 }
 
 function ServerFieldError({ messages }: { messages?: string[] }) {
@@ -749,5 +759,5 @@ function ServerFieldError({ messages }: { messages?: string[] }) {
     return null;
   }
 
-  return <p className="mt-2.5 text-xs text-red-400">{messages[0]}</p>;
+  return <p className="mt-2 text-xs text-red-400">{messages[0]}</p>;
 }

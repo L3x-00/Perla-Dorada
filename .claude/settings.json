@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://127.0.0.1:3015/seguimiento/tickets)",
+      "Bash(curl -s http://127.0.0.1:3015/_next/static/chunks/1q23eukt8xn_3.css -o __TRACKED_VAR__/pd.css)",
+      "Bash(grep -o '80mm[^}]*' __TRACKED_VAR__/pd.css)",
+      "Bash(grep -o '\\\\.ticket-print[^}]*}' __TRACKED_VAR__/pd.css)",
+      "Bash(curl -s http://127.0.0.1:3015/_next/static/chunks/1q23eukt8xn_3.css -o /c/Users/Usuario/AppData/Local/Temp/claude/d--perla-dorada-rifas/ce9cf976-82e3-4d29-922a-96734eff8d05/scratchpad/pd.css)",
+      "Bash(grep -o '\\\\.print\\\\\\\\:w-\\\\[72mm\\\\][^}]*{[^}]*}' /c/Users/Usuario/AppData/Local/Temp/claude/d--perla-dorada-rifas/ce9cf976-82e3-4d29-922a-96734eff8d05/scratchpad/pd.css)"
+    ]
+  }
+}
