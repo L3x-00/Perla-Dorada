@@ -34,13 +34,13 @@ export function SiteHeader() {
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "border-b border-line/80 bg-ink/90 backdrop-blur-md"
+          ? "border-b border-line/40 bg-ink/35 backdrop-blur-md"
           : "border-b border-transparent bg-transparent"
       }`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2.5">
         <Link href="/" aria-label={`Ir al inicio de ${brand.name}`}>
-          <Wordmark inverted={!scrolled} />
+          <Wordmark inverted={!scrolled} compact />
         </Link>
 
         <nav className="hidden items-center gap-9 md:flex">

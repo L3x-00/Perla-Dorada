@@ -281,50 +281,52 @@ export function PurchaseWizard({
                   <FieldError message={fieldErrors.fullName} />
                 </div>
 
-                <div>
-                  <DocumentField
-                    idPrefix="wiz"
-                    documentType={documentType}
-                    onDocumentTypeChange={setDocumentType}
-                    value={documentNumber}
-                    onValueChange={setDocumentNumber}
-                  />
-                  <FieldError message={fieldErrors.dni} />
-                </div>
-
-                <div>
-                  <label htmlFor="wiz-phone" className={siteLabelClass}>
-                    Teléfono
-                  </label>
-                  <input
-                    id="wiz-phone"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    required
-                    inputMode="tel"
-                    maxLength={15}
-                    autoComplete="tel"
-                    className={siteInputClass}
-                  />
-                  <FieldError message={fieldErrors.phone} />
-
-                  <label className="mt-3.5 flex cursor-pointer items-center gap-3 text-sm text-cream">
-                    <input
-                      type="checkbox"
-                      checked={whatsappSameAsPhone}
-                      onChange={(event) =>
-                        setWhatsappSameAsPhone(event.target.checked)
-                      }
-                      className="peer sr-only"
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
+                  <div>
+                    <DocumentField
+                      idPrefix="wiz"
+                      documentType={documentType}
+                      onDocumentTypeChange={setDocumentType}
+                      value={documentNumber}
+                      onValueChange={setDocumentNumber}
                     />
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-line text-ink transition-colors duration-300 peer-checked:border-gold peer-checked:bg-gold peer-focus-visible:ring-1 peer-focus-visible:ring-gold">
-                      {whatsappSameAsPhone ? (
-                        <CheckIcon className="h-3.5 w-3.5" />
-                      ) : null}
-                    </span>
-                    Este mismo número es mi WhatsApp
-                  </label>
+                    <FieldError message={fieldErrors.dni} />
+                  </div>
+
+                  <div>
+                    <label htmlFor="wiz-phone" className={siteLabelClass}>
+                      Teléfono
+                    </label>
+                    <input
+                      id="wiz-phone"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      required
+                      inputMode="tel"
+                      maxLength={15}
+                      autoComplete="tel"
+                      className={siteInputClass}
+                    />
+                    <FieldError message={fieldErrors.phone} />
+                  </div>
                 </div>
+
+                <label className="flex cursor-pointer items-center gap-3 text-sm text-cream">
+                  <input
+                    type="checkbox"
+                    checked={whatsappSameAsPhone}
+                    onChange={(event) =>
+                      setWhatsappSameAsPhone(event.target.checked)
+                    }
+                    className="peer sr-only"
+                  />
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-line text-ink transition-colors duration-300 peer-checked:border-gold peer-checked:bg-gold peer-focus-visible:ring-1 peer-focus-visible:ring-gold">
+                    {whatsappSameAsPhone ? (
+                      <CheckIcon className="h-3.5 w-3.5" />
+                    ) : null}
+                  </span>
+                  Este mismo número es mi WhatsApp
+                </label>
 
                 <AnimatePresence initial={false}>
                   {!whatsappSameAsPhone ? (
