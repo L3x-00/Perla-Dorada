@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { DocumentField } from "@/components/site/document-field";
-import { formatDateTime } from "@/lib/format";
+import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import {
   normalizeTrackingCode,
   type DocumentType,
@@ -21,6 +21,7 @@ type Purchase = {
   purchasedAt: string | null;
   ticketStatus: TicketStatus;
   ticketNumbers: number[];
+  amountPaid: number;
 };
 
 type TicketsPayload = {
@@ -38,6 +39,7 @@ type FlatTicket = {
   purchasedAt: string | null;
   status: TicketStatus;
   ticketNumber: number;
+  amountPaid: number;
 };
 
 type RaffleGroup = {
@@ -287,6 +289,7 @@ function groupByRaffle(purchases: Purchase[]): RaffleGroup[] {
         purchasedAt,
         status: purchase.ticketStatus,
         ticketNumber,
+        amountPaid: purchase.amountPaid,
       });
     }
   }
@@ -556,7 +559,9 @@ function RaffleTicketView({
         {printableTickets.map((ticket) => (
           <TicketChip
             key={ticketKey(ticket)}
+            raffleName={ticket.raffleName}
             ticketNumber={ticket.ticketNumber}
+            amountPaid={ticket.amountPaid}
             onPrintThis={() => setPrintOnlyKey(ticketKey(ticket))}
           />
         ))}
@@ -598,28 +603,41 @@ function StatusNotice({ children }: { children: React.ReactNode }) {
 }
 
 /*
- * Cuadrado compacto: es lo que se ve en pantalla al navegar la lista de
- * tickets de un sorteo. Tocarlo imprime SOLO ese ticket (el recibo
- * completo real vive oculto, ver PrintableTicket).
+ * Cuadro compacto: es lo que se ve en pantalla al navegar la lista de
+ * tickets de un sorteo. Muestra lo esencial (sorteo, número, monto pagado)
+ * sin llegar a ser la tarjeta completa. El botón de imprimir vive dentro del
+ * mismo recuadro e imprime SOLO ese ticket (el recibo completo real vive
+ * oculto, ver PrintableTicket).
  */
 function TicketChip({
+  raffleName,
   ticketNumber,
+  amountPaid,
   onPrintThis,
 }: {
+  raffleName: string;
   ticketNumber: number;
+  amountPaid: number;
   onPrintThis: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onPrintThis}
-      title={`Imprimir ticket ${String(ticketNumber).padStart(4, "0")}`}
-      className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-emerald-700 bg-emerald-950 text-emerald-200 transition-colors duration-200 hover:border-gold hover:bg-ink-2 hover:text-gold"
-    >
-      <span className="text-base font-bold tabular-nums">
+    <div className="flex w-36 flex-col items-center gap-1 rounded-xl border border-emerald-700 bg-emerald-950 p-3 text-center text-emerald-200">
+      <p className="line-clamp-2 text-[0.65rem] font-medium uppercase leading-tight tracking-wide text-emerald-300">
+        {raffleName}
+      </p>
+      <p className="mt-0.5 text-xl font-bold tabular-nums">
         {String(ticketNumber).padStart(4, "0")}
-      </span>
-    </button>
+      </p>
+      <p className="text-xs text-emerald-300">{formatCurrencyPEN(amountPaid)}</p>
+
+      <button
+        type="button"
+        onClick={onPrintThis}
+        className="mt-1.5 w-full rounded-full border border-emerald-600 px-2 py-1 text-[0.65rem] font-medium text-emerald-100 transition-colors duration-200 hover:border-gold hover:bg-ink-2 hover:text-gold"
+      >
+        Imprimir
+      </button>
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recordAuditEvent } from "@/lib/audit/log";
+import { broadcastPublicRaffleChange } from "@/lib/realtime/public-raffle-events";
 import { mapRaffleDatabaseError } from "@/lib/raffles/errors";
 import { prizesToDbJson } from "@/lib/raffles/prizes";
 import { parseRaffleInput } from "@/lib/raffles/validation";
@@ -200,6 +201,8 @@ const {
       total_tickets: input.totalTickets,
     },
   });
+
+  await broadcastPublicRaffleChange();
 
   return NextResponse.json(
     {

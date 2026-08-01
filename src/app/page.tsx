@@ -2,6 +2,7 @@ import { About } from "@/components/site/about";
 import { Hero } from "@/components/site/hero";
 import { NoRaffle } from "@/components/site/no-raffle";
 import { RaffleSection } from "@/components/site/raffle-section";
+import { RealtimeRaffleWatcher } from "@/components/site/realtime-raffle-watcher";
 import { Showcase } from "@/components/site/showcase";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -31,6 +32,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <RealtimeRaffleWatcher />
       <SiteHeader />
 
       <main className="flex-1">

@@ -87,7 +87,7 @@ export function Participate({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             onClick={close}
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/80 p-4 backdrop-blur-sm sm:items-center sm:p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm sm:p-6"
           >
             <motion.div
               key="panel"
@@ -104,9 +104,14 @@ export function Participate({
               }
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               onClick={(event) => event.stopPropagation()}
-              className="relative my-auto w-full max-w-3xl rounded-2xl border border-line bg-ink-2 p-6 shadow-2xl sm:p-9"
+              className="relative flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-line bg-ink-2 shadow-2xl"
             >
-              <div className="mb-6 flex items-center justify-between gap-4">
+              {/*
+                Cabecera fija: el botón de cerrar nunca debe quedar fuera de
+                vista, sin importar cuán largo sea el contenido del asistente
+                (por eso solo el cuerpo de abajo scrollea, no todo el panel).
+              */}
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line p-5 sm:p-9 sm:pb-6">
                 <div>
                   <p className="eyebrow text-muted">Participar en</p>
                   <p className="mt-1 font-display text-lg font-light text-cream">
@@ -124,14 +129,16 @@ export function Participate({
                 </button>
               </div>
 
-              <PurchaseWizard
-                ticketPrice={ticketPrice}
-                available={available}
-                onSuccess={() => {
-                  completedRef.current = true;
-                }}
-                onFinished={close}
-              />
+              <div className="overflow-y-auto p-5 sm:p-9 sm:pt-6">
+                <PurchaseWizard
+                  ticketPrice={ticketPrice}
+                  available={available}
+                  onSuccess={() => {
+                    completedRef.current = true;
+                  }}
+                  onFinished={close}
+                />
+              </div>
             </motion.div>
           </motion.div>
         ) : null}

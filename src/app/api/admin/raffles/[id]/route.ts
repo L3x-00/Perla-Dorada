@@ -15,6 +15,7 @@ import {
   type RaffleInput,
 } from "@/lib/raffles/validation";
 import { recordAuditEvent } from "@/lib/audit/log";
+import { broadcastPublicRaffleChange } from "@/lib/realtime/public-raffle-events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -204,6 +205,8 @@ async function updateRaffle(
     entityId: raffleId,
   });
 
+  await broadcastPublicRaffleChange();
+
   return jsonSuccess();
 }
 
@@ -235,6 +238,8 @@ async function activateRaffle(
     entity: "raffles",
     entityId: raffleId,
   });
+
+  await broadcastPublicRaffleChange();
 
   return jsonSuccess();
 }
@@ -268,6 +273,8 @@ async function closeRaffle(
     entityId: raffleId,
   });
 
+  await broadcastPublicRaffleChange();
+
   return jsonSuccess();
 }
 
@@ -299,6 +306,8 @@ async function cancelRaffle(
     entity: "raffles",
     entityId: raffleId,
   });
+
+  await broadcastPublicRaffleChange();
 
   return jsonSuccess();
 }

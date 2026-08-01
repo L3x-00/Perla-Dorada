@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { PAYMENT_PROOFS_BUCKET, RAFFLE_IMAGES_BUCKET } from "@/config/storage";
 import { recordAuditEvent } from "@/lib/audit/log";
 import { requireActiveAdmin } from "@/lib/auth/admin";
+import { broadcastPublicRaffleChange } from "@/lib/realtime/public-raffle-events";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -125,6 +126,8 @@ export async function DELETE(
       orphaned_storage_objects: orphanedPaths.length,
     },
   });
+
+  await broadcastPublicRaffleChange();
 
   return NextResponse.json(
     {

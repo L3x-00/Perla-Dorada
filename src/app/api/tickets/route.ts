@@ -123,6 +123,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         purchasedAt: purchase.purchased_at,
         ticketStatus: purchase.ticket_status,
         ticketNumbers: purchase.ticket_numbers,
+        amountPaid: purchase.ticket_price,
       })),
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },
