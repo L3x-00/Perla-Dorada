@@ -117,6 +117,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       dni: data[0].dni,
       purchases: data.map((purchase) => ({
         requestId: purchase.request_id,
+        raffleId: purchase.raffle_id,
         raffleName: purchase.raffle_name,
         purchasedAt: purchase.purchased_at,
         ticketStatus: purchase.ticket_status,

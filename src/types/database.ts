@@ -636,11 +636,7 @@ export type Database = {
             }[]
           }
         | {
-            Args: {
-              p_document_type: string
-              p_dni: string
-              p_tracking_code: string
-            }
+            Args: { p_dni: string; p_tracking_code: string }
             Returns: {
               dni: string
               full_name: string
@@ -652,11 +648,16 @@ export type Database = {
             }[]
           }
         | {
-            Args: { p_dni: string; p_tracking_code: string }
+            Args: {
+              p_dni: string
+              p_document_type: string
+              p_tracking_code: string
+            }
             Returns: {
               dni: string
               full_name: string
               purchased_at: string
+              raffle_id: string
               raffle_name: string
               request_id: string
               ticket_numbers: number[]
@@ -776,24 +777,24 @@ export type Database = {
             }[]
           }
         | {
-            Args: {
-              p_document_type: string
-              p_dni: string
-              p_tracking_code: string
-            }
+            Args: { p_dni: string; p_tracking_code: string }
             Returns: {
               expires_at: string
               raffle_name: string
-              rejection_reason: string | null
+              rejection_reason: string
               request_id: string
               request_status: Database["public"]["Enums"]["purchase_request_status"]
               requested_at: string
-              reviewed_at: string | null
+              reviewed_at: string
               ticket_numbers: number[]
             }[]
           }
         | {
-            Args: { p_dni: string; p_tracking_code: string }
+            Args: {
+              p_dni: string
+              p_document_type: string
+              p_tracking_code: string
+            }
             Returns: {
               expires_at: string
               raffle_name: string

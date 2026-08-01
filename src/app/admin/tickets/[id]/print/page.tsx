@@ -207,12 +207,18 @@ export default async function TicketPrintPage({
       */}
       <div className="ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px]">
         <article className="rounded-lg border border-neutral-300 bg-white p-4 font-mono text-black shadow-sm print:rounded-none print:border-0 print:px-[2mm] print:py-0 print:shadow-none">
-          <div className="flex flex-col items-center text-center">
+          {/*
+            El logo no se imprime: en un recibo térmico no aporta (consume
+            papel y tiempo de impresión rasterizando una imagen). Sigue
+            visible en la vista previa de pantalla.
+          */}
+          <div className="flex flex-col items-center text-center print:hidden">
             <BrandLogo className="h-auto w-12" />
-            <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.18em]">
-              Ticket de sorteo
-            </p>
           </div>
+
+          <p className="text-center text-[0.62rem] font-bold uppercase tracking-[0.18em]">
+            Ticket de sorteo
+          </p>
 
           <h1 className="mt-2 text-center text-sm font-bold leading-snug">
             {raffle.name}

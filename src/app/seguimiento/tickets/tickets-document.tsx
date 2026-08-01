@@ -15,6 +15,7 @@ type TicketStatus = "active" | "frozen" | "reassigned";
 
 type Purchase = {
   requestId: string;
+  raffleId: string;
   raffleName: string;
   purchasedAt: string | null;
   ticketStatus: TicketStatus;
@@ -36,6 +37,12 @@ type FlatTicket = {
   purchasedAt: string | null;
   status: TicketStatus;
   ticketNumber: number;
+};
+
+type RaffleGroup = {
+  raffleId: string;
+  raffleName: string;
+  tickets: FlatTicket[];
 };
 
 /*
@@ -156,7 +163,7 @@ export function TicketsDocument() {
   return (
     <div className="px-6 pt-32 pb-24 print:bg-white print:p-0 print:pt-0">
       {payload ? (
-        <TicketStack payload={payload} onReset={() => setPayload(null)} />
+        <RaffleGroups payload={payload} onReset={() => setPayload(null)} />
       ) : autoLoading ? (
         <div className="mx-auto max-w-lg text-center">
           <p className="text-sm text-muted">Cargando tus tickets…</p>
@@ -240,46 +247,232 @@ export function TicketsDocument() {
   );
 }
 
-function TicketStack({
+/*
+ * Un mismo documento puede tener tickets de varias compras y, cuando en el
+ * futuro haya varios sorteos activos a la vez, de varios sorteos distintos.
+ * Se agrupan por sorteo (raffleId, no el nombre: el nombre no es único a
+ * nivel de base de datos) para que la persona elija cuál ver, en vez de
+ * mostrarle todo mezclado en una sola lista larga.
+ */
+function groupByRaffle(purchases: Purchase[]): RaffleGroup[] {
+  const groups = new Map<string, RaffleGroup>();
+
+  for (const purchase of purchases) {
+    let group = groups.get(purchase.raffleId);
+
+    if (!group) {
+      group = {
+        raffleId: purchase.raffleId,
+        raffleName: purchase.raffleName,
+        tickets: [],
+      };
+      groups.set(purchase.raffleId, group);
+    }
+
+    const purchasedAt = formatDateTime(purchase.purchasedAt);
+
+    for (const ticketNumber of purchase.ticketNumbers) {
+      group.tickets.push({
+        raffleName: purchase.raffleName,
+        purchasedAt,
+        status: purchase.ticketStatus,
+        ticketNumber,
+      });
+    }
+  }
+
+  return [...groups.values()];
+}
+
+function RaffleGroups({
   payload,
   onReset,
 }: {
   payload: TicketsPayload;
   onReset: () => void;
 }) {
-  /*
-   * Un mismo documento puede tener varias compras aprobadas (en la misma
-   * rifa o en rifas distintas): se aplanan a una sola lista de tickets,
-   * cada uno con el nombre y la fecha de SU compra.
-   */
-  const tickets: FlatTicket[] = payload.purchases.flatMap((purchase) =>
-    purchase.ticketNumbers.map((ticketNumber) => ({
-      raffleName: purchase.raffleName,
-      purchasedAt: formatDateTime(purchase.purchasedAt),
-      status: purchase.ticketStatus,
-      ticketNumber,
-    })),
+  const [selectedRaffleId, setSelectedRaffleId] = useState<string | null>(
+    null,
   );
 
-  const printableTickets = tickets.filter((ticket) => ticket.status === "active");
-  const frozenTickets = tickets.filter((ticket) => ticket.status === "frozen");
-  const reassignedTickets = tickets.filter(
+  const groups = groupByRaffle(payload.purchases);
+  const selectedGroup = groups.find(
+    (group) => group.raffleId === selectedRaffleId,
+  );
+
+  if (selectedGroup) {
+    return (
+      <RaffleTicketView
+        group={selectedGroup}
+        fullName={payload.fullName}
+        dni={payload.dni}
+        showBackLink={groups.length > 1}
+        onBack={() => setSelectedRaffleId(null)}
+        onReset={onReset}
+      />
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-lg">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-light text-cream">
+          {groups.length === 1 ? "Tu sorteo" : `Tus ${groups.length} sorteos`}
+        </h1>
+        <button
+          type="button"
+          onClick={onReset}
+          className="rounded-full border border-line px-4 py-2 text-sm font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold"
+        >
+          Buscar otra
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {groups.map((group) => {
+          const active = group.tickets.filter(
+            (ticket) => ticket.status === "active",
+          ).length;
+          const frozen = group.tickets.filter(
+            (ticket) => ticket.status === "frozen",
+          ).length;
+          const reassigned = group.tickets.filter(
+            (ticket) => ticket.status === "reassigned",
+          ).length;
+
+          return (
+            <button
+              key={group.raffleId}
+              type="button"
+              onClick={() => setSelectedRaffleId(group.raffleId)}
+              className="w-full rounded-2xl border border-line bg-ink-2 p-5 text-left transition-colors duration-300 hover:border-gold"
+            >
+              <p className="font-display text-xl font-light text-cream">
+                {group.raffleName}
+              </p>
+              <p className="mt-1.5 text-sm text-muted">
+                {ticketCountLabel(active, frozen, reassigned)}
+              </p>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-gold">
+                Ver mis tickets de este sorteo
+                <span aria-hidden>→</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ticketCountLabel(
+  active: number,
+  frozen: number,
+  reassigned: number,
+): string {
+  const parts = [
+    `${active} ticket${active === 1 ? "" : "s"} vigente${active === 1 ? "" : "s"}`,
+  ];
+
+  if (frozen > 0) {
+    parts.push(`${frozen} congelado${frozen === 1 ? "" : "s"}`);
+  }
+
+  if (reassigned > 0) {
+    parts.push(`${reassigned} reasignado${reassigned === 1 ? "" : "s"}`);
+  }
+
+  return parts.join(" · ");
+}
+
+function RaffleTicketView({
+  group,
+  fullName,
+  dni,
+  showBackLink,
+  onBack,
+  onReset,
+}: {
+  group: RaffleGroup;
+  fullName: string;
+  dni: string;
+  showBackLink: boolean;
+  onBack: () => void;
+  onReset: () => void;
+}) {
+  /*
+   * Clave del ticket que se debe imprimir solo (botón "Imprimir este
+   * ticket" de una tarjeta puntual). null = se imprime todo, sin filtrar
+   * (comportamiento del botón "Imprimir / Guardar PDF" de arriba).
+   */
+  const [printOnlyKey, setPrintOnlyKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!printOnlyKey) {
+      return;
+    }
+
+    function handleAfterPrint() {
+      setPrintOnlyKey(null);
+    }
+
+    window.addEventListener("afterprint", handleAfterPrint);
+    window.print();
+
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, [printOnlyKey]);
+
+  const printableTickets = group.tickets.filter(
+    (ticket) => ticket.status === "active",
+  );
+  const frozenTickets = group.tickets.filter(
+    (ticket) => ticket.status === "frozen",
+  );
+  const reassignedTickets = group.tickets.filter(
     (ticket) => ticket.status === "reassigned",
   );
+
+  /*
+   * Al imprimir un solo ticket, los demás se ocultan SOLO en impresión
+   * (print:hidden, la pantalla no cambia). Como cada .ticket-print fuerza
+   * su propio salto de página, hay que decirle explícitamente a la última
+   * tarjeta que realmente se va a imprimir que no deje una página en
+   * blanco después — la regla ":last-of-type" de globals.css no sirve aquí
+   * porque mira el último elemento del DOM, no el último visible.
+   */
+  const ticketsToPrint = printOnlyKey
+    ? printableTickets.filter(
+        (ticket) => ticketKey(ticket) === printOnlyKey,
+      )
+    : printableTickets;
+  const lastPrintableKey =
+    ticketsToPrint.length > 0
+      ? ticketKey(ticketsToPrint[ticketsToPrint.length - 1])
+      : null;
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8 print:hidden">
+        {showBackLink ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-4 inline-flex items-center gap-1.5 text-sm text-gold hover:underline"
+          >
+            <span aria-hidden>‹</span> Volver a mis sorteos
+          </button>
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-light text-cream">
+              {group.raffleName}
+            </h1>
+            <p className="mt-1 text-sm text-muted">
               {printableTickets.length === 1
                 ? "Tu ticket vigente"
                 : `Tus ${printableTickets.length} tickets vigentes`}
-            </h1>
-            <p className="mt-1 text-sm text-muted">
-              Cada ticket vigente se imprime en su propia hoja. Usa Guardar
-              como PDF para descargarlos.
+              . Cada uno se imprime en su propia hoja.
             </p>
           </div>
 
@@ -327,19 +520,30 @@ function TicketStack({
       ) : null}
 
       <div className="space-y-6 print:space-y-0">
-        {printableTickets.map((ticket) => (
-          <TicketCard
-            key={`${ticket.raffleName}-${ticket.ticketNumber}`}
-            raffleName={ticket.raffleName}
-            fullName={payload.fullName}
-            dni={payload.dni}
-            purchasedAt={ticket.purchasedAt}
-            ticketNumber={ticket.ticketNumber}
-          />
-        ))}
+        {printableTickets.map((ticket) => {
+          const key = ticketKey(ticket);
+
+          return (
+            <TicketCard
+              key={key}
+              raffleName={ticket.raffleName}
+              fullName={fullName}
+              dni={dni}
+              purchasedAt={ticket.purchasedAt}
+              ticketNumber={ticket.ticketNumber}
+              hiddenForPrint={printOnlyKey !== null && printOnlyKey !== key}
+              isLastForPrint={key === lastPrintableKey}
+              onPrintThis={() => setPrintOnlyKey(key)}
+            />
+          );
+        })}
       </div>
     </div>
   );
+}
+
+function ticketKey(ticket: FlatTicket): string {
+  return `${ticket.raffleName}-${ticket.ticketNumber}`;
 }
 
 function StatusNotice({ children }: { children: string }) {
@@ -356,31 +560,47 @@ function TicketCard({
   dni,
   purchasedAt,
   ticketNumber,
+  hiddenForPrint,
+  isLastForPrint,
+  onPrintThis,
 }: {
   raffleName: string;
   fullName: string;
   dni: string;
   purchasedAt: string | null;
   ticketNumber: number;
+  hiddenForPrint: boolean;
+  isLastForPrint: boolean;
+  onPrintThis: () => void;
 }) {
   /*
    * Formato de recibo térmico de 80mm (impresora portátil tipo HOIN HQ300,
-   * 203 DPI): angosto y vertical, no la tarjeta horizontal de antes. En
-   * pantalla se ve como una tira angosta (vista previa honesta de lo que
-   * realmente va a salir); al imprimir, .ticket-print fija 72mm de ancho
-   * dentro de la página de 80mm (ver @page "ticket" en globals.css) y aquí
-   * se agregan los 2mm de margen interior a cada lado.
+   * 203 DPI): angosto y vertical. En pantalla se ve como una tira angosta
+   * (vista previa honesta de lo que realmente va a salir); al imprimir,
+   * .ticket-print fija 72mm de ancho dentro de la página de 80mm (ver
+   * @page "ticket" en globals.css) y aquí se agregan los 2mm de margen
+   * interior a cada lado.
    */
   return (
-    <div className="ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px]">
+    <div
+      className={`ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px] ${
+        hiddenForPrint ? "print:hidden" : ""
+      }`}
+      style={isLastForPrint ? { breakAfter: "auto" } : undefined}
+    >
       <article className="rounded-lg border border-neutral-300 bg-white p-4 font-mono text-black shadow-sm print:rounded-none print:border-0 print:px-[2mm] print:py-0 print:shadow-none">
-        {/* Logo + encabezado */}
-        <div className="flex flex-col items-center text-center">
+        {/*
+          El logo no se imprime: en un recibo térmico no aporta (consume
+          papel y tiempo de impresión rasterizando una imagen). Sigue
+          visible en la vista previa de pantalla.
+        */}
+        <div className="flex flex-col items-center text-center print:hidden">
           <BrandLogo className="h-auto w-12" />
-          <p className="mt-2 text-[0.62rem] font-bold uppercase tracking-[0.18em]">
-            Ticket de sorteo
-          </p>
         </div>
+
+        <p className="text-center text-[0.62rem] font-bold uppercase tracking-[0.18em]">
+          Ticket de sorteo
+        </p>
 
         <p className="mt-2 text-center text-sm font-bold leading-snug">
           {raffleName}
@@ -409,6 +629,14 @@ function TicketCard({
         {/* Avance final: que el corte/rasgado no pise el texto. */}
         <div className="hidden print:block" style={{ height: "16mm" }} />
       </article>
+
+      <button
+        type="button"
+        onClick={onPrintThis}
+        className="mt-2 w-full rounded-lg border border-line py-2 text-xs font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold print:hidden"
+      >
+        Imprimir este ticket
+      </button>
     </div>
   );
 }
