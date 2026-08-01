@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
-import heroBanner from "@/assets/site/hero-banner.webp";
+import heroBanner from "@/assets/site/banner.webp";
 import { ArrowRightIcon } from "@/components/site/icons";
 import { brand } from "@/config/brand";
 
