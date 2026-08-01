@@ -119,6 +119,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         requestId: purchase.request_id,
         raffleId: purchase.raffle_id,
         raffleName: purchase.raffle_name,
+        raffleStatus: purchase.raffle_status,
         purchasedAt: purchase.purchased_at,
         ticketStatus: purchase.ticket_status,
         ticketNumbers: purchase.ticket_numbers,

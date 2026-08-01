@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
-import { BrandLogo } from "@/components/site/brand-logo";
 import { DocumentField } from "@/components/site/document-field";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -12,11 +11,13 @@ import {
 } from "@/lib/validation/document";
 
 type TicketStatus = "active" | "frozen" | "reassigned";
+type RaffleStatus = "draft" | "active" | "closed" | "cancelled";
 
 type Purchase = {
   requestId: string;
   raffleId: string;
   raffleName: string;
+  raffleStatus: RaffleStatus;
   purchasedAt: string | null;
   ticketStatus: TicketStatus;
   ticketNumbers: number[];
@@ -42,7 +43,13 @@ type FlatTicket = {
 type RaffleGroup = {
   raffleId: string;
   raffleName: string;
+  raffleStatus: RaffleStatus;
   tickets: FlatTicket[];
+};
+
+const RAFFLE_STATUS_LABEL: Partial<Record<RaffleStatus, string>> = {
+  closed: "Sorteo cerrado",
+  cancelled: "Sorteo cancelado",
 };
 
 /*
@@ -252,7 +259,9 @@ export function TicketsDocument() {
  * futuro haya varios sorteos activos a la vez, de varios sorteos distintos.
  * Se agrupan por sorteo (raffleId, no el nombre: el nombre no es único a
  * nivel de base de datos) para que la persona elija cuál ver, en vez de
- * mostrarle todo mezclado en una sola lista larga.
+ * mostrarle todo mezclado en una sola lista larga. Un sorteo ya cerrado o
+ * cancelado se sigue mostrando igual (con sus tickets), solo que con un
+ * aviso: el ticket sigue siendo válido como comprobante de participación.
  */
 function groupByRaffle(purchases: Purchase[]): RaffleGroup[] {
   const groups = new Map<string, RaffleGroup>();
@@ -264,6 +273,7 @@ function groupByRaffle(purchases: Purchase[]): RaffleGroup[] {
       group = {
         raffleId: purchase.raffleId,
         raffleName: purchase.raffleName,
+        raffleStatus: purchase.raffleStatus,
         tickets: [],
       };
       groups.set(purchase.raffleId, group);
@@ -339,6 +349,7 @@ function RaffleGroups({
           const reassigned = group.tickets.filter(
             (ticket) => ticket.status === "reassigned",
           ).length;
+          const statusLabel = RAFFLE_STATUS_LABEL[group.raffleStatus];
 
           return (
             <button
@@ -347,9 +358,16 @@ function RaffleGroups({
               onClick={() => setSelectedRaffleId(group.raffleId)}
               className="w-full rounded-2xl border border-line bg-ink-2 p-5 text-left transition-colors duration-300 hover:border-gold"
             >
-              <p className="font-display text-xl font-light text-cream">
-                {group.raffleName}
-              </p>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <p className="font-display text-xl font-light text-cream">
+                  {group.raffleName}
+                </p>
+                {statusLabel ? (
+                  <span className="rounded-full border border-amber-700/70 bg-amber-950/40 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-amber-200">
+                    {statusLabel}
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-1.5 text-sm text-muted">
                 {ticketCountLabel(active, frozen, reassigned)}
               </p>
@@ -401,9 +419,9 @@ function RaffleTicketView({
   onReset: () => void;
 }) {
   /*
-   * Clave del ticket que se debe imprimir solo (botón "Imprimir este
-   * ticket" de una tarjeta puntual). null = se imprime todo, sin filtrar
-   * (comportamiento del botón "Imprimir / Guardar PDF" de arriba).
+   * Clave del ticket que se debe imprimir solo (se toca un cuadrado
+   * puntual). null = se imprime todo, sin filtrar (botón "Imprimir /
+   * Guardar PDF" de arriba).
    */
   const [printOnlyKey, setPrintOnlyKey] = useState<string | null>(null);
 
@@ -431,19 +449,16 @@ function RaffleTicketView({
   const reassignedTickets = group.tickets.filter(
     (ticket) => ticket.status === "reassigned",
   );
+  const statusLabel = RAFFLE_STATUS_LABEL[group.raffleStatus];
 
   /*
-   * Al imprimir un solo ticket, los demás se ocultan SOLO en impresión
-   * (print:hidden, la pantalla no cambia). Como cada .ticket-print fuerza
-   * su propio salto de página, hay que decirle explícitamente a la última
-   * tarjeta que realmente se va a imprimir que no deje una página en
-   * blanco después — la regla ":last-of-type" de globals.css no sirve aquí
-   * porque mira el último elemento del DOM, no el último visible.
+   * Al imprimir un solo ticket, los demás no se imprimen (print:hidden, la
+   * pantalla no cambia). Como cada .ticket-print fuerza su propio salto de
+   * página, hay que decirle explícitamente al último que realmente se va a
+   * imprimir que no deje una página en blanco después.
    */
   const ticketsToPrint = printOnlyKey
-    ? printableTickets.filter(
-        (ticket) => ticketKey(ticket) === printOnlyKey,
-      )
+    ? printableTickets.filter((ticket) => ticketKey(ticket) === printOnlyKey)
     : printableTickets;
   const lastPrintableKey =
     ticketsToPrint.length > 0
@@ -465,14 +480,21 @@ function RaffleTicketView({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-light text-cream">
-              {group.raffleName}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="font-display text-2xl font-light text-cream">
+                {group.raffleName}
+              </h1>
+              {statusLabel ? (
+                <span className="rounded-full border border-amber-700/70 bg-amber-950/40 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-amber-200">
+                  {statusLabel}
+                </span>
+              ) : null}
+            </div>
             <p className="mt-1 text-sm text-muted">
               {printableTickets.length === 1
                 ? "Tu ticket vigente"
                 : `Tus ${printableTickets.length} tickets vigentes`}
-              . Cada uno se imprime en su propia hoja.
+              . Toca uno para imprimirlo, o usa &quot;Imprimir todos&quot;.
             </p>
           </div>
 
@@ -483,7 +505,7 @@ function RaffleTicketView({
                 onClick={() => window.print()}
                 className="rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft"
               >
-                Imprimir / Guardar PDF
+                Imprimir todos / Guardar PDF
               </button>
             ) : null}
             <button
@@ -496,6 +518,12 @@ function RaffleTicketView({
           </div>
         </div>
       </div>
+
+      {statusLabel ? (
+        <StatusNotice>
+          Este sorteo ya {group.raffleStatus === "cancelled" ? "fue cancelado" : "cerró"}. Tus tickets siguen siendo válidos como comprobante de participación.
+        </StatusNotice>
+      ) : null}
 
       {frozenTickets.length > 0 ? (
         <StatusNotice>
@@ -519,12 +547,28 @@ function RaffleTicketView({
         </p>
       ) : null}
 
-      <div className="space-y-6 print:space-y-0">
+      {/*
+        Vista de pantalla: cuadrados compactos, no la tarjeta completa —
+        con 17 tickets, una pila de tarjetas grandes es incómoda de
+        recorrer. Cada cuadrado imprime SOLO ese ticket al tocarlo.
+      */}
+      <div className="mt-6 flex flex-wrap gap-3 print:hidden">
+        {printableTickets.map((ticket) => (
+          <TicketChip
+            key={ticketKey(ticket)}
+            ticketNumber={ticket.ticketNumber}
+            onPrintThis={() => setPrintOnlyKey(ticketKey(ticket))}
+          />
+        ))}
+      </div>
+
+      {/* Recibo completo: solo existe para la impresión, nunca se ve en pantalla. */}
+      <div className="hidden print:block">
         {printableTickets.map((ticket) => {
           const key = ticketKey(ticket);
 
           return (
-            <TicketCard
+            <PrintableTicket
               key={key}
               raffleName={ticket.raffleName}
               fullName={fullName}
@@ -533,7 +577,6 @@ function RaffleTicketView({
               ticketNumber={ticket.ticketNumber}
               hiddenForPrint={printOnlyKey !== null && printOnlyKey !== key}
               isLastForPrint={key === lastPrintableKey}
-              onPrintThis={() => setPrintOnlyKey(key)}
             />
           );
         })}
@@ -546,7 +589,7 @@ function ticketKey(ticket: FlatTicket): string {
   return `${ticket.raffleName}-${ticket.ticketNumber}`;
 }
 
-function StatusNotice({ children }: { children: string }) {
+function StatusNotice({ children }: { children: React.ReactNode }) {
   return (
     <p className="mt-6 rounded-xl border border-amber-800/70 bg-amber-950/30 p-4 text-sm text-amber-100 print:hidden">
       {children}
@@ -554,7 +597,33 @@ function StatusNotice({ children }: { children: string }) {
   );
 }
 
-function TicketCard({
+/*
+ * Cuadrado compacto: es lo que se ve en pantalla al navegar la lista de
+ * tickets de un sorteo. Tocarlo imprime SOLO ese ticket (el recibo
+ * completo real vive oculto, ver PrintableTicket).
+ */
+function TicketChip({
+  ticketNumber,
+  onPrintThis,
+}: {
+  ticketNumber: number;
+  onPrintThis: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPrintThis}
+      title={`Imprimir ticket ${String(ticketNumber).padStart(4, "0")}`}
+      className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-emerald-700 bg-emerald-950 text-emerald-200 transition-colors duration-200 hover:border-gold hover:bg-ink-2 hover:text-gold"
+    >
+      <span className="text-base font-bold tabular-nums">
+        {String(ticketNumber).padStart(4, "0")}
+      </span>
+    </button>
+  );
+}
+
+function PrintableTicket({
   raffleName,
   fullName,
   dni,
@@ -562,7 +631,6 @@ function TicketCard({
   ticketNumber,
   hiddenForPrint,
   isLastForPrint,
-  onPrintThis,
 }: {
   raffleName: string;
   fullName: string;
@@ -571,33 +639,23 @@ function TicketCard({
   ticketNumber: number;
   hiddenForPrint: boolean;
   isLastForPrint: boolean;
-  onPrintThis: () => void;
 }) {
   /*
    * Formato de recibo térmico de 80mm (impresora portátil tipo HOIN HQ300,
-   * 203 DPI): angosto y vertical. En pantalla se ve como una tira angosta
-   * (vista previa honesta de lo que realmente va a salir); al imprimir,
-   * .ticket-print fija 72mm de ancho dentro de la página de 80mm (ver
-   * @page "ticket" en globals.css) y aquí se agregan los 2mm de margen
-   * interior a cada lado.
+   * 203 DPI): angosto y vertical. Nunca se ve en pantalla (ver el
+   * contenedor padre "hidden print:block"); al imprimir, .ticket-print fija
+   * 72mm de ancho dentro de la página de 80mm (@page "ticket" en
+   * globals.css) y aquí se agregan los 2mm de margen interior a cada lado.
+   * Sin logo: en un recibo térmico no aporta y consume tiempo de impresión.
    */
   return (
     <div
-      className={`ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px] ${
-        hiddenForPrint ? "print:hidden" : ""
+      className={`ticket-print mx-auto print:mx-auto print:w-[72mm] print:max-w-[576px] ${
+        hiddenForPrint ? "hidden" : "hidden print:block"
       }`}
       style={isLastForPrint ? { breakAfter: "auto" } : undefined}
     >
-      <article className="rounded-lg border border-neutral-300 bg-white p-4 font-mono text-black shadow-sm print:rounded-none print:border-0 print:px-[2mm] print:py-0 print:shadow-none">
-        {/*
-          El logo no se imprime: en un recibo térmico no aporta (consume
-          papel y tiempo de impresión rasterizando una imagen). Sigue
-          visible en la vista previa de pantalla.
-        */}
-        <div className="flex flex-col items-center text-center print:hidden">
-          <BrandLogo className="h-auto w-12" />
-        </div>
-
+      <article className="border-0 bg-white p-0 font-mono text-black print:px-[2mm] print:py-0">
         <p className="text-center text-[0.62rem] font-bold uppercase tracking-[0.18em]">
           Ticket de sorteo
         </p>
@@ -608,7 +666,6 @@ function TicketCard({
 
         <div className="my-3 border-t border-dashed border-neutral-500" />
 
-        {/* Número: lo más grande y visible del recibo */}
         <div className="text-center">
           <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
             Número asignado
@@ -627,16 +684,8 @@ function TicketCard({
         </dl>
 
         {/* Avance final: que el corte/rasgado no pise el texto. */}
-        <div className="hidden print:block" style={{ height: "16mm" }} />
+        <div style={{ height: "16mm" }} />
       </article>
-
-      <button
-        type="button"
-        onClick={onPrintThis}
-        className="mt-2 w-full rounded-lg border border-line py-2 text-xs font-medium text-cream transition-colors duration-300 hover:border-gold hover:text-gold print:hidden"
-      >
-        Imprimir este ticket
-      </button>
     </div>
   );
 }

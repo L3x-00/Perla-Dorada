@@ -659,6 +659,7 @@ export type Database = {
               purchased_at: string
               raffle_id: string
               raffle_name: string
+              raffle_status: Database["public"]["Enums"]["raffle_status"]
               request_id: string
               ticket_numbers: number[]
               ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
