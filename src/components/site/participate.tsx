@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { ArrowRightIcon, CloseIcon } from "@/components/site/icons";
 import { PurchaseWizard } from "@/components/site/purchase-wizard";
@@ -78,70 +79,84 @@ export function Participate({
         <ArrowRightIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
       </button>
 
+      {/*
+        Portal a document.body: si el modal se quedara anidado dentro de
+        <Reveal> (motion.div que anima "y"), Framer Motion deja un transform
+        residual en ese ancestro incluso en reposo, y cualquier transform en
+        un ancestro convierte a ese elemento en el "containing block" de los
+        descendientes position:fixed — el modal dejaba de cubrir la pantalla
+        completa y quedaba recortado dentro de la sección, mezclado con las
+        luces del escenario (StageRig). Portando al body se vuelve inmune a
+        eso sin importar qué animación se agregue alrededor en el futuro.
+      */}
       <AnimatePresence>
-        {open ? (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={close}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm sm:p-6"
-          >
-            <motion.div
-              key="panel"
-              initial={
-                reduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: 24, scale: 0.98 }
-              }
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={
-                reduceMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: 24, scale: 0.98 }
-              }
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(event) => event.stopPropagation()}
-              className="relative flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-line bg-ink-2 shadow-2xl"
-            >
-              {/*
-                Cabecera fija: el botón de cerrar nunca debe quedar fuera de
-                vista, sin importar cuán largo sea el contenido del asistente
-                (por eso solo el cuerpo de abajo scrollea, no todo el panel).
-              */}
-              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line p-5 sm:p-9 sm:pb-6">
-                <div>
-                  <p className="eyebrow text-muted">Participar en</p>
-                  <p className="mt-1 font-display text-lg font-light text-cream">
-                    {raffleName}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={close}
-                  aria-label="Cerrar"
-                  className="shrink-0 rounded-full border border-line p-2 text-muted transition-colors duration-300 hover:border-gold hover:text-gold"
+        {open
+          ? createPortal(
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={close}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm sm:p-6"
+              >
+                <motion.div
+                  key="panel"
+                  initial={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 24, scale: 0.98 }
+                  }
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={
+                    reduceMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 24, scale: 0.98 }
+                  }
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  onClick={(event) => event.stopPropagation()}
+                  className="relative flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-line bg-ink-2 shadow-2xl"
                 >
-                  <CloseIcon className="h-4 w-4" />
-                </button>
-              </div>
+                  {/*
+                    Cabecera fija: el botón de cerrar nunca debe quedar fuera
+                    de vista, sin importar cuán largo sea el contenido del
+                    asistente (por eso solo el cuerpo de abajo scrollea, no
+                    todo el panel).
+                  */}
+                  <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line p-5 sm:p-9 sm:pb-6">
+                    <div>
+                      <p className="eyebrow text-muted">Participar en</p>
+                      <p className="mt-1 font-display text-lg font-light text-cream">
+                        {raffleName}
+                      </p>
+                    </div>
 
-              <div className="overflow-y-auto p-5 sm:p-9 sm:pt-6">
-                <PurchaseWizard
-                  ticketPrice={ticketPrice}
-                  available={available}
-                  onSuccess={() => {
-                    completedRef.current = true;
-                  }}
-                  onFinished={close}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
+                    <button
+                      type="button"
+                      onClick={close}
+                      aria-label="Cerrar"
+                      className="shrink-0 rounded-full border border-line p-2 text-muted transition-colors duration-300 hover:border-gold hover:text-gold"
+                    >
+                      <CloseIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto p-5 sm:p-9 sm:pt-6">
+                    <PurchaseWizard
+                      ticketPrice={ticketPrice}
+                      available={available}
+                      onSuccess={() => {
+                        completedRef.current = true;
+                      }}
+                      onFinished={close}
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>,
+              document.body,
+            )
+          : null}
       </AnimatePresence>
     </>
   );
