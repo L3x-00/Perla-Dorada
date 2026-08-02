@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,38 @@ export function AdminProfileMenu() {
   const [open, setOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      if (active) {
+        setIsAuthenticated(Boolean(data.user));
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const hasSession = Boolean(session?.user);
+      setIsAuthenticated(hasSession);
+
+      if (!hasSession) {
+        setOpen(false);
+        setIsSigningOut(false);
+        setError(null);
+      } else {
+        setIsSigningOut(false);
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   async function signOut() {
     if (isSigningOut) return;
@@ -23,6 +55,9 @@ export function AdminProfileMenu() {
       const { error: signOutError } = await createClient().auth.signOut();
       if (signOutError) throw signOutError;
 
+      setOpen(false);
+      setIsAuthenticated(false);
+      setIsSigningOut(false);
       router.replace("/admin/login");
       router.refresh();
     } catch (caughtError) {
@@ -32,16 +67,22 @@ export function AdminProfileMenu() {
     }
   }
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="relative">
       <button
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="Abrir opciones de perfil"
+        title="Perfil"
         onClick={() => setOpen((current) => !current)}
-        className="rounded-lg border border-line px-3.5 py-2 text-sm text-muted transition-colors hover:border-gold hover:text-gold"
+        className="grid size-11 place-items-center rounded-full border border-line text-muted transition-colors hover:border-gold hover:text-gold"
       >
-        Perfil
+        <ProfileIcon />
       </button>
 
       {open ? (
@@ -84,5 +125,21 @@ export function AdminProfileMenu() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-5"
+    >
+      <circle cx="12" cy="8" r="3.25" />
+      <path d="M5.5 20c.8-3.25 3.2-5 6.5-5s5.7 1.75 6.5 5" />
+    </svg>
   );
 }

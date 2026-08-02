@@ -99,6 +99,8 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
         tracking_code,
         created_at,
         expires_at,
+        reviewed_by,
+        reviewed_at,
         rejection_reason,
         payment_proof_deleted_at
       `,
@@ -117,6 +119,29 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
   }
 
   const requests = purchaseRequests ?? [];
+  const reviewerIds = Array.from(
+    new Set(
+      requests.flatMap((request) =>
+        request.reviewed_by ? [request.reviewed_by] : [],
+      ),
+    ),
+  );
+  const reviewerNameById = new Map<string, string>();
+
+  if (reviewerIds.length > 0) {
+    const { data: reviewers, error: reviewersError } = await adminClient
+      .from("admin_profiles")
+      .select("user_id, display_name")
+      .in("user_id", reviewerIds);
+
+    if (reviewersError) {
+      console.error("Error cargando administradores revisores:", reviewersError);
+    } else {
+      for (const reviewer of reviewers ?? []) {
+        reviewerNameById.set(reviewer.user_id, reviewer.display_name);
+      }
+    }
+  }
 
   return (
     <AdminPage wide>
@@ -182,7 +207,16 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
       {requests.length > 0 ? (
         <div className="mt-8 space-y-3 lg:hidden">
           {requests.map((request, index) => (
-            <RequestCard key={request.id} request={request} index={index} />
+            <RequestCard
+              key={request.id}
+              request={request}
+              index={index}
+              reviewerName={
+                request.reviewed_by
+                  ? reviewerNameById.get(request.reviewed_by) ?? "Administrador"
+                  : null
+              }
+            />
           ))}
         </div>
       ) : null}
@@ -243,6 +277,17 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                         {request.rejection_reason}
                       </p>
                     ) : null}
+
+                    <ReviewMetadata
+                      status={request.status}
+                      reviewedAt={request.reviewed_at}
+                      reviewerName={
+                        request.reviewed_by
+                          ? reviewerNameById.get(request.reviewed_by) ??
+                            "Administrador"
+                          : null
+                      }
+                    />
                   </td>
 
                   <td className="px-4 py-4 text-muted">
@@ -308,6 +353,8 @@ type RequestRow = {
   tracking_code: string;
   created_at: string;
   expires_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   rejection_reason: string | null;
   payment_proof_deleted_at: string | null;
 };
@@ -325,9 +372,11 @@ function documentLabel(documentType: string): string {
 function RequestCard({
   request,
   index,
+  reviewerName,
 }: {
   request: RequestRow;
   index: number;
+  reviewerName: string | null;
 }) {
   return (
     <article
@@ -372,6 +421,12 @@ function RequestCard({
         </p>
       ) : null}
 
+      <ReviewMetadata
+        status={request.status}
+        reviewedAt={request.reviewed_at}
+        reviewerName={reviewerName}
+      />
+
       <div className="mt-4 border-t border-line pt-4">
         {request.payment_proof_deleted_at ? (
           <p className="text-xs text-muted">Comprobante eliminado</p>
@@ -399,6 +454,34 @@ function RequestCard({
         status={request.status}
       />
     </article>
+  );
+}
+
+function ReviewMetadata({
+  status,
+  reviewedAt,
+  reviewerName,
+}: {
+  status: PurchaseRequestStatus;
+  reviewedAt: string | null;
+  reviewerName: string | null;
+}) {
+  if (
+    (status !== "approved" && status !== "rejected") ||
+    !reviewedAt ||
+    !reviewerName
+  ) {
+    return null;
+  }
+
+  const label = status === "approved" ? "Aprobada" : "Rechazada";
+
+  return (
+    <p className="mt-2 text-xs text-muted">
+      {label} por: <span className="text-cream">{reviewerName}</span>
+      <br />
+      {formatDate(reviewedAt)}
+    </p>
   );
 }
 
