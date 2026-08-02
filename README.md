@@ -1,12 +1,21 @@
 # Perla Dorada Rifas
 
-MVP web para administrar rifas, solicitudes de compra, comprobantes Yape, tickets, impresión y registro del ganador.
+Web de marca y sistema de gestión de rifas de Joyería Perla Dorada. Incluye
+compra con comprobante Yape, tickets trazables, seguimiento por documento y
+código, gestión de promociones y ganadores manuales por premio.
+
+## Tecnología
+
+- Next.js App Router, React y TypeScript.
+- Supabase para PostgreSQL, Auth, Storage y Realtime.
+- Zod para validación; Sharp y `file-type` para validar y recomprimir imágenes.
+- Render para el Web Service y las tareas programadas.
 
 ## Requisitos
 
-- Node.js 20.9 o superior.
+- Node.js 22 o superior.
 - npm 10 o superior.
-- Proyecto Supabase.
+- Un proyecto Supabase configurado y variables de `.env.example` completadas.
 
 ## Inicio local
 
@@ -20,15 +29,15 @@ npm run dev
 
 ```bash
 npm run lint
+npx tsc --noEmit --pretty false
 npm run build
 ```
 
-## Estructura
+## Documentación
 
-- `src/app`: rutas y layouts.
-- `src/components`: componentes reutilizables.
-- `src/features`: módulos de negocio.
-- `src/lib`: clientes e infraestructura compartida.
-- `src/server`: acciones y consultas del servidor.
-- `src/types`: tipos transversales.
-- `docs`: decisiones y plan de desarrollo.
+- [`docs/ENTREGA_CLIENTE.md`](docs/ENTREGA_CLIENTE.md): descripción, flujos y
+  consideraciones para el cliente.
+- [`docs/AUDITORIA_ENTREGA_2026-08-02.md`](docs/AUDITORIA_ENTREGA_2026-08-02.md):
+  correcciones, pruebas y riesgos residuales.
+- [`docs/contex/arquitectura.md`](docs/contex/arquitectura.md): reglas y
+  convenciones técnicas de mantenimiento.

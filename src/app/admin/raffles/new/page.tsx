@@ -1,23 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { RaffleForm } from "../raffle-form";
-import { createClient } from "@/lib/supabase/server";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 
 export default async function NewRafflePage() {
-  const sessionClient = await createClient();
-
-  const {
-    data: claimsData,
-    error: claimsError,
-  } = await sessionClient.auth.getClaims();
-
-  if (
-    claimsError ||
-    typeof claimsData?.claims?.sub !== "string"
-  ) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6">

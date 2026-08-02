@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { PromotionForm, type PromotionFormValues } from "../../promotion-form";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { isoToLimaInput } from "@/lib/datetime-lima";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -16,14 +16,7 @@ type EditPromotionPageProps = {
 export default async function EditPromotionPage({
   params,
 }: EditPromotionPageProps) {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || typeof claimsData?.claims?.sub !== "string") {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const { id } = await params;
 

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { formatDateTime } from "@/lib/format";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { prizesFromDbJson } from "@/lib/raffles/prizes";
 import { raffleImageUrl } from "@/lib/storage/public-url";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { WinnerForm } from "./winner-form";
 
 const UUID_PATTERN =
@@ -31,22 +31,20 @@ export default async function RaffleWinnerPage({
     notFound();
   }
 
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || !claimsData?.claims?.sub) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const adminClient = createAdminClient();
 
-  const { data: raffle } = await adminClient
+  const { data: raffle, error: raffleError } = await adminClient
     .from("raffles")
     .select("id, name, status, draw_at, prizes")
     .eq("id", id)
     .maybeSingle();
+
+  if (raffleError) {
+    console.error("Error loading raffle for winner registration:", raffleError);
+    throw new Error("No se pudo cargar la rifa.");
+  }
 
   if (!raffle) {
     notFound();
@@ -54,10 +52,15 @@ export default async function RaffleWinnerPage({
 
   const prizes = prizesFromDbJson(raffle.prizes);
 
-  const { data: winners } = await adminClient
+  const { data: winners, error: winnersError } = await adminClient
     .from("raffle_winners")
     .select("id, ticket_id, prize_id, prize_title, confirmed_at")
     .eq("raffle_id", id);
+
+  if (winnersError) {
+    console.error("Error loading raffle winners:", winnersError);
+    throw new Error("No se pudieron cargar los ganadores registrados.");
+  }
 
   const winnerRows = winners ?? [];
 
@@ -73,10 +76,15 @@ export default async function RaffleWinnerPage({
   >();
 
   if (ticketIds.length > 0) {
-    const { data: tickets } = await adminClient
+    const { data: tickets, error: ticketsError } = await adminClient
       .from("tickets")
       .select("id, ticket_number, purchase_request_id")
       .in("id", ticketIds);
+
+    if (ticketsError) {
+      console.error("Error loading winner tickets:", ticketsError);
+      throw new Error("No se pudo cargar la información del ganador.");
+    }
 
     for (const ticket of tickets ?? []) {
       ticketsById.set(ticket.id, ticket);
@@ -89,10 +97,15 @@ export default async function RaffleWinnerPage({
   const purchasesById = new Map<string, { full_name: string; dni: string }>();
 
   if (purchaseRequestIds.length > 0) {
-    const { data: purchases } = await adminClient
+    const { data: purchases, error: purchasesError } = await adminClient
       .from("purchase_requests")
       .select("id, full_name, dni")
       .in("id", purchaseRequestIds);
+
+    if (purchasesError) {
+      console.error("Error loading winner participants:", purchasesError);
+      throw new Error("No se pudo cargar la información del ganador.");
+    }
 
     for (const purchase of purchases ?? []) {
       purchasesById.set(purchase.id, purchase);
@@ -239,7 +252,10 @@ function PrizeWinnerCard({
             {prizeTitle}
           </p>
           <p className="text-xs uppercase tracking-[0.14em] text-muted">
-            Cantidad: {prizeQuantity}
+            Cantidad descriptiva: {prizeQuantity}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Esta fila admite un solo ganador.
           </p>
         </div>
       </div>

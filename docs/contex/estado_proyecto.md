@@ -114,7 +114,7 @@ src/
 │   ├── supabase/{admin,server,client,proxy}.ts
 │   └── validation/{purchase-request,document,tracking}.ts
 └── types/
-    └── database.ts                   ← generado; 35 migraciones aplicadas al remoto, consistente
+    └── database.ts                   ← generado; 37 migraciones aplicadas al remoto, consistente
 ```
 
 No hay `pages/`, no hay Edge Functions, no hay `seed.sql` con contenido real, no hay `pg_cron`. Cero carpetas paralelas ni duplicadas.
@@ -150,7 +150,7 @@ Consulta pública: `get_public_ticket_document` (devuelve una fila **por ticket 
 
 Auditoría/retención/límites: `delete_payment_proof`, `list_payment_proofs_for_retention`, `purge_rate_limits`, `check_rate_limit` (genérico, activo), `check_purchase_request_rate_limit` (legado, sin uso desde ERR-11), `assert_active_admin` (guardia interna, la llaman casi todas las anteriores).
 
-**35 migraciones** aplicadas al remoto, cronológicas 2026-07-21 → 2026-08-02 (proyecto Supabase `iewcowhkfsywdiyligsq`). La secuencia completa está en `supabase/migrations/`; no hay huecos ni migraciones sin aplicar.
+**37 migraciones** aplicadas al remoto, cronológicas 2026-07-21 → 2026-08-02 (proyecto Supabase `iewcowhkfsywdiyligsq`). La secuencia completa está en `supabase/migrations/`; no hay huecos ni migraciones sin aplicar.
 
 ## 9. Componentes ya construidos — NO duplicar
 
@@ -188,6 +188,6 @@ Ver `errores.md` para el detalle completo con estados. Resumen de lo 🟡 abiert
 - `ERR-03` — sin scheduler nativo de expiración (mitigado por el Render Cron Job `/api/cron/expire-requests`, ~15 min).
 - `ERR-07` — bajo, ya con reintento en colisión de tracking code (probabilidad extremadamente baja).
 - `ERR-17` — semántica de cierre/cancelación con solicitudes pendientes, requiere decisión de negocio (no bug).
-- `ERR-18` — hallazgos menores de la auditoría paralela del 23 jul sin doble verificación completa (health endpoint, guardas de `winner/page.tsx`, límite superior de `requestedQuantity`, comparación de `CRON_SECRET` no constante-en-tiempo, CSP sin validar variables de entorno ausentes, orden de operaciones en DELETE de imagen de rifa).
+- La auditoría de entrega del 2 ago verificó y cerró ERR-18: health real de Supabase, tope de 30 tickets, comparación constante del cron, CSP defensiva, guardas de páginas admin y orden seguro al quitar imágenes. Ver `AUDITORIA_ENTREGA_2026-08-02.md`.
 
 PD-CC-01 · Transferencia técnica Joyería Perla Dorada

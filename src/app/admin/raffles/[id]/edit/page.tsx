@@ -9,10 +9,10 @@ import {
   type RaffleFormValues,
 } from "../../raffle-form";
 import { RaffleImageUpload } from "../../raffle-image-upload";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { isoToLimaInput } from "@/lib/datetime-lima";
 import { prizesFromDbJson } from "@/lib/raffles/prizes";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 type EditRafflePageProps = {
   params: Promise<{
@@ -23,19 +23,7 @@ type EditRafflePageProps = {
 export default async function EditRafflePage({
   params,
 }: EditRafflePageProps) {
-  const sessionClient = await createClient();
-
-  const {
-    data: claimsData,
-    error: claimsError,
-  } = await sessionClient.auth.getClaims();
-
-  if (
-    claimsError ||
-    typeof claimsData?.claims?.sub !== "string"
-  ) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const { id } = await params;
 

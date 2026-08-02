@@ -1,13 +1,11 @@
-import { redirect } from "next/navigation";
-
 import { TicketPrintAction } from "@/app/admin/ticket-print-action";
 import {
   AdminPage,
   AdminPageHeader,
   btnPrimary,
 } from "@/components/admin/ui";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 type AdminSearchPageProps = {
   searchParams: Promise<{
@@ -85,21 +83,7 @@ function formatDate(value: string) {
 export default async function AdminSearchPage({
   searchParams,
 }: AdminSearchPageProps) {
-  const sessionClient =
-    await createClient();
-
-  const {
-    data: claimsData,
-    error: claimsError,
-  } =
-    await sessionClient.auth.getClaims();
-
-  if (
-    claimsError ||
-    !claimsData?.claims?.sub
-  ) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const resolvedSearchParams =
     await searchParams;

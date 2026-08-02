@@ -1,20 +1,11 @@
-import { redirect } from "next/navigation";
-
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || !claimsData?.claims?.sub) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const adminClient = createAdminClient();
 

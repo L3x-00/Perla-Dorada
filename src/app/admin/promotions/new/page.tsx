@@ -1,19 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { PromotionForm } from "../promotion-form";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function NewPromotionPage() {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || typeof claimsData?.claims?.sub !== "string") {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const adminClient = createAdminClient();
 

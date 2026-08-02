@@ -37,7 +37,7 @@ El sitio pasó de landing funcional a **web de marca de joyería** con el sorteo
 
 ### 3.3 Rifas con múltiples premios descriptivos (24 jul 2026, migración `20260724120000`; ampliado 2 ago 2026)
 
-`raffles.prizes` (jsonb): lista de `{ id, title, quantity, image_path }`. Es contenido descriptivo del sorteo ("una moto", "2× dinero en efectivo"), validado por `normalize_raffle_prizes` (puro) y con `id` asignado por `assign_prize_ids` (`create_raffle`/`update_raffle`). El 2 ago 2026 esta lista pasó de ser solo informativa a poder tener **un ganador por premio** — ver §3.6.
+`raffles.prizes` (jsonb): lista de `{ id, title, quantity, image_path }`. `quantity` describe el premio ("una moto", "2× dinero en efectivo") y no multiplica ganadores: cada fila admite **un** ganador. Si habrá varios ganadores del mismo concepto, se crean filas separadas. La lista se valida con `normalize_raffle_prizes` y recibe un `id` con `assign_prize_ids` (`create_raffle`/`update_raffle`).
 
 ### 3.4 Realtime en la portada (1 ago 2026)
 
@@ -67,14 +67,14 @@ Modal de bienvenida con carrusel (3-4 slides), se abre una vez por sesión a los
 | Comprobante | Privado; elegible para eliminación 15 días después del cierre de la rifa. |
 
 Reglas operativas vigentes:
-- Una solicitud pendiente por DNI y rifa.
+- Hasta **10 solicitudes pendientes** por documento y rifa; el tope se aplica de forma transaccional en PostgreSQL.
 - Reserva de **360 minutos (6 horas)**, `reservation_minutes` en `app_settings`, configurable.
 - Máximo 30 tickets por solicitud.
 - Pago por Yape con validación manual del administrador.
 - Comprobante JPG/PNG/WEBP, entrada máxima 5 MB, objeto final máximo 600 KiB/2000px (comprobantes) o 350 KiB/1920px (imágenes públicas); navegador y servidor reencodan antes de Storage.
 - Aprobación y asignación de tickets atómicas.
 - Máximo de reimpresiones configurable (actual: 5).
-- Ganador manual, único por premio, irreversible.
+- Ganador manual, único por fila de premio, irreversible. La cantidad del premio es descriptiva; no crea ganadores adicionales.
 - Consulta pública por DNI + código de seguimiento (ambos obligatorios; el código identifica al participante, es reusable entre compras).
 - 3 cuentas administrativas activas.
 - `ticket_price × requestedQuantity` calculado en backend; nunca confiar en el total del cliente.
@@ -87,7 +87,8 @@ Reglas operativas vigentes:
 - Confirmar que los **2 Render Cron Jobs** (`/api/cron/expire-requests` ~15min, `/api/cron/retention` diario) están activos con `CRON_SECRET` configurado en Render.
 - Revisión legal de las páginas `/legal/*` (marcadas como borrador, `LEGAL_ES_BORRADOR = true` en `src/app/legal/legal-document.tsx`).
 - Completar assets del cliente: `src/config/brand.ts` (redes, contacto, Yape, datos legales) y `src/config/vitrina.ts` (fotos de piezas de joyería) — todo lo vacío ya se oculta solo, no bloquea el despliegue.
-- Ítems 🟡 de `errores.md` (ERR-03 mitigado pero sin scheduler nativo, ERR-17 semántica de cierre/cancelación pendiente de decisión, ERR-18 hallazgos menores sin doble verificación).
+- Decisión de negocio sobre el texto/estado que verá una solicitud pendiente cuando una rifa se cierre o cancele, y sobre si el cierre debe ejecutarse automáticamente en `closes_at` (ERR-17).
+- Habilitar la protección de contraseñas filtradas de Supabase Auth desde el Dashboard (hallazgo de seguridad de la auditoría de entrega).
 - Decisión de negocio (no técnica): si/cuándo pasar Supabase a plan Pro — ver `alcancefree.md`.
 
 ## 6. Definición global de terminado

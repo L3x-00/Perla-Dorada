@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { RaffleActions } from "./raffle-actions";
 import {
   AdminAlert,
@@ -15,7 +13,7 @@ import {
 } from "@/components/admin/ui";
 import { formatCurrencyPEN } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 
 const raffleStatusLabels: Record<string, string> = {
   draft: "Borrador",
@@ -49,14 +47,7 @@ function formatDate(value: string | null): string {
 }
 
 export default async function RafflesPage() {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || typeof claimsData?.claims?.sub !== "string") {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const adminClient = createAdminClient();
 

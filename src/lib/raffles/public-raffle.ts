@@ -75,37 +75,32 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
     return null;
   }
 
-  const { count: soldCount, error: soldError } = await supabase
-    .from("tickets")
-    .select("*", { count: "exact", head: true })
-    .eq("raffle_id", raffle.id);
+  const [soldResult, pendingResult] = await Promise.all([
+    supabase
+      .from("tickets")
+      .select("*", { count: "exact", head: true })
+      .eq("raffle_id", raffle.id),
+    supabase
+      .from("purchase_requests")
+      .select("requested_quantity")
+      .eq("raffle_id", raffle.id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString()),
+  ]);
 
-  if (soldError) {
+  if (soldResult.error || pendingResult.error) {
     throw new Error(
-      `No se pudo calcular la disponibilidad: ${soldError.message}`,
+      "No se pudo calcular la disponibilidad.",
     );
   }
 
-  const { data: pendingRows, error: pendingError } = await supabase
-    .from("purchase_requests")
-    .select("requested_quantity")
-    .eq("raffle_id", raffle.id)
-    .eq("status", "pending")
-    .gt("expires_at", new Date().toISOString());
-
-  if (pendingError) {
-    throw new Error(
-      `No se pudo calcular la disponibilidad: ${pendingError.message}`,
-    );
-  }
-
-  const reserved = (pendingRows ?? []).reduce(
+  const reserved = (pendingResult.data ?? []).reduce(
     (sum, row) => sum + row.requested_quantity,
     0,
   );
 
   const available = Math.max(
-    raffle.total_tickets - (soldCount ?? 0) - reserved,
+    raffle.total_tickets - (soldResult.count ?? 0) - reserved,
     0,
   );
 

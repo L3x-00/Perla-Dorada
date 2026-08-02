@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import { TicketReassignAction } from "@/app/admin/ticket-reassign-action";
 import { TicketPrintAction } from "@/app/admin/ticket-print-action";
 import {
@@ -9,8 +7,8 @@ import {
   EmptyState,
 } from "@/components/admin/ui";
 import { formatDateTime } from "@/lib/format";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 type RaffleSummary = {
   id: string;
@@ -25,17 +23,7 @@ type PurchaseRequestSummary = {
 };
 
 export default async function AdminTicketsPage() {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (
-    claimsError ||
-    !claimsData?.claims?.sub
-  ) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const adminClient = createAdminClient();
 

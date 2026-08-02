@@ -1,39 +1,14 @@
-# Plan de desarrollo por fases
+# Estado de fases
 
-## Fase 1 — Fundación técnica
-1.1 Inicialización y estándares del repositorio.
-1.2 Configuración de Supabase y variables de entorno.
-1.3 Esquema inicial de base de datos y migraciones.
-1.4 Autenticación administrativa y autorización.
+| Fase | Estado | Alcance entregado |
+|---|---|---|
+| Fundación y seguridad | Completada | Next.js, Supabase, autenticación admin, validación y cabeceras de seguridad. |
+| Administración de rifas | Completada | Crear, editar, activar, cerrar, cancelar y eliminar solo borradores vacíos. |
+| Compra y pagos | Completada | Reserva, vencimiento, comprobante privado y revisión manual de Yape. |
+| Tickets | Completada | Numeración atómica, consulta, impresión, reimpresión y reasignación trazable. |
+| Ganadores | Completada | Registro manual e irreversible por premio, con publicación enmascarada. |
+| Promociones y marca | Completada | Sitio de joyería, tema claro/oscuro, promociones administrables y Realtime informativo. |
+| Auditoría de entrega | Completada técnicamente | Correcciones y validaciones descritas en `AUDITORIA_ENTREGA_2026-08-02.md`. |
+| Aceptación del cliente | Pendiente | Validar textos legales, assets definitivos y operación de cron/credenciales. |
 
-## Fase 2 — Núcleo de rifas
-2.1 Administración de rifas.
-2.2 Administración de paquetes.
-2.3 Configuración pública y modo mantenimiento.
-
-## Fase 3 — Solicitudes y pagos
-3.1 Formulario público.
-3.2 Reserva y expiración.
-3.3 Carga privada de comprobantes.
-3.4 Revisión, aprobación y rechazo.
-
-## Fase 4 — Tickets, PDF e impresión
-4.1 Numeración transaccional.
-4.2 Generación de tickets.
-4.3 PDF A4.
-4.4 Impresión y reimpresiones auditadas.
-
-## Fase 5 — Consulta y ganador
-5.1 Consulta por DNI y código.
-5.2 Descarga de PDF.
-5.3 Registro irreversible del ganador.
-
-## Fase 6 — Calidad y seguridad
-6.1 Auditoría y logs.
-6.2 Pruebas funcionales y de concurrencia.
-6.3 Seguridad, RLS y retención.
-
-## Fase 7 — Despliegue y aceptación
-7.1 Configuración de Vercel.
-7.2 Pruebas de humo.
-7.3 Producción, respaldo y entrega.
+El hosting vigente es **Render** (Web Service y dos Cron Jobs), no Vercel.

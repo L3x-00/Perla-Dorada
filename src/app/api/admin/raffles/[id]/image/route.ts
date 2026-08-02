@@ -57,11 +57,16 @@ export async function POST(
 
   const supabase = createAdminClient();
 
-  const { data: raffle } = await supabase
+  const { data: raffle, error: raffleError } = await supabase
     .from("raffles")
     .select("id, image_path")
     .eq("id", id)
     .maybeSingle();
+
+  if (raffleError) {
+    console.error("Error consulting raffle before image deletion:", raffleError);
+    return jsonError("No se pudo consultar la rifa.", 500);
+  }
 
   if (!raffle) {
     return jsonError("La rifa no existe.", 404);
@@ -152,20 +157,19 @@ export async function DELETE(
 
   const supabase = createAdminClient();
 
-  const { data: raffle } = await supabase
+  const { data: raffle, error: raffleError } = await supabase
     .from("raffles")
     .select("id, image_path")
     .eq("id", id)
     .maybeSingle();
 
-  if (!raffle) {
-    return jsonError("La rifa no existe.", 404);
+  if (raffleError) {
+    console.error("Error consulting raffle before image deletion:", raffleError);
+    return jsonError("No se pudo consultar la rifa.", 500);
   }
 
-  if (raffle.image_path) {
-    await supabase.storage
-      .from(RAFFLE_IMAGES_BUCKET)
-      .remove([raffle.image_path]);
+  if (!raffle) {
+    return jsonError("La rifa no existe.", 404);
   }
 
   const { error } = await supabase
@@ -176,6 +180,20 @@ export async function DELETE(
   if (error) {
     console.error("Error quitando imagen de la rifa:", error);
     return jsonError("No se pudo quitar la imagen.", 500);
+  }
+
+  /*
+   * The database reference is cleared first. If Storage fails afterwards,
+   * the page stays coherent and the orphan can be cleaned up later.
+   */
+  if (raffle.image_path) {
+    const { error: removeError } = await supabase.storage
+      .from(RAFFLE_IMAGES_BUCKET)
+      .remove([raffle.image_path]);
+
+    if (removeError) {
+      console.error("Could not remove former raffle image from Storage:", removeError);
+    }
   }
 
   await recordAuditEvent({

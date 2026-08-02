@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { DeleteProofButton } from "@/app/admin/delete-proof-button";
 import { PaymentProofButton } from "@/app/admin/payment-proof-button";
 import { PurchaseRequestActions } from "@/app/admin/purchase-request-actions";
@@ -14,7 +12,7 @@ import {
   type BadgeTone,
 } from "@/components/admin/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import type { Database } from "@/types/database";
 
 type PurchaseRequestStatus =
@@ -76,14 +74,7 @@ function getExpirationLabel(
 }
 
 export default async function AdminHomePage({ searchParams }: AdminPageProps) {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || !claimsData?.claims?.sub) {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const resolvedSearchParams = await searchParams;
 

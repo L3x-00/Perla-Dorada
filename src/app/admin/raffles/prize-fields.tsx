@@ -49,8 +49,10 @@ export function PrizeFields({
           Premios del sorteo
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Agrega cada premio con su cantidad y, si quieres, una foto. Ejemplos:
-          «Una moto», «2 · Dinero en efectivo», «Un televisor Samsung».
+          Agrega cada premio con su cantidad descriptiva y, si quieres, una
+          foto. Cada fila admite un solo ganador; para varios ganadores, crea
+          una fila por cada uno. Ejemplos: «Una moto», «2 · Dinero en
+          efectivo», «Un televisor Samsung».
         </p>
       </div>
 

@@ -15,7 +15,7 @@ Estados: 🔴 abierto (bloqueante) · 🟡 abierto (no bloqueante) · 🟢 corre
 - La nota de "DATOS DE PRUEBA A LIMPIAR" (rifa "ZZZ TEST GANADOR") quedó obsoleta: la base se limpió por completo (wipe total solicitado por el usuario) antes de que existieran datos reales de producción; hoy `raffles`/`tickets`/`raffle_winners` contienen únicamente actividad real del cliente. Se retira la sección.
 - Nuevos hallazgos y decisiones de esta sesión: ERR-19, ERR-20, ERR-21, DEC-05, DEC-06.
 
-## Actualización de auditoría — 27 jul 2026 (pendiente de despliegue)
+## Actualización de auditoría — 27 jul 2026 (histórica; aplicada)
 
 - **ERR-17 — 🟢 Corregido en migración local:** cancelar una rifa congela los tickets emitidos; se bloquean impresión y ganador, y la reasignación administrativa a una rifa activa crea un ticket nuevo trazable. La semántica acordada está documentada en `auditoria_2026-07-27.md`.
 - **ERR-18 — 🟢 Corregidos los ítems confirmados:** health verifica una tabla real de Supabase y no expone detalle; cantidad máxima de compra 30 en UI/Zod/BD; crons usan comparación en tiempo constante; CSP valida origen; las rutas/páginas admin exigen perfil activo; la eliminación de rifa queda limitada a borrador vacío.
@@ -23,7 +23,7 @@ Estados: 🔴 abierto (bloqueante) · 🟡 abierto (no bloqueante) · 🟢 corre
 - **IMG-01 — 🟢 Corregido local:** la compresión dejó de ser "mejor esfuerzo" que persistía originales. Cliente y servidor reencodan antes de Storage; el servidor es el fallback para Canvas no disponible.
 - **DEP-01 — 🟢 Corregido para dependencias de producción:** Next/React/Supabase se actualizaron y se fuerzan `postcss@8.5.23` y `sharp@0.35.3`. `npm audit --omit=dev` devuelve 0 vulnerabilidades. El `npm audit` completo conserva vulnerabilidades de herramientas de lint que solo se resuelven con cambios mayores de ESLint y no alcanzan producción.
 
-No marcar estas correcciones como verificadas en producción hasta aplicar `20260727171136_harden_ticket_lifecycle_and_purchase_limits.sql`, regenerar tipos y completar la lista de pruebas de `auditoria_2026-07-27.md`.
+La migración `20260727171136_harden_ticket_lifecycle_and_purchase_limits.sql` y sus sucesoras están aplicadas al remoto. La verificación vigente se consolida en `AUDITORIA_ENTREGA_2026-08-02.md`.
 
 2. Bugs activos
 
@@ -134,31 +134,27 @@ ERR-15 — 🟢 Corregido — Rutas admin sin verificar admin_profiles (solo ses
 - Área: `src/app/api/admin/settings/route.ts`, `.../purchase-requests/[id]/payment-proof/route.ts` (GET), `.../raffles/[id]/image/route.ts`
 - Causa: estas rutas tocan tablas/Storage con service_role SIN pasar por un RPC que llame a `assert_active_admin`, y solo comprobaban que hubiera sesión (`getClaims().sub`). Equiparaba "tener cuenta en Auth" con "ser administrador". Hoy no es explotable porque los únicos usuarios de Auth son administradores y no hay registro público, pero si Supabase tuviera el registro abierto, cualquiera leería comprobantes del bucket privado, escribiría `app_settings` o sobrescribiría la foto del premio.
 - Fix aplicado 23 jul 2026: helper `src/lib/auth/admin.ts` → `requireActiveAdmin()` (verifica sesión Y pertenencia a `admin_profiles` con is_active=true), cableado en esas rutas. Las demás operaciones admin ya estaban protegidas dentro del RPC (`assert_active_admin`). Detectado por la auditoría paralela.
-- Nota (deuda menor, 🟡): las PÁGINAS admin de solo lectura (`src/app/admin/**`) siguen mostrando PII tras comprobar solo sesión; mismo argumento de "solo admins tienen Auth". El proxy tampoco distingue admin de usuario autenticado. Defensa en profundidad pendiente: mover la verificación a un punto único (layout o middleware con un RPC booleano concedido a authenticated). Prioridad baja mientras no exista registro público.
+- Refuerzo aplicado 2 ago 2026: `requireActiveAdminPage()` protege también las pantallas administrativas que leen datos sensibles. Ya no basta una sesión de Auth para ver PII en el panel; debe existir un perfil activo en `admin_profiles`.
 
 ERR-16 — 🟢 Corregido — Aprobar/Rechazar convertían todo conflicto en 500 (mapeo por idioma)
 - Área: `src/app/api/admin/purchase-requests/[id]/{approve,reject}/route.ts`
 - Causa: clasificaban el error buscando palabras en INGLÉS ("pending", "not found", "insufficient"…) en el mensaje, pero `approve_purchase_request` y `reject_purchase_request` lanzan sus mensajes en ESPAÑOL con `errcode` correctos. Ninguna coincidía, así que reserva vencida, solicitud ya revisada o inexistente devolvían un 500 genérico y el admin no sabía la causa.
 - Fix aplicado 23 jul 2026: `src/lib/purchase-requests/errors.ts` mapea por `error.code` (P0002→404, P0001→409, 42501→403, 22023→400), propagando el mensaje de negocio del RPC. Detectado por la auditoría paralela.
 
-ERR-17 — 🟡 Medio — Semántica de cierre/cancelación de rifa con solicitudes y tickets
+ERR-17 — ⚪ Decisión de negocio — Semántica de cierre/cancelación con solicitudes pendientes
 - Área: `close_raffle`, `cancel_raffle` (migración `20260722151255`)
-- Hallazgos de la auditoría paralela (SIN corregir; requieren decisión de negocio, no son fallos de código):
-  1. Cerrar o cancelar una rifa marca sus solicitudes `pending` —incluidas las ya pagadas y a la espera de revisión— como `expired`, indistinguible de un vencimiento por tiempo. El cliente que pagó ve "Expirada" sin explicación.
-  2. Cancelar una rifa deja vivos los tickets ya asignados: siguen imprimibles en el panel y descargables públicamente por DNI+código, pese a que la rifa ya no existe como evento válido.
-  3. `closes_at` es informativo: nada impide crear solicitudes tras esa fecha hasta que un admin cierra la rifa a mano (el cron de expiración solo vence reservas, no cierra rifas). 
-- Recomendación: (1) un estado/`motivo` distinto para pendientes anuladas por cierre; (2) decidir si cancelar debe invalidar tickets; (3) si se quiere cierre automático por fecha, añadirlo al cron. Pendiente de definición del cliente.
+- Estado actual: al cancelar, los tickets emitidos se congelan, no pueden imprimirse ni ganar y solo se reasignan creando un ticket nuevo trazable. Ese punto ya está resuelto.
+- Decisiones aún necesarias: (1) cerrar o cancelar cambia solicitudes `pending` a `expired`, por lo que el cliente no distingue una anulación operativa de un vencimiento normal; (2) `closes_at` es informativo y la rifa requiere cierre manual, pues el cron solo vence reservas.
+- Recomendación: definir un mensaje o motivo específico para las solicitudes anuladas por operación y decidir si se automatiza el cierre en `closes_at`.
 - Detectado: 23 jul 2026, auditoría paralela.
 
-ERR-18 — 🟡 Bajo — Deuda menor detectada por la auditoría paralela (sin verificación adversarial completa)
-- La corrida de verificación se interrumpió por límite de sesión; estos hallazgos quedaron sin doble verificación. Revisar antes de actuar:
-  - `src/app/api/health/supabase/route.ts`: al parecer no contacta realmente con Supabase (responde ok:true siempre) y expone detalle de error sin auth. Revisar.
-  - `src/app/admin/raffles/[id]/winner/page.tsx`: ignora el error de sus consultas; si falla la lectura de `raffle_winners`, podría mostrar el formulario de registro de una rifa que ya tiene ganador. Revisar guardas.
-  - `src/lib/validation/purchase-request.ts` / RPC: `requestedQuantity` no tiene cota superior propia (más allá de la disponibilidad). Una sola solicitud puede reservar todo el inventario restante. Evaluar un tope por solicitud.
-  - `src/app/api/cron/*`: el Bearer `CRON_SECRET` se compara con `!==`, no en tiempo constante. Impacto práctico bajo (timing sobre red), pero se puede endurecer con `crypto.timingSafeEqual`.
-  - `next.config.ts`: la CSP se arma desde `process.env` sin validar; una variable ausente/con espacios generaría una política que bloquea login o imágenes en silencio.
-  - `src/app/api/admin/raffles/[id]/image/route.ts`: el DELETE borra el objeto de Storage antes de actualizar la fila y descarta el error de lectura de la rifa (reporta 404 ante fallo de BD). Orden y manejo mejorables.
-- Detectado: 23 jul 2026, auditoría paralela (8 dimensiones, ~49 hallazgos brutos; 3 confirmados con doble verificación → ERR-12/13/14, el resto quedó sin verificar por límite de sesión y se trianguló a mano).
+ERR-18 — 🟢 Corregido — Deuda menor verificada en la auditoría de entrega
+- `health/supabase` consulta `app_settings` y devuelve 502 sin detalle si la base falla.
+- El formulario y PostgreSQL limitan una compra a 30 tickets.
+- Los crons usan `timingSafeEqual`; la CSP normaliza el origen permitido.
+- La página de ganadores deja de renderizar formularios si falla una lectura crítica y las páginas admin exigen perfil activo.
+- Al quitar una foto, primero se elimina su referencia de PostgreSQL y después se intenta borrar Storage; un fallo de Storage no deja una URL rota.
+- Verificado por lectura de código y batería técnica del 2 ago 2026.
 
 ERR-19 — 🟢 Corregido — El modal "Participar" dejó de abrir tras portarlo a document.body
 - Área: `src/components/site/participate.tsx`

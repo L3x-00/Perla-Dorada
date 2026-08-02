@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { PromotionActions } from "./promotion-actions";
 import {
   AdminAlert,
@@ -11,8 +9,8 @@ import {
   btnPrimary,
 } from "@/components/admin/ui";
 import { promotionImageUrl } from "@/lib/storage/public-url";
+import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -32,14 +30,7 @@ function formatDate(value: string | null): string {
 }
 
 export default async function PromotionsPage() {
-  const sessionClient = await createClient();
-
-  const { data: claimsData, error: claimsError } =
-    await sessionClient.auth.getClaims();
-
-  if (claimsError || typeof claimsData?.claims?.sub !== "string") {
-    redirect("/admin/login");
-  }
+  await requireActiveAdminPage();
 
   const adminClient = createAdminClient();
 

@@ -282,14 +282,15 @@ Los documentos iniciales hablan de paquetes. Fue ELIMINADO por el cliente. Venta
 ticket_price × requestedQuantity, calculado siempre en backend.
 
 REGLAS DE NEGOCIO VIGENTES
-- Solo una rifa activa. Una solicitud pendiente por DNI y rifa.
+- Solo una rifa activa. Hasta diez solicitudes pendientes por documento y rifa; el límite se valida dentro de `create_purchase_request`.
 - Reserva de 360 minutos (6h), configurable en app_settings.
 - Máximo 30 tickets por solicitud. Pago por Yape, validación manual.
 - Comprobante JPG/PNG/WEBP, máx 5 MB de entrada, reencodado antes de Storage.
 - Aprobación y asignación de tickets atómicas, correlativos, nunca reutilizados.
 - Ticket: active → frozen (rifa cancelada) → reassigned (historial) + nuevo active trazable.
-- Ganador: manual, único POR PREMIO (una rifa puede tener varios premios), irreversible,
-  mostrado públicamente con nombre enmascarado (primer nombre + inicial del apellido).
+- Ganador: manual, único POR FILA DE PREMIO (una rifa puede tener varias filas), irreversible.
+  `quantity` es descriptiva y no genera ganadores extra. Se muestra públicamente con nombre
+  enmascarado (primer nombre + inicial del apellido).
 - Consulta pública por DNI + código de seguimiento (reusable entre compras del mismo documento).
 - Comprobantes eliminados 15 días después del cierre de la rifa.
 - 3 cuentas administrativas activas.

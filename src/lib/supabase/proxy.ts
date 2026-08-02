@@ -45,10 +45,11 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isAdminLogin = pathname === "/admin/login";
+  const isAdminApiRoute = pathname.startsWith("/api/admin/");
   const isProtectedAdminRoute =
     pathname === "/admin" ||
     pathname.startsWith("/admin/") ||
-    pathname.startsWith("/api/admin/");
+    isAdminApiRoute;
 
   /*
    * El proxy no es la única defensa (cada mutación también valida en la
@@ -80,6 +81,19 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isProtectedAdminRoute && !isAdminLogin && !isActiveAdmin) {
+    /*
+     * Los formularios administrativos consumen JSON. Redirigir una llamada
+     * fetch a /admin/login transforma un 401 controlado en HTML y acaba como
+     * un error genérico en la interfaz. Las páginas siguen redirigiendo; las
+     * APIs conservan su contrato HTTP.
+     */
+    if (isAdminApiRoute) {
+      return NextResponse.json(
+        { error: "No autorizado." },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     loginUrl.search = "";
