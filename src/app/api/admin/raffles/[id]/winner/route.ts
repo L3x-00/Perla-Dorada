@@ -9,6 +9,7 @@ const UUID_PATTERN =
 
 type WinnerRequestBody = {
   ticketNumber?: unknown;
+  prizeId?: unknown;
 };
 
 function mapWinnerError(message: string): {
@@ -29,10 +30,46 @@ function mapWinnerError(message: string): {
       error: "La rifa debe estar cerrada para registrar un ganador.",
     };
   }
+  if (normalized.includes("PRIZE_ALREADY_HAS_WINNER")) {
+    return {
+      status: 409,
+      error: "Este premio ya tiene un ganador registrado.",
+    };
+  }
   if (normalized.includes("RAFFLE_ALREADY_HAS_WINNER")) {
     return {
       status: 409,
       error: "Esta rifa ya tiene un ganador registrado.",
+    };
+  }
+  if (normalized.includes("PRIZE_ID_REQUIRED")) {
+    return {
+      status: 400,
+      error: "Debes indicar a qué premio corresponde este ganador.",
+    };
+  }
+  if (normalized.includes("PRIZE_ID_NOT_ALLOWED")) {
+    return {
+      status: 400,
+      error: "Esta rifa no tiene premios definidos; no indiques un premio.",
+    };
+  }
+  if (normalized.includes("PRIZE_NOT_FOUND")) {
+    return {
+      status: 404,
+      error: "El premio indicado no existe en esta rifa.",
+    };
+  }
+  if (normalized.includes("TICKET_ALREADY_WINNER")) {
+    return {
+      status: 409,
+      error: "Ese ticket ya fue registrado como ganador de otro premio.",
+    };
+  }
+  if (normalized.includes("TICKET_NOT_ACTIVE")) {
+    return {
+      status: 409,
+      error: "Ese ticket no está vigente (congelado o reasignado) y no puede ser ganador.",
     };
   }
   if (normalized.includes("TICKET_NOT_FOUND")) {
@@ -47,6 +84,9 @@ function mapWinnerError(message: string): {
 
   return { status: 500, error: "No se pudo registrar el ganador." };
 }
+
+const UUID_PATTERN_PRIZE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function POST(
   request: Request,
@@ -95,6 +135,22 @@ export async function POST(
     );
   }
 
+  let prizeId: string | null = null;
+
+  if (body.prizeId !== undefined && body.prizeId !== null) {
+    if (
+      typeof body.prizeId !== "string" ||
+      !UUID_PATTERN_PRIZE.test(body.prizeId)
+    ) {
+      return NextResponse.json(
+        { error: "El identificador del premio no es válido." },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    prizeId = body.prizeId;
+  }
+
   const adminClient = createAdminClient();
 
   const { data: winner, error } = await adminClient.rpc(
@@ -103,6 +159,7 @@ export async function POST(
       p_admin_user_id: adminUserId,
       p_raffle_id: id,
       p_ticket_number: ticketNumber,
+      p_prize_id: prizeId ?? undefined,
     },
   );
 
@@ -125,7 +182,7 @@ export async function POST(
     action: "register_winner",
     entity: "raffle_winners",
     entityId: id,
-    metadata: { ticket_number: ticketNumber },
+    metadata: { ticket_number: ticketNumber, prize_id: prizeId },
   });
 
   return NextResponse.json(

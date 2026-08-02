@@ -115,15 +115,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     {
       fullName: data[0].full_name,
       dni: data[0].dni,
-      purchases: data.map((purchase) => ({
-        requestId: purchase.request_id,
-        raffleId: purchase.raffle_id,
-        raffleName: purchase.raffle_name,
-        raffleStatus: purchase.raffle_status,
-        purchasedAt: purchase.purchased_at,
-        ticketStatus: purchase.ticket_status,
-        ticketNumbers: purchase.ticket_numbers,
-        amountPaid: purchase.ticket_price,
+      /*
+       * Una fila por ticket individual (no una por solicitud con un
+       * arreglo de números): el estado de "ganador" es por ticket, no se
+       * puede agrupar sin perder esa granularidad.
+       */
+      tickets: data.map((ticket) => ({
+        requestId: ticket.request_id,
+        raffleId: ticket.raffle_id,
+        raffleName: ticket.raffle_name,
+        raffleStatus: ticket.raffle_status,
+        purchasedAt: ticket.purchased_at,
+        ticketStatus: ticket.ticket_status,
+        ticketNumber: ticket.ticket_number,
+        amountPaid: ticket.ticket_price,
+        isWinner: ticket.is_winner,
+        prizeTitle: ticket.prize_title,
       })),
     },
     { status: 200, headers: { "Cache-Control": "no-store" } },

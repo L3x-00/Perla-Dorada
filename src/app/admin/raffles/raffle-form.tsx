@@ -241,6 +241,7 @@ export function RaffleForm(
      */
     const cleanedPrizes = prizes
       .map((prize) => ({
+        id: prize.id,
         title: prize.title.trim(),
         quantity:
           Number.isInteger(prize.quantity) && prize.quantity >= 1

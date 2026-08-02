@@ -35,7 +35,7 @@ export function PrizeFields({
     if (prizes.length >= MAX_PRIZES) {
       return;
     }
-    onChange([...prizes, { title: "", quantity: 1, imagePath: null }]);
+    onChange([...prizes, { id: null, title: "", quantity: 1, imagePath: null }]);
   }
 
   function remove(index: number) {

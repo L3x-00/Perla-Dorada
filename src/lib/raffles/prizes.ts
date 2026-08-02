@@ -10,6 +10,12 @@
  */
 
 export type RafflePrize = {
+  /**
+   * Identidad estable del premio (la asigna el backend, ver
+   * assign_prize_ids en la migración 20260802120000). null solo para un
+   * premio nuevo que el admin todavía no guardó.
+   */
+  id: string | null;
   title: string;
   quantity: number;
   imagePath: string | null;
@@ -62,6 +68,10 @@ export function parseRafflePrizes(value: unknown): RafflePrize[] {
 
     const item = raw as Record<string, unknown>;
 
+    const id = typeof item.id === "string" && item.id.trim().length > 0
+      ? item.id.trim()
+      : null;
+
     const title = typeof item.title === "string" ? item.title.trim() : "";
 
     if (title.length < 1) {
@@ -89,7 +99,7 @@ export function parseRafflePrizes(value: unknown): RafflePrize[] {
       `La foto del premio ${position}`,
     );
 
-    return { title, quantity, imagePath };
+    return { id, title, quantity, imagePath };
   });
 }
 
@@ -120,11 +130,21 @@ function parseImagePath(value: unknown, label: string): string | null {
   return path;
 }
 
-/** Forma que espera el RPC (snake_case image_path). */
+/*
+ * Forma que espera el RPC (snake_case image_path). Un premio ya guardado
+ * manda su id para conservarlo; uno nuevo lo omite y el backend
+ * (assign_prize_ids) le asigna uno.
+ */
 export function prizesToDbJson(
   prizes: RafflePrize[],
-): { title: string; quantity: number; image_path: string | null }[] {
+): {
+  id?: string;
+  title: string;
+  quantity: number;
+  image_path: string | null;
+}[] {
   return prizes.map((prize) => ({
+    ...(prize.id ? { id: prize.id } : {}),
     title: prize.title,
     quantity: prize.quantity,
     image_path: prize.imagePath,
@@ -151,6 +171,11 @@ export function prizesFromDbJson(value: unknown): RafflePrize[] {
       continue;
     }
 
+    const id =
+      typeof item.id === "string" && item.id.trim().length > 0
+        ? item.id
+        : null;
+
     const quantityValue =
       typeof item.quantity === "number"
         ? item.quantity
@@ -166,7 +191,7 @@ export function prizesFromDbJson(value: unknown): RafflePrize[] {
         ? item.image_path
         : null;
 
-    result.push({ title, quantity, imagePath });
+    result.push({ id, title, quantity, imagePath });
   }
 
   return result;

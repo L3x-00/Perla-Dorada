@@ -8,7 +8,9 @@ import { RealtimeRaffleWatcher } from "@/components/site/realtime-raffle-watcher
 import { Showcase } from "@/components/site/showcase";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { WinnerShowcase } from "@/components/site/winner-showcase";
 import { getActivePublicPromotions } from "@/lib/promotions/public-promotions";
+import { getLatestClosedRaffleWinners } from "@/lib/raffles/public-winners";
 import {
   getActivePublicRaffle,
   type ActivePublicRaffle,
@@ -55,6 +57,22 @@ export default async function HomePage() {
     console.error("Error cargando promociones:", error);
   }
 
+  /*
+   * Solo hace falta consultar ganadores cuando no hay rifa activa (si la
+   * hay, RaffleSection ocupa el lugar y esta consulta sería trabajo
+   * perdido). Tampoco es crítico: si falla, cae al estado "sin sorteo".
+   */
+  let latestWinners: Awaited<ReturnType<typeof getLatestClosedRaffleWinners>> =
+    null;
+
+  if (!loadFailed && !raffle) {
+    try {
+      latestWinners = await getLatestClosedRaffleWinners();
+    } catch (error) {
+      console.error("Error cargando ganadores:", error);
+    }
+  }
+
   return (
     <>
       <RealtimeRaffleWatcher />
@@ -78,6 +96,8 @@ export default async function HomePage() {
           />
         ) : raffle ? (
           <RaffleSection raffle={raffle} />
+        ) : latestWinners ? (
+          <WinnerShowcase winners={latestWinners} />
         ) : (
           <NoRaffle />
         )}

@@ -13,21 +13,23 @@ import {
 type TicketStatus = "active" | "frozen" | "reassigned";
 type RaffleStatus = "draft" | "active" | "closed" | "cancelled";
 
-type Purchase = {
+type TicketEntry = {
   requestId: string;
   raffleId: string;
   raffleName: string;
   raffleStatus: RaffleStatus;
   purchasedAt: string | null;
   ticketStatus: TicketStatus;
-  ticketNumbers: number[];
+  ticketNumber: number;
   amountPaid: number;
+  isWinner: boolean;
+  prizeTitle: string | null;
 };
 
 type TicketsPayload = {
   fullName: string;
   dni: string;
-  purchases: Purchase[];
+  tickets: TicketEntry[];
 };
 
 type ApiResponse = TicketsPayload & {
@@ -40,6 +42,8 @@ type FlatTicket = {
   status: TicketStatus;
   ticketNumber: number;
   amountPaid: number;
+  isWinner: boolean;
+  prizeTitle: string | null;
 };
 
 type RaffleGroup = {
@@ -88,7 +92,7 @@ export function TicketsDocument() {
 
       const body = (await response.json()) as ApiResponse;
 
-      if (!response.ok || !body.purchases) {
+      if (!response.ok || !body.tickets) {
         throw new Error(body.error ?? "No se pudo obtener los tickets.");
       }
 
@@ -265,33 +269,31 @@ export function TicketsDocument() {
  * cancelado se sigue mostrando igual (con sus tickets), solo que con un
  * aviso: el ticket sigue siendo válido como comprobante de participación.
  */
-function groupByRaffle(purchases: Purchase[]): RaffleGroup[] {
+function groupByRaffle(tickets: TicketEntry[]): RaffleGroup[] {
   const groups = new Map<string, RaffleGroup>();
 
-  for (const purchase of purchases) {
-    let group = groups.get(purchase.raffleId);
+  for (const ticket of tickets) {
+    let group = groups.get(ticket.raffleId);
 
     if (!group) {
       group = {
-        raffleId: purchase.raffleId,
-        raffleName: purchase.raffleName,
-        raffleStatus: purchase.raffleStatus,
+        raffleId: ticket.raffleId,
+        raffleName: ticket.raffleName,
+        raffleStatus: ticket.raffleStatus,
         tickets: [],
       };
-      groups.set(purchase.raffleId, group);
+      groups.set(ticket.raffleId, group);
     }
 
-    const purchasedAt = formatDateTime(purchase.purchasedAt);
-
-    for (const ticketNumber of purchase.ticketNumbers) {
-      group.tickets.push({
-        raffleName: purchase.raffleName,
-        purchasedAt,
-        status: purchase.ticketStatus,
-        ticketNumber,
-        amountPaid: purchase.amountPaid,
-      });
-    }
+    group.tickets.push({
+      raffleName: ticket.raffleName,
+      purchasedAt: formatDateTime(ticket.purchasedAt),
+      status: ticket.ticketStatus,
+      ticketNumber: ticket.ticketNumber,
+      amountPaid: ticket.amountPaid,
+      isWinner: ticket.isWinner,
+      prizeTitle: ticket.prizeTitle,
+    });
   }
 
   return [...groups.values()];
@@ -308,7 +310,7 @@ function RaffleGroups({
     null,
   );
 
-  const groups = groupByRaffle(payload.purchases);
+  const groups = groupByRaffle(payload.tickets);
   const selectedGroup = groups.find(
     (group) => group.raffleId === selectedRaffleId,
   );
@@ -352,6 +354,9 @@ function RaffleGroups({
           const reassigned = group.tickets.filter(
             (ticket) => ticket.status === "reassigned",
           ).length;
+          const winnerCount = group.tickets.filter(
+            (ticket) => ticket.isWinner,
+          ).length;
           const statusLabel = RAFFLE_STATUS_LABEL[group.raffleStatus];
 
           return (
@@ -365,6 +370,11 @@ function RaffleGroups({
                 <p className="font-display text-xl font-light text-cream">
                   {group.raffleName}
                 </p>
+                {winnerCount > 0 ? (
+                  <span className="rounded-full border border-gold-deep/70 bg-gold-deep/15 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-gold-soft">
+                    🏆 {winnerCount === 1 ? "Ticket ganador" : `${winnerCount} tickets ganadores`}
+                  </span>
+                ) : null}
                 {statusLabel ? (
                   <span className="rounded-full border border-amber-700/70 bg-amber-950/40 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-amber-200">
                     {statusLabel}
@@ -562,6 +572,8 @@ function RaffleTicketView({
             raffleName={ticket.raffleName}
             ticketNumber={ticket.ticketNumber}
             amountPaid={ticket.amountPaid}
+            isWinner={ticket.isWinner}
+            prizeTitle={ticket.prizeTitle}
             onPrintThis={() => setPrintOnlyKey(ticketKey(ticket))}
           />
         ))}
@@ -613,27 +625,62 @@ function TicketChip({
   raffleName,
   ticketNumber,
   amountPaid,
+  isWinner,
+  prizeTitle,
   onPrintThis,
 }: {
   raffleName: string;
   ticketNumber: number;
   amountPaid: number;
+  isWinner: boolean;
+  prizeTitle: string | null;
   onPrintThis: () => void;
 }) {
+  const winnerClasses =
+    "border-gold bg-gradient-to-b from-gold-deep/40 to-ink-2 text-gold-soft shadow-[0_0_18px_-4px_rgba(201,162,39,0.55)]";
+  const defaultClasses = "border-emerald-700 bg-emerald-950 text-emerald-200";
+
   return (
-    <div className="flex w-36 flex-col items-center gap-1 rounded-xl border border-emerald-700 bg-emerald-950 p-3 text-center text-emerald-200">
-      <p className="line-clamp-2 text-[0.65rem] font-medium uppercase leading-tight tracking-wide text-emerald-300">
+    <div
+      className={`flex w-36 flex-col items-center gap-1 rounded-xl border p-3 text-center ${
+        isWinner ? winnerClasses : defaultClasses
+      }`}
+    >
+      {isWinner ? (
+        <p className="text-[0.65rem] font-bold uppercase tracking-wide text-gold">
+          🏆 Ganador
+        </p>
+      ) : null}
+
+      <p
+        className={`line-clamp-2 text-[0.65rem] font-medium uppercase leading-tight tracking-wide ${
+          isWinner ? "text-gold-soft/80" : "text-emerald-300"
+        }`}
+      >
         {raffleName}
       </p>
       <p className="mt-0.5 text-xl font-bold tabular-nums">
         {String(ticketNumber).padStart(4, "0")}
       </p>
-      <p className="text-xs text-emerald-300">{formatCurrencyPEN(amountPaid)}</p>
+
+      {isWinner && prizeTitle ? (
+        <p className="line-clamp-2 text-[0.65rem] font-medium leading-tight text-gold-soft">
+          {prizeTitle}
+        </p>
+      ) : null}
+
+      <p className={`text-xs ${isWinner ? "text-gold-soft/80" : "text-emerald-300"}`}>
+        {formatCurrencyPEN(amountPaid)}
+      </p>
 
       <button
         type="button"
         onClick={onPrintThis}
-        className="mt-1.5 w-full rounded-full border border-emerald-600 px-2 py-1 text-[0.65rem] font-medium text-emerald-100 transition-colors duration-200 hover:border-gold hover:bg-ink-2 hover:text-gold"
+        className={`mt-1.5 w-full rounded-full border px-2 py-1 text-[0.65rem] font-medium transition-colors duration-200 hover:border-gold hover:bg-ink-2 hover:text-gold ${
+          isWinner
+            ? "border-gold-deep text-gold-soft"
+            : "border-emerald-600 text-emerald-100"
+        }`}
       >
         Imprimir
       </button>

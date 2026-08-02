@@ -301,6 +301,9 @@ export type Database = {
           confirmed_by: string | null
           created_at: string
           id: string
+          prize_id: string | null
+          prize_image_path: string | null
+          prize_title: string | null
           raffle_id: string
           ticket_id: string
         }
@@ -309,6 +312,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           id?: string
+          prize_id?: string | null
+          prize_image_path?: string | null
+          prize_title?: string | null
           raffle_id: string
           ticket_id: string
         }
@@ -317,6 +323,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           id?: string
+          prize_id?: string | null
+          prize_image_path?: string | null
+          prize_title?: string | null
           raffle_id?: string
           ticket_id?: string
         }
@@ -324,7 +333,7 @@ export type Database = {
           {
             foreignKeyName: "raffle_winners_raffle_id_fkey"
             columns: ["raffle_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -532,6 +541,7 @@ export type Database = {
         Args: { p_admin_user_id: string }
         Returns: undefined
       }
+      assign_prize_ids: { Args: { p_prizes: Json }; Returns: Json }
       cancel_raffle: {
         Args: { p_admin_user_id: string; p_raffle_id: string }
         Returns: {
@@ -715,13 +725,15 @@ export type Database = {
             Returns: {
               dni: string
               full_name: string
+              is_winner: boolean
+              prize_title: string
               purchased_at: string
               raffle_id: string
               raffle_name: string
               raffle_status: Database["public"]["Enums"]["raffle_status"]
               request_id: string
               requested_quantity: number
-              ticket_numbers: number[]
+              ticket_number: number
               ticket_price: number
               ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
             }[]
@@ -756,6 +768,7 @@ export type Database = {
       register_raffle_winner: {
         Args: {
           p_admin_user_id: string
+          p_prize_id?: string
           p_raffle_id: string
           p_ticket_number: number
         }
@@ -764,6 +777,9 @@ export type Database = {
           confirmed_by: string | null
           created_at: string
           id: string
+          prize_id: string | null
+          prize_image_path: string | null
+          prize_title: string | null
           raffle_id: string
           ticket_id: string
         }

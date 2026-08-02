@@ -11,6 +11,10 @@ import {
 
 type WinnerFormProps = {
   raffleId: string;
+  /** null = la rifa no desglosa premios (ganador único de la rifa). */
+  prizeId: string | null;
+  /** Versión reducida para usarse dentro de una tarjeta de premio. */
+  compact?: boolean;
 };
 
 type ApiResponse = {
@@ -18,7 +22,7 @@ type ApiResponse = {
   error?: string;
 };
 
-export function WinnerForm({ raffleId }: WinnerFormProps) {
+export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormProps) {
   const router = useRouter();
 
   const [ticketNumber, setTicketNumber] = useState("");
@@ -63,7 +67,7 @@ export function WinnerForm({ raffleId }: WinnerFormProps) {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ticketNumber: parsed }),
+          body: JSON.stringify({ ticketNumber: parsed, prizeId }),
         },
       );
 
@@ -89,17 +93,21 @@ export function WinnerForm({ raffleId }: WinnerFormProps) {
   return (
     <form
       onSubmit={submit}
-      className="mt-6 max-w-md space-y-5 rounded-xl border border-line bg-ink-2 p-6"
+      className={
+        compact
+          ? "space-y-4"
+          : "mt-6 max-w-md space-y-5 rounded-xl border border-line bg-ink-2 p-6"
+      }
     >
       <div>
         <label
-          htmlFor="ticketNumber"
+          htmlFor={`ticketNumber-${prizeId ?? "single"}`}
           className={adminLabel}
         >
           Número de ticket ganador
         </label>
         <input
-          id="ticketNumber"
+          id={`ticketNumber-${prizeId ?? "single"}`}
           type="number"
           inputMode="numeric"
           min={1}
