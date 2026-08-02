@@ -1,177 +1,193 @@
 PD-CC-01 · Estado actual del proyecto
 
-Sistema Web de Gestión de Rifas — Joyería Perla Dorada Cliente: Freydi · Responsable técnico: Alexander Huanaco Quispe · 22 jul 2026 · Actualizado tras auditoría técnica real del código el 22 jul 2026
+Sistema Web de Gestión de Rifas — Joyería Perla Dorada · Cliente: Freydi · Responsable técnico: Alexander Huanaco Quispe · **Reescrito el 2 ago 2026** tras una auditoría técnica completa del código, migraciones y base remota reales (el documento anterior describía el estado al 22-23 jul 2026 y quedó muy por detrás de lo construido después).
 
-1. Propósito de este archivo
+## 1. Propósito de este archivo
 
-Evitar que Claude Code reconstruya funcionalidades existentes, modifique reglas críticas sin autorización o introduzca arquitecturas incompatibles. Lee este archivo antes de tocar cualquier archivo del repositorio.
+Evitar que Claude Code reconstruya funcionalidades existentes, modifique reglas críticas sin autorización o introduzca arquitecturas incompatibles. Léelo antes de tocar cualquier archivo. Los otros tres documentos de `docs/contex/` complementan este: `pendiente.md` (qué falta y reglas de negocio), `arquitectura.md` (convenciones y prompt maestro), `errores.md` (bitácora de bugs y decisiones).
 
-1.1 Hallazgos críticos de la auditoría — leer antes de continuar
+## 2. Qué es el proyecto hoy
 
-Estos hechos fueron verificados leyendo código y migraciones reales (no documentación previa). Corrigen afirmaciones anteriores de este mismo archivo.
+Ya no es solo "un sistema de rifas": es la **web de marca de la joyería**, con el sorteo como sección que aparece y desaparece según haya o no una rifa activa (se hacen 3-4 rifas al año; el resto del tiempo el sitio funciona como vitrina de joyería, sección "Nosotros", vitrina de piezas, promociones). Rediseño visual "lujo sobrio" (negro profundo + oro envejecido) aplicado el 23 jul 2026 y extendido desde entonces. El panel administrativo comparte paleta pero con densidad de herramienta (menos aire, sin animaciones lentas).
 
-- 🔴 BUG BLOQUEANTE — Aprobar/Rechazar/Ver comprobante en el panel admin devuelven 404. Los componentes cliente (`purchase-request-actions.tsx`, `payment-proof-button.tsx`) hacen fetch a `/api/admin/purchase-requests/{id}/approve|reject|payment-proof`, pero los route handlers reales viven en `src/app/admin/purchase-requests/[id]/approve|reject|payment-proof/route.ts` (sin prefijo `/api`). No existe reescritura de ruta. La lógica de backend y el RPC están completos y correctos; solo falta reconciliar la ruta cliente↔servidor. Es el primer arreglo recomendado antes de cualquier trabajo nuevo.
-- 🟢 (RESUELTO 22 jul 2026) `create_purchase_request` ahora lee `app_settings.reservation_minutes` (ERR-02) y además se corrigieron dos bugs runtime pre-existentes que rompían TODA creación de solicitud (ERR-08: ambigüedad `raffle_id` + `gen_random_bytes` sin esquema). Migraciones aplicadas al remoto; POST público verificado → 201. Ver errores.md.
-- 🟡 `expire_purchase_requests()` existe como función pero no hay ningún disparador automático (sin `pg_cron`, sin trigger, sin cron de Vercel). Solo se invoca inline dentro de `create_purchase_request`, `close_raffle` y `cancel_raffle`, y solo sobre la rifa/DNI relevante en ese momento — nunca de forma global y periódica.
-- 🟡 Archivo de proxy/middleware duplicado: existe `proxy.ts` en la raíz del repo Y `src/proxy.ts`, con matchers distintos (`/admin/:path*` + `/api/admin/:path*` vs. casi todas las rutas). Next.js solo reconoce uno; el otro es código muerto o fuente de comportamiento indefinido. Resolver antes de tocar autenticación/rutas.
-- 🟡 No existe `src/components/` — todos los componentes cliente están junto a su ruta (ej. `raffle-form.tsx` al lado de `raffles/page.tsx`). La estructura de carpetas descrita en `arquitectura.md` §3 no coincide con el repo real; ver nota en ese archivo.
-- 🟡 Zod instalado es v4 (`^4.4.3`), no v3. Las convenciones de manejo de errores/`z.infer` de v3 no aplican tal cual si se buscan ejemplos genéricos en línea.
-- ℹ️ No existe ninguna política RLS (`CREATE POLICY`) en ninguna migración. El acceso está completamente cerrado por diseño: `REVOKE ALL` a `anon`/`authenticated` en cada tabla + funciones `SECURITY DEFINER` otorgadas solo a `service_role`. Es un patrón válido y consistente, pero significa que "RLS" como tal no está en uso — toda la seguridad de fila vive en las funciones. Tres funciones (`approve_purchase_request`, `reject_purchase_request`, `expire_purchase_requests`, migración 3) no tienen un `GRANT EXECUTE ... TO service_role` explícito, a diferencia de todas las funciones posteriores — verificar si esto es intencional.
-- ℹ️ La tabla `raffle_winners` YA EXISTE en la base de datos (con constraints de unicidad e inmutabilidad vía triggers), pero no hay ningún RPC que inserte un ganador ni UI alguna que la use. Ver corrección en la sección 5.
-- ✅ (23 jul 2026, Bloque G) Rate limiting cubre `POST /api/purchase-requests` (5/15min, 20/día) y, con ámbito separado, las consultas públicas `/api/tracking` + `/api/tickets` (20/15min, 100/día compartidos). Las rutas `/api/admin/**` no llevan límite por decisión (exigen sesión + proxy). Cabeceras de seguridad activas en `next.config.ts` (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS en producción).
-- 🟡 (ERR-09, hallado 22 jul 2026) `admin_profiles` está VACÍA en el remoto → aprobar/rechazar solicitudes fallan siempre ("no es administrador activo") aunque el admin inicie sesión. Es setup de datos manual (sembrar admin_profiles con los user_id reales), no bug de código. Ver errores.md.
-- ✅ (22 jul 2026) Bloques A, B y C completados y verificados E2E contra el remoto. Bloque C: cron de expiración `/api/cron/expire-requests` (Bearer CRON_SECRET) + countdown en vivo. Requiere `CRON_SECRET` en Vercel.
+**Desplegado en producción en Render** (no Vercel): https://perla-dorada.onrender.com — Web Service + 2 Render Cron Jobs. La decisión de quedarse en Render es firme; migrar a Vercel no requeriría reestructurar nada, es solo costo/plan (ver `alcancefree.md`).
 
-2. Corrección de alcance — CRÍTICO
+## 3. Stack tecnológico confirmado (versiones exactas de `package.json`, 2 ago 2026)
 
-Los documentos iniciales del proyecto mencionan paquetes. Esa decisión fue eliminada por el cliente.
+| Capa | Tecnología | Versión / detalle |
+|---|---|---|
+| Framework web | Next.js App Router | `^16.2.12` |
+| Interfaz | React | `^19.2.8` |
+| Lenguaje | TypeScript | `^5`, `strict: true` |
+| Estilos | Tailwind CSS | `^4` — sin `tailwind.config.js`; vía `@tailwindcss/postcss` + `globals.css` (tokens `@theme`) |
+| Animación (sitio) | `motion` (ex framer-motion) | `^12.42.2` |
+| Animación (stage rig) | `gsap` + `@gsap/react` | `^3.15.0` / `^2.1.2` |
+| Base de datos | Supabase PostgreSQL | Fuente de verdad, RPC, transacciones · `@supabase/supabase-js ^2.110.9` · `@supabase/ssr ^0.12.3` |
+| Autenticación | Supabase Auth | 3 cuentas admin activas (ver §7) |
+| Archivos | Supabase Storage | Bucket privado `payment-proofs` (comprobantes) + bucket público `raffle-images` (fotos de premio, premios de la lista y promociones, en subcarpetas) |
+| Eventos | Supabase Realtime | Canal de **broadcast puro** para avisar a la portada de cambios en rifas (ver §8); sigue siendo solo informativo, nunca autoritativo |
+| Hosting | **Render** | Web Service + 2 Cron Jobs (no Vercel) |
+| Validación | Zod | `^4.4.3` (NO v3 — API de errores/inferencia difiere) |
+| Procesamiento de imagen (servidor) | `sharp` (pin `0.35.3`) + `file-type` | Reencoda a WebP, sniffing real de tipo, elimina metadatos |
+| Rutas protegidas | `src/proxy.ts` | Convención Next 16 (reemplaza `middleware.ts`) |
 
-❌ Eliminado	✅ Vigente
-packages, raffle_packages, package_id	Precio unitario: ticket_price en la tabla raffles
-Promociones por volumen	Contador de cantidad (requestedQuantity)
-Precios alternativos	total = ticket_price × requestedQuantity (calculado en backend)
+Overrides forzados en `package.json` (`postcss@8.5.23`, `sharp@0.35.3`) para cerrar CVEs transitivos de Next — ver DEP-01 en `errores.md`.
 
-El navegador nunca es fuente confiable del precio ni del total.
+## 4. Principios arquitectónicos no negociables
 
-3. Stack tecnológico confirmado (versiones exactas de package.json/node_modules)
-Capa	Tecnología	Versión / Detalle
-Framework web	Next.js App Router	16.2.11 (pin exacto; subido desde 16.2.10 en Bloque G)
-Interfaz	React	19.2.4 (pinned)
-Lenguaje	TypeScript	5.9.3, strict: true
-Estilos	Tailwind CSS	v4.3.3 — sin tailwind.config.js; vía @tailwindcss/postcss + globals.css
-Base de datos	Supabase PostgreSQL	Fuente de verdad, RPC, transacciones · @supabase/supabase-js 2.110.8 · @supabase/ssr 0.12.3
-Autenticación	Supabase Auth	2 cuentas admin creadas manualmente
-Archivos	Supabase Storage	Bucket privado `payment-proofs`, 5MB, jpg/png/webp
-Eventos	Supabase Realtime	Solo informativo; nunca autoritativo (sin uso detectado aún en el código)
-Hosting	Vercel	App Router, previews y producción
-Validación	Zod	v4.4.3 (NO v3 — API de errores/inferencia difiere)
-Rutas protegidas	`src/proxy.ts`	Convención Next 16 (reemplaza middleware.ts) — ⚠️ hay un `proxy.ts` duplicado en la raíz, ver 1.1
-4. Principios arquitectónicos no negociables
-Monolito modular — no crear microservicios
-PostgreSQL es la fuente de verdad — estado, precio, disponibilidad, vencimiento, numeración
-Backend soberano — el cliente no dicta precio, estado, expiración ni ticket numbers
-Operaciones críticas son atómicas — via RPC/PostgreSQL
-Realtime es informativo — siempre reconsultar después de un evento
-Comprobantes privados — nunca URLs públicas permanentes
-Mensajes públicos controlados — detalle técnico solo en logs
-No agregar dependencias externas sin justificación explícita
-5. Componentes ya construidos — NO duplicar
-Área	Estado
-Scaffold Next.js, TypeScript, Tailwind	✅ Completado
-Clientes Supabase (browser / server / admin)	✅ Completado
-Health endpoint	✅ Completado
-Esquema DB inicial + tipos src/types/database.ts	✅ Completado
-Autenticación administrativa (getClaims, protección de rutas)	✅ Completado
-Carga de comprobantes (JPG/PNG/WEBP, máx 5 MB, bucket privado)	✅ Completado
-POST /api/purchase-requests (multipart, Zod, rate limit, RPC, compensación)	✅ Backend completo
-RPC create_purchase_request	✅ Completado
-Reserva de 60 min (expires_at)	✅ Completado en dominio
-Duplicidad por DNI (una solicitud pendiente por DNI + rifa)	✅ Completado
-Dashboard administrativo de solicitudes	✅ Completado (lista, filtros, columnas)
-Aprobación y rechazo de solicitudes	✅ Completado — bug de ruteo corregido 22 jul 2026 (ver errores.md ERR-01)
-Asignación atómica de tickets (correlativos)	✅ Completado en RPC `approve_purchase_request`, alcanzable desde la UI tras el fix de ruteo
-ticket_prints + RPC register_ticket_print (límite 5)	✅ Completado y alcanzable — única acción admin sin bug de ruteo confirmada
-UI de impresión / reimpresión	✅ Admin: HTML + `window.print()` (registrado, límite max_reprints). Público (Bloque D, 22 jul): `/seguimiento/tickets` — documento A4 imprimible validado por DNI+code para solicitudes aprobadas (RPC get_public_ticket_document + /api/tickets). Decisión DEC-02: HTML print-to-PDF, sin librería. Verificado E2E
-Seguimiento público por DNI + tracking code	✅ Completado — RPC `track_purchase_request`, ruta `/seguimiento` y `/api/tracking` verificados end-to-end
-Búsqueda administrativa por DNI y número de ticket	✅ Completado
-CRUD de rifas (/admin/raffles) + activar / cerrar / cancelar	✅ Completado — rutas cliente/servidor consistentes, sin bug de ruteo
-RLS / acceso privado	✅ Auditado 23 jul 2026 (Bloque G) — patrón aceptado y documentado (DEC-03): RLS habilitado sin políticas + REVOKE ALL a anon/authenticated + acceso exclusivo por SECURITY DEFINER otorgado a service_role (solo servidor). GRANT faltantes corregidos (ERR-05)
-Página pública principal	✅ Completado 22 jul 2026 (Bloque A) — landing de venta unitaria: rifa activa, contador −/+, total visual, formulario multipart a POST /api/purchase-requests, confirmación con trackingCode. Verificado contra BD real. Archivos: `src/app/page.tsx`, `src/app/purchase-form.tsx`, `src/lib/raffles/public-raffle.ts`, `src/lib/format.ts`
-Ganador	✅ Completado 22 jul 2026 (Bloque E) — RPC `register_raffle_winner` + ruta `/api/admin/raffles/[id]/winner` + UI con doble confirmación + vista de solo lectura. Inmutable (triggers). No expuesto públicamente. Verificado E2E
-Configuración pública + mantenimiento	✅ Completado 22 jul 2026 (Bloque B) — pantalla `/admin/settings` (mantenimiento, mensaje configurable, minutos de reserva, máx reimpresiones); enforcement 503 en POST y en landing; audit_log de cambios. Migraciones aplicadas al remoto y verificado E2E. Además se corrigió ERR-08 (create_purchase_request estaba roto: ambigüedad + gen_random_bytes) — el flujo de solicitud pública ahora funciona (POST → 201 verificado)
-Retención automática de comprobantes	✅ Completado 23 jul 2026 (Bloque F) — RPC `list_payment_proofs_for_retention` + cron `/api/cron/retention` (Bearer) elimina comprobantes de Storage 15 días tras cierre y marca `payment_proof_deleted_at`; idempotente; auditado. Verificado E2E
-Pruebas finales + despliegue producción	❌ Pendiente
-6. Árbol de archivos confirmados (re-verificado por inspección directa, 22 jul 2026)
+- Monolito modular — no crear microservicios ni carpetas paralelas (`api-v2`, `services2`, `dashboard-new`).
+- PostgreSQL es la fuente de verdad — estado, precio, disponibilidad, vencimiento, numeración de tickets, ganador.
+- Backend soberano — el navegador nunca dicta precio, estado, expiración, ticket numbers ni total.
+- Operaciones críticas son atómicas — vía RPC `SECURITY DEFINER` con `search_path` fijo.
+- Realtime es informativo — quien recibe una señal siempre vuelve a consultar el servidor, nunca confía en el payload.
+- Comprobantes privados — nunca URLs públicas permanentes; firmadas de vida corta.
+- Ganador manual, único por premio, irreversible — nunca automatizar la selección.
+- No agregar dependencias externas sin justificación explícita.
+
+## 5. Patrón de seguridad (DEC-03, sin cambios): sin RLS clásico
+
+Ninguna tabla tiene `CREATE POLICY`. El patrón es: `REVOKE ALL` de `anon`/`authenticated` en cada tabla + acceso exclusivo vía funciones `SECURITY DEFINER` (con `search_path = ''`) otorgadas solo a `service_role`, que **únicamente** se usa en servidor (`src/lib/supabase/admin.ts`, con `import "server-only"`). Es el diseño aceptado del proyecto (ver DEC-03 en `errores.md`), no una carencia — no añadir políticas RLS "por completitud".
+
+Dos matices que se consolidaron con las features nuevas:
+- No toda escritura necesita un RPC: las tablas de **contenido no crítico** (`app_settings`, `promotions`) se administran con CRUD directo desde las rutas admin usando `createAdminClient()`, con `requireActiveAdmin()` como guardia — mismo nivel de protección, sin la sobrecarga de un RPC cuando no hay invariantes multi-tabla que proteger.
+- Las operaciones con invariantes reales (numeración de tickets, aprobación, ganador, ciclo de vida de tickets) sí siguen siendo RPC `SECURITY DEFINER`.
+
+## 6. Estructura de carpetas real (verificada por inspección directa, 2 ago 2026)
+
+`src/components/` **sí existe** hoy — corrige la nota de versiones anteriores de este documento y de `arquitectura.md`. El patrón real es híbrido:
+
+```
 src/
-├── proxy.ts                                    ← Next 16 middleware; ⚠️ DUPLICADO con proxy.ts en raíz del repo, ver 1.1
+├── proxy.ts                          ← Next 16 middleware (auth admin, gate por pathname)
 ├── app/
-│   ├── layout.tsx, globals.css, favicon.ico
-│   ├── page.tsx                                ← CONFIRMADO placeholder (26 líneas); pendiente reemplazar
+│   ├── layout.tsx, globals.css
+│   ├── page.tsx                      ← portada pública (Hero, RaffleSection|WinnerShowcase|NoRaffle, Showcase, About) + PromoCarouselModal (lazy)
+│   ├── countdown.tsx                 ← cuenta regresiva de reserva, cliente
 │   ├── admin/
-│   │   ├── layout.tsx, page.tsx (dashboard solicitudes)
-│   │   ├── login/page.tsx
-│   │   ├── payment-proof-button.tsx, purchase-request-actions.tsx, ticket-print-action.tsx   ← client components
-│   │   ├── purchase-requests/[id]/approve/route.ts     ← ⚠️ URL real: /admin/purchase-requests/{id}/approve (SIN /api)
-│   │   ├── purchase-requests/[id]/reject/route.ts      ← ⚠️ ídem
-│   │   ├── purchase-requests/[id]/payment-proof/route.ts ← ⚠️ ídem
+│   │   ├── layout.tsx, page.tsx (dashboard solicitudes), admin-nav.tsx, login/page.tsx
+│   │   ├── payment-proof-button.tsx, purchase-request-actions.tsx, ticket-print-action.tsx, ticket-reassign-action.tsx, delete-proof-button.tsx
 │   │   ├── search/page.tsx
-│   │   ├── tickets/page.tsx, tickets/[id]/print/page.tsx, tickets/[id]/print/print-controls.tsx
-│   │   └── raffles/
+│   │   ├── settings/page.tsx, settings-form.tsx
+│   │   ├── tickets/page.tsx, tickets/[id]/print/{page,print-controls}.tsx
+│   │   ├── raffles/
+│   │   │   ├── page.tsx, new/page.tsx, [id]/edit/page.tsx, [id]/winner/{page,winner-form}.tsx
+│   │   │   ├── raffle-actions.tsx, raffle-form.tsx, raffle-image-upload.tsx, staged-image-input.tsx, prize-fields.tsx
+│   │   └── promotions/
 │   │       ├── page.tsx, new/page.tsx, [id]/edit/page.tsx
-│   │       ├── raffle-actions.tsx
-│   │       └── raffle-form.tsx
+│   │       └── promotion-form.tsx, promotion-actions.tsx, staged-promo-image-input.tsx
 │   ├── api/
 │   │   ├── health/supabase/route.ts
-│   │   ├── purchase-requests/route.ts
-│   │   ├── tracking/route.ts
+│   │   ├── purchase-requests/route.ts, tracking/route.ts, tickets/route.ts
+│   │   ├── cron/{expire-requests,retention}/route.ts
 │   │   └── admin/
-│   │       ├── raffles/route.ts, raffles/[id]/route.ts
-│   │       └── tickets/[id]/print/route.ts     ← esta sí coincide con el fetch del cliente (sin bug)
-│   └── seguimiento/
-│       ├── page.tsx
-│       └── tracking-form.tsx
+│   │       ├── settings/route.ts
+│   │       ├── purchase-requests/[id]/{approve,reject,payment-proof}/route.ts
+│   │       ├── raffles/route.ts, raffles/prize-image/route.ts, raffles/[id]/{route,delete,image,winner}.ts
+│   │       ├── promotions/route.ts, promotions/image/route.ts, promotions/[id]/route.ts
+│   │       └── tickets/[id]/{print,reassign}/route.ts
+│   ├── seguimiento/
+│   │   ├── page.tsx, tracking-form.tsx, layout.tsx
+│   │   └── tickets/page.tsx, tickets-document.tsx
+│   └── legal/
+│       ├── layout.tsx, legal-document.tsx
+│       └── terminos/, bases/, privacidad/, devoluciones/ (page.tsx cada una)
+├── components/
+│   ├── site/            ← portal público: Hero, SiteHeader, SiteFooter, RaffleSection, WinnerShowcase, WinnerCarousel,
+│   │                        Participate, PurchaseWizard, PromoCarouselModal, PromoSlide, PromoIndicators, PromoNavigation,
+│   │                        StageRig, RaffleCelebration, PrizeShowcase, Showcase, About, NoRaffle, Reveal, DrawCountdown,
+│   │                        DocumentField, ProofUpload, Wordmark, BrandLogo, ThemeToggle, RealtimeRaffleWatcher, icons.tsx, etc.
+│   └── admin/            ← kit compartido: ui.tsx (adminCard/Input/Label, btn*, AdminPage, Badge, EmptyState, AdminAlert), confirm-dialog.tsx
+│                            (las páginas/formularios específicos de cada ruta admin siguen colocados junto a su ruta, NO están aquí)
 ├── config/
-│   ├── app.ts
-│   └── storage.ts
+│   ├── app.ts, storage.ts, purchase.ts, brand.ts (redes/contacto/pago/legal, se oculta lo vacío), vitrina.ts (piezas de joyería)
 ├── lib/
-│   ├── env.ts
-│   ├── raffles/
-│   │   ├── validation.ts, errors.ts, actions.ts
-│   ├── security/
-│   │   ├── request-fingerprint.ts, purchase-request-rate-limit.ts
-│   ├── storage/
-│   │   └── payment-proofs.ts
-│   ├── supabase/
-│   │   ├── admin.ts, server.ts, client.ts, proxy.ts
-│   └── validation/
-│       └── purchase-request.ts
+│   ├── env.ts, format.ts, datetime-lima.ts, clipboard.ts, use-lock-body-scroll.ts
+│   ├── audit/log.ts
+│   ├── auth/admin.ts                 ← requireActiveAdmin() para rutas sin RPC
+│   ├── raffles/{validation,errors,actions,prizes,public-raffle,public-winners}.ts
+│   ├── promotions/{validation,public-promotions}.ts
+│   ├── purchase-requests/errors.ts
+│   ├── realtime/{channels,public-raffle-events}.ts
+│   ├── security/{rate-limit,request-fingerprint,cron-auth,purchase-request-rate-limit}.ts
+│   ├── storage/{images,payment-proofs,public-url}.ts
+│   ├── images/compress-client.ts
+│   ├── supabase/{admin,server,client,proxy}.ts
+│   └── validation/{purchase-request,document,tracking}.ts
 └── types/
-    └── database.ts                             ← generado, verificado consistente con las 10 migraciones actuales
+    └── database.ts                   ← generado; 35 migraciones aplicadas al remoto, consistente
+```
 
-⚠️ NO existe src/components/ — todos los componentes cliente están junto a su ruta. Corrige la expectativa de arquitectura.md §3.
+No hay `pages/`, no hay Edge Functions, no hay `seed.sql` con contenido real, no hay `pg_cron`. Cero carpetas paralelas ni duplicadas.
 
-supabase/
-├── config.toml
-└── migrations/ (10 archivos, cronológicos 2026-07-21 → 2026-07-22)
-    20260721163904_initial_raffle_schema.sql
-    20260721164313_add_purchase_approval_function.sql
-    20260721164609_add_request_status_functions.sql
-    20260721165638_create_payment_proofs_bucket.sql
-    20260721171031_create_public_purchase_request_function.sql
-    20260721171407_grant_server_purchase_request_access.sql
-    20260721172435_add_purchase_request_rate_limiting.sql
-    20260721193615_register_ticket_print.sql
-    20260721201744_purchase_request_tracking.sql
-    20260722151255_raffle_admin_functions.sql
+## 7. Tablas reales en `public` (11) + esquema `private` (1)
 
-No hay supabase/functions/ (Edge Functions), no hay seed.sql pese a que config.toml lo referencia, no hay pg_cron.
+| Tabla | Para qué |
+|---|---|
+| `raffles` | Rifas: nombre, descripción, precio, total de tickets, fechas, `image_path` (premio mayor), `prizes` (jsonb, lista descriptiva de premios con `id` estable por elemento), `status` (draft\|active\|closed\|cancelled) |
+| `purchase_requests` | Solicitudes de compra: datos del participante, cantidad, comprobante, `status` (pending\|approved\|rejected\|expired), `expires_at` |
+| `tickets` | Tickets asignados: número correlativo por rifa, `ticket_status` (active\|frozen\|reassigned), `origin_ticket_id` (self-FK, traza una reasignación) |
+| `ticket_prints` | Historial de impresiones/reimpresiones por ticket (límite `max_reprints`) |
+| `raffle_winners` | Ganadores: `ticket_id` único globalmente, `prize_id`/`prize_title`/`prize_image_path` (nulo si la rifa no desglosa premios = "ganador de la rifa"), inmutable por triggers |
+| `admin_profiles` | Quién es administrador activo (`user_id` de `auth.users` + `is_active`) |
+| `app_settings` | Fila única (`id boolean`): `maintenance_mode`, `maintenance_message`, `reservation_minutes` (360 = 6h), `max_reprints` |
+| `audit_log` | Append-only: `actor_user_id`, `action`, `entity`, `entity_id`, `metadata` jsonb |
+| `participant_tracking_codes` | Código de seguimiento reusable por (`document_type`, `document_number`) — un código sirve para todas las compras de la misma persona |
+| `participant_tracking_code_aliases` | Códigos históricos (de cuando el código era por-solicitud) mantenidos como alias hacia el código canónico |
+| `promotions` | Promociones del carrusel de bienvenida: título, descripción, `image_path`, `cta_kind` (raffle\|url) + `cta_raffle_id`/`cta_url`, vigencia por fechas, `enabled` |
+| `private.purchase_request_rate_limits` | Contadores de rate limit (ventana corta + diaria) por huella HMAC; se purga vía `purge_rate_limits` |
 
-Antes de crear cualquier archivo: inspecciona el árbol real del repositorio. Esta lista es la confirmada por lectura directa de código.
+Enums: `raffle_status`, `purchase_request_status`, `ticket_lifecycle_status` (active\|frozen\|reassigned), `ticket_print_type` (original\|reprint), `participant_document_type` (dni\|cui), `promotion_cta_kind` (raffle\|url).
 
-7. API POST /api/purchase-requests — comportamiento confirmado (código leído completo)
-Acepta exclusivamente multipart/form-data
-Rechaza body superior a 6MB antes de parsear (Content-Length)
-Aplica rate limiting antes de procesar archivos (RPC check_purchase_request_rate_limit: 5/15min, 20/día por fingerprint IP+UA)
-Valida fullName, dni, phone, whatsapp, requestedQuantity con Zod (src/lib/validation/purchase-request.ts)
-Exige paymentProof; valida tipo real (sniffing con `file-type`, no solo extensión) y tamaño ≤5MB
-Consulta la rifa activa en backend (nunca confía en raffleId del cliente)
-Sube comprobante a Storage privado (bucket payment-proofs)
-Invoca create_purchase_request con datos normalizados
-Elimina el archivo si la operación de BD falla (compensación, con warning no-fatal si el cleanup también falla)
-Devuelve { ok: true, data: { requestId, trackingCode, expiresAt } } ← nota: envuelto en "data", no plano como se documentó antes
-Mapea errores de unicidad (23505), datos inválidos (22023), rifa inexistente (P0002) y disponibilidad insuficiente (P0001) a mensajes públicos en español
-⚠️ expiresAt siempre es now()+60min fijo — reservation_minutes de app_settings no se usa (ver 1.1)
-8. Riesgos conocidos de transferencia
-Riesgo	Control
-Documentos anteriores hablan de paquetes	Aplicar corrección de alcance en TODO código nuevo (grep confirmó cero residuos en src/)
-Posible duplicación de módulos	Inspeccionar árbol, rutas, RPC y migraciones antes de crear
-Tipos Supabase pueden diferir	Regenerar database.ts tras cada migración (verificado consistente hoy)
-Uso excesivo de service role	Solo en servidor; nunca al cliente (confirmado: solo en src/lib/supabase/admin.ts y consumidores server-only)
-Realtime tratado como autoridad	Siempre reconsultar tras eventos (sin uso de Realtime detectado aún en el código)
-Expiración solo visual	La BD debe validar expires_at en operaciones críticas; falta scheduler para expire_purchase_requests()
-Total calculado en navegador	Aceptar quantity; calcular total en backend
-Bug de ruteo admin approve/reject/payment-proof	Corregir antes de cualquier feature nueva — ver 1.1
-reservation_minutes no conectado al RPC	Actualizar create_purchase_request para leer app_settings antes de asumir que el toggle de Bloque B funcionará
-Proxy/middleware duplicado (raíz + src/)	Eliminar uno, confirmar cuál Next.js realmente usa, antes de tocar auth/rutas
+## 8. RPC reales (24, todas `SECURITY DEFINER`, `search_path=''`, grant solo a `service_role`)
+
+Rifas: `create_raffle`, `update_raffle`, `activate_raffle`, `close_raffle`, `cancel_raffle`, `delete_raffle` (solo borrador vacío), `assign_prize_ids` (asigna id estable a cada premio del jsonb), `normalize_raffle_prizes` (validador puro).
+
+Solicitudes/tickets: `create_purchase_request`, `approve_purchase_request`, `reject_purchase_request`, `expire_purchase_requests`, `register_ticket_print`, `reassign_frozen_ticket`.
+
+Ganador: `register_raffle_winner(p_admin_user_id, p_raffle_id, p_ticket_number, p_prize_id default null)` — un ganador por premio (o uno solo si la rifa no desglosa premios).
+
+Consulta pública: `get_public_ticket_document` (devuelve una fila **por ticket individual**, con `is_winner`/`prize_title`), `track_purchase_request`, `generate_tracking_code`, `normalize_document_number`, `normalize_tracking_code`. Cada una tiene firmas antiguas de 1-2 argumentos que quedan cerradas (error controlado) por compatibilidad de despliegue — la vigente es siempre la de más parámetros.
+
+Auditoría/retención/límites: `delete_payment_proof`, `list_payment_proofs_for_retention`, `purge_rate_limits`, `check_rate_limit` (genérico, activo), `check_purchase_request_rate_limit` (legado, sin uso desde ERR-11), `assert_active_admin` (guardia interna, la llaman casi todas las anteriores).
+
+**35 migraciones** aplicadas al remoto, cronológicas 2026-07-21 → 2026-08-02 (proyecto Supabase `iewcowhkfsywdiyligsq`). La secuencia completa está en `supabase/migrations/`; no hay huecos ni migraciones sin aplicar.
+
+## 9. Componentes ya construidos — NO duplicar
+
+Todo lo de Bloques A-G (portal público, configuración/mantenimiento, expiración, tickets/impresión, ganador, auditoría/retención, seguridad/endurecimiento) está **completo y desplegado**. Detalle histórico condensado en `pendiente.md` §2. Construido *después* de esa fase, en esta sesión y la inmediatamente anterior:
+
+| Área | Estado |
+|---|---|
+| Rediseño de marca (portal + admin, "lujo sobrio") | ✅ — `src/config/brand.ts`/`vitrina.ts`, tipografías Cormorant Garamond + Inter, animación con `motion` |
+| Ciclo de vida de tickets (`active/frozen/reassigned`) + reasignación trazable | ✅ — migración `20260727171136`, ver `arquitectura.md §2.1` |
+| Seguimiento por código reusable por documento (no por solicitud) | ✅ — `participant_tracking_codes` + alias |
+| Rifas con múltiples premios descriptivos (`raffles.prizes` jsonb) | ✅ — con foto opcional por premio |
+| Realtime: portada se refresca sola al crear/activar/editar/cerrar/cancelar/eliminar una rifa | ✅ — broadcast puro, ver §10 |
+| Ticket ganador destacado (dorado) en `/seguimiento/tickets`, con nombre del premio | ✅ |
+| **Ganador por premio** (antes: uno solo por rifa) | ✅ — migración `20260802120000`, ver detalle abajo |
+| **Ganadores mostrados públicamente** reemplazando la sección del sorteo cuando no hay rifa activa | ✅ — revierte DEC-04, nombre enmascarado (primer nombre + inicial del apellido) |
+| **Modal de promociones** con carrusel, administrable desde `/admin/promotions` | ✅ — DB-backed, no config estática |
+| Reserva de tickets: 60 min → **360 min (6h)** | ✅ |
+| Modal "Participar" a pantalla completa por pasos, portal a `document.body` | ✅ (ver lección en `errores.md` sobre `AnimatePresence` + `createPortal`) |
+| 3 cuentas administrativas activas en `admin_profiles` | ✅ |
+| Pruebas finales + aceptación del cliente | ⚠️ Pendiente (ver `pendiente.md`) |
+
+## 10. Patrón nuevo: broadcast de Realtime para refrescar la portada
+
+`src/lib/realtime/channels.ts` define un único canal (`public:raffle-events`). `src/lib/realtime/public-raffle-events.ts` (server-only) lo usa para emitir un broadcast **sin datos de fila**, solo una señal, tras cada mutación de rifa en las rutas admin. `src/components/site/realtime-raffle-watcher.tsx` (client, montado en `page.tsx`) se suscribe con la clave publicable y llama `router.refresh()` al recibir la señal — nunca confía en el payload, siempre vuelve a consultar el servidor. Mismo principio de "Realtime es informativo" ya vigente en el proyecto, aplicado por primera vez en código.
+
+## 11. Patrón nuevo: ganador por premio, compatible con lo existente
+
+`raffles.prizes` es un jsonb array; cada elemento ahora tiene un `id` propio (asignado por `assign_prize_ids`, invocado desde `create_raffle`/`update_raffle`). `raffle_winners.prize_id` referencia ese id (no hay tabla de premios separada). Si la rifa **no** tiene premios desglosados (`prizes = '[]'`, el caso de todas las rifas reales hasta el 2 ago 2026), `prize_id` es `null` y significa "ganador de la rifa" — comportamiento idéntico al de antes. Constraint: índice único parcial `(raffle_id, prize_id) where prize_id is not null` + `(raffle_id) where prize_id is null` — nunca dos ganadores para el mismo premio, ni dos "generales" para la misma rifa. `raffle_winners.prize_title`/`prize_image_path` son una copia congelada del premio al momento de ganar (mismo criterio de inmutabilidad que el resto de la fila).
+
+⚠️ **Los ganadores son inmutables incluso para `service_role`** (triggers `prevent_raffle_winner_changes` en UPDATE y DELETE, sin excepción de rol). Nunca insertar un ganador "de prueba" en el remoto sin que el usuario lo pida explícitamente — no hay forma de deshacerlo, y además se mostraría como ganador real en la portada pública hasta que cierre una rifa real nueva.
+
+## 12. Riesgos conocidos / deuda técnica abierta
+
+Ver `errores.md` para el detalle completo con estados. Resumen de lo 🟡 abierto al 2 ago 2026:
+- `ERR-03` — sin scheduler nativo de expiración (mitigado por el Render Cron Job `/api/cron/expire-requests`, ~15 min).
+- `ERR-07` — bajo, ya con reintento en colisión de tracking code (probabilidad extremadamente baja).
+- `ERR-17` — semántica de cierre/cancelación con solicitudes pendientes, requiere decisión de negocio (no bug).
+- `ERR-18` — hallazgos menores de la auditoría paralela del 23 jul sin doble verificación completa (health endpoint, guardas de `winner/page.tsx`, límite superior de `requestedQuantity`, comparación de `CRON_SECRET` no constante-en-tiempo, CSP sin validar variables de entorno ausentes, orden de operaciones en DELETE de imagen de rifa).
 
 PD-CC-01 · Transferencia técnica Joyería Perla Dorada

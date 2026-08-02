@@ -1,253 +1,106 @@
 PD-CC-02 · Trabajo pendiente y reglas de negocio
 
-Sistema Web de Gestión de Rifas — Joyería Perla Dorada Cliente: Freydi · Responsable técnico: Alexander Huanaco Quispe · 22 jul 2026 · Corregido tras auditoría técnica real del código el 22 jul 2026
+Sistema Web de Gestión de Rifas — Joyería Perla Dorada · Cliente: Freydi · Responsable técnico: Alexander Huanaco Quispe · **Reescrito el 2 ago 2026** (la versión anterior describía el 22-27 jul 2026; todos los bloques A-G ya estaban cerrados desde entonces y se construyó bastante más — ver §2 y §4-10).
 
-1. Propósito de este archivo
+## 1. Propósito de este archivo
 
-Define únicamente lo que falta para completar el MVP. No usarlo para reconstruir lo ya existente. Cada bloque incluye resultado esperado, restricciones y criterio de terminación.
+Definir qué falta genuinamente y las reglas de negocio invariantes. No usarlo para reconstruir lo ya existente — para eso está `estado_proyecto.md`.
 
-1.1 Bloque 0 — 🟢 RESUELTO (22 jul 2026)
+## 2. Historial de bloques — todos 🟢 completados y desplegados
 
-Bug confirmado por lectura de código: en el panel admin, los botones Aprobar, Rechazar y "Ver comprobante" llamaban a `fetch('/api/admin/purchase-requests/{id}/approve')` (y análogos), pero los route handlers reales vivían en `/admin/purchase-requests/{id}/...` sin `/api`. 404 en cada clic.
+| Bloque | Contenido | Cerrado |
+|---|---|---|
+| 0 | Bug de ruteo admin approve/reject/payment-proof (`/api/admin/...` vs `/admin/...`) | 22 jul 2026 |
+| A | Portal público de venta unitaria (landing, contador, formulario, confirmación) | 22 jul 2026 |
+| B | Configuración/mantenimiento (`/admin/settings`, enforcement 503, `audit_log`) | 22 jul 2026 |
+| C | Expiración: cron `/api/cron/expire-requests` + countdown en vivo | 22 jul 2026 |
+| D | PDF/impresión: HTML print-to-PDF (DEC-02), descarga pública por DNI+código | 22 jul 2026 |
+| E | Ganador irreversible (registro único por rifa en su momento) | 22 jul 2026 |
+| F | Auditoría (`recordAuditEvent` en todas las rutas críticas) + retención de comprobantes (15 días) | 23 jul 2026 |
+| G | Endurecimiento: rate limit en consultas públicas, cabeceras CSP, Zod compartido | 23 jul 2026 |
+| Fase 7 | Despliegue y batería crítica (PF-01…PR-01) contra producción | 23 jul 2026, en **Render** |
 
-Fix aplicado: los tres route handlers se movieron a `src/app/api/admin/purchase-requests/[id]/{approve,reject,payment-proof}/route.ts`, igual que `src/app/api/admin/raffles/**`. Verificado con tsc/lint/build limpios y `next build` listando las rutas nuevas correctamente. Detalle en `errores.md` ERR-01.
+Detalle técnico de cada uno (archivos, migraciones, verificación E2E) sigue disponible en el historial de git de este documento si hace falta reconstruir el razonamiento; no se repite aquí para no enterrar lo que sí está pendiente.
 
-Próximo bloque de mayor valor: A — Portal público de venta unitaria.
+## 3. Trabajo construido después de la Fase 7 (no estaba en la versión anterior de este documento)
 
-2. Estado de fases
-Fase	Estado	Nota
-Fase 1 — Fundación técnica	✅ Completada	Solo requiere auditoría final de seguridad
-Fase 2.1 — Administración de rifas	✅ Completada	CRUD y transiciones disponibles
-Fase 2.2 — Administración de paquetes	🚫 Eliminada	Sustituida por venta unitaria con contador
-Fase 2.3 — Configuración y mantenimiento	✅ Completada 22 jul 2026 (Bloque B)	Pantalla admin, enforcement de mantenimiento, mensaje configurable y audit_log — todo aplicado al remoto y verificado E2E
-Fase 3 — Solicitudes y pagos	✅ Portal público (Bloque A) completado 22 jul 2026	Bug de ruteo admin (Bloque 0) corregido; landing de venta unitaria funcional y verificada contra BD real
-Fase 4 — Tickets, PDF e impresión	✅ Completada 22 jul 2026 (Bloque D)	Impresión admin + descarga pública (DNI+code) en A4 HTML print-to-PDF; verificado E2E
-Fase 5 — Consulta y ganador	✅ Completada 22 jul 2026 (Bloque E)	Seguimiento + registro de ganador irreversible; verificado E2E
-Fase 6 — Calidad y seguridad	✅ Completada 23 jul 2026 (Bloque G)	Rate limiting público, cabeceras seguras, Zod, auditoría de secretos/dependencias/sesiones
-Fase 7 — Despliegue y aceptación	⚠️ Desplegada y probada 23 jul 2026	EN RENDER (no Vercel): https://perla-dorada.onrender.com — smoke tests y batería crítica PASAN. Pendiente: aceptación del cliente, cron jobs y rediseño visual
-3. Reglas de negocio invariantes
-Estados de entidades
-Entidad	Estados / Regla
-Rifa	draft → active → closed; cancelación permitida. Solo una activa. Al cancelar, los tickets emitidos se congelan.
-Solicitud	pending → approved | rejected | expired. Estados terminales no se revierten.
-Ticket	Se crea/asigna tras aprobación. Número único por rifa. Nunca reutilizable. `frozen` solo puede generar un nuevo ticket `active` por reasignación explícita; el original queda `reassigned` como historial.
-Ganador	no registrado → registrado. Inmutable.
-Comprobante	Privado; elegible para eliminación 15 días después del cierre de la rifa.
-Reglas operativas
-Una solicitud pendiente por DNI y rifa
-Reserva de 60 minutos (reservation_minutes en app_settings, configurable)
-Pago por Yape con validación manual del administrador
-Comprobante JPG/PNG/WEBP, entrada máxima 5 MB y objeto final máximo 600 KiB/2000 px, bucket privado; navegador y servidor reencodan antes de Storage
-Aprobación y asignación de tickets atómicas (todo o nada)
-Tickets correlativos por rifa, únicos
-Máximo de reimpresiones configurable (valor actual: 5)
-Ganador manual, único e irreversible
-Consulta pública por DNI + tracking code (ambos obligatorios)
-Dos cuentas administrativas creadas manualmente
-ticket_price × requestedQuantity calculado en backend; nunca confiar en total del cliente
-4. Bloque A — Portal público y venta unitaria — 🟢 COMPLETADO (22 jul 2026)
+### 3.1 Rediseño de marca (23 jul 2026)
 
-Implementado y verificado end-to-end contra la BD real (rifa "Rifa de prueba", S/10.00, 100 disponibles renderizados; GET / → 200; tsc/lint/build limpios). Archivos creados:
-- `src/lib/format.ts` — formato de moneda (PEN) y fecha, puro, compartido cliente/servidor.
-- `src/lib/raffles/public-raffle.ts` — servicio server-only `getActivePublicRaffle()`: lee rifa activa + maintenance_mode + calcula disponibilidad (total − vendidos − reservados) vía createAdminClient. Disponibilidad es solo visual; la validación autoritativa sigue en create_purchase_request.
-- `src/app/purchase-form.tsx` — Client Component: contador −/+ con clamp [1, disponibles], total visual = ticket_price × cantidad, campos fullName/dni/phone/whatsapp + comprobante, envío multipart a POST /api/purchase-requests, bloqueo de doble envío, errores por campo, panel de confirmación con trackingCode + expiresAt + enlace a /seguimiento.
-- `src/app/page.tsx` — Server Component (force-dynamic): maneja 4 estados (error de carga, sin rifa activa, mantenimiento, agotado) o renderiza el formulario.
+El sitio pasó de landing funcional a **web de marca de joyería** con el sorteo como sección intercambiable. Paleta "lujo sobrio" (negro + oro) en `globals.css` (`@theme`), tipografías Cormorant Garamond/Inter vía `next/font`, animación con `motion`. Todo lo no configurado en `src/config/brand.ts`/`vitrina.ts` se oculta solo (sin enlaces rotos ni secciones vacías). Panel admin: mismo lenguaje visual pero con densidad de herramienta (kit compartido en `src/components/admin/ui.tsx`).
 
-Nota de alcance: la landing DESHABILITA el formulario visualmente en modo mantenimiento, pero la ENFORCEMENT en el endpoint POST (bloquear envíos directos durante mantenimiento) sigue siendo trabajo del Bloque B (middleware/guard). No se creó migración nueva; queda como refactor opcional futuro consolidar la lectura en un RPC get_active_public_raffle().
+### 3.2 Ciclo de vida de tickets + seguimiento por código reusable (27 jul 2026, migración `20260727171136` + `20260727222740`)
 
-Resultado esperado (original, cumplido)
+- `tickets.ticket_status`: `active | frozen | reassigned`. Cancelar una rifa congela sus tickets (`frozen`): no imprimibles, no elegibles como ganador. `reassign_frozen_ticket` (admin, rifa destino activa) crea un ticket nuevo `active` correlativo con `origin_ticket_id` apuntando al original, que pasa a `reassigned` (historial, nunca se mueve ni reutiliza).
+- Límite de 30 tickets por solicitud (UI, Zod y Postgres).
+- `participant_tracking_codes`: el código de seguimiento identifica al **participante** (documento), no a cada solicitud — reutilizable entre compras. `participant_tracking_code_aliases` conserva los códigos históricos de cuando era por-solicitud.
+- Seguimiento y documento público exigen DNI + código de seguimiento (nunca DNI aislado).
 
-Página pública funcional que muestre la rifa activa y permita al participante solicitar tickets con contador, adjuntar comprobante Yape y recibir código de seguimiento.
+### 3.3 Rifas con múltiples premios descriptivos (24 jul 2026, migración `20260724120000`; ampliado 2 ago 2026)
 
-Trabajo pendiente
-Consulta pública segura de rifa activa (solo campos necesarios)
-Reemplazar src/app/page.tsx actual (bienvenida básica) por landing funcional
-Mostrar: nombre, descripción, premio, fecha sorteo, ticket_price, disponibilidad
-Componente cliente: contador con botones −/+ (límites definidos en servidor)
-Total visual = ticket_price × quantity (cálculo visual; recalculado en servidor o RPC)
-Campos: fullName, dni, phone, whatsapp, paymentProof
-Envío multipart/form-data al endpoint existente POST /api/purchase-requests
-Validaciones por campo y mensajes generales controlados
-Estado loading + bloquear doble envío
-Confirmación con trackingCode y expiresAt
-Enlace visible a /seguimiento
-Manejar: sin rifa activa, disponibilidad insuficiente, modo mantenimiento
-Criterios de aceptación
- Cantidad mínima = 1; máxima no supera disponibilidad ni límites operativos
- Precio mostrado coincide con ticket_price de la rifa activa
- Manipular DOM/payload/total no cambia cálculo autoritativo
- Sin comprobante válido → sin solicitud registrada
- DNI duplicado pendiente → HTTP 409 con mensaje entendible
- Éxito → muestra tracking code y hora de expiración
- Responsive y accesible por teclado
-5. Bloque B — Configuración pública y mantenimiento — 🟢 COMPLETADO (22 jul 2026)
+`raffles.prizes` (jsonb): lista de `{ id, title, quantity, image_path }`. Es contenido descriptivo del sorteo ("una moto", "2× dinero en efectivo"), validado por `normalize_raffle_prizes` (puro) y con `id` asignado por `assign_prize_ids` (`create_raffle`/`update_raffle`). El 2 ago 2026 esta lista pasó de ser solo informativa a poder tener **un ganador por premio** — ver §3.6.
 
-Todo aplicado al remoto (supabase db push, proyecto iewcowhkfsywdiyligsq) y verificado E2E.
+### 3.4 Realtime en la portada (1 ago 2026)
 
-Código:
-- `src/lib/settings/validation.ts` — Zod para app_settings (maintenanceMode bool, reservationMinutes 5–1440, maxReprints 0–20, maintenanceMessage ≤500 → null si vacío).
-- `src/app/admin/settings/page.tsx` + `settings-form.tsx` — pantalla admin protegida (getClaims → redirect login) con toggle de mantenimiento, mensaje configurable (textarea), minutos de reserva y máx reimpresiones.
-- `src/app/api/admin/settings/route.ts` — POST autenticado; Zod; actualiza app_settings vía createAdminClient; registra en audit_log (action update_settings). Bloqueado por proxy sin sesión (verificado 307 → /admin/login).
-- Enforcement de mantenimiento en `src/app/api/purchase-requests/route.ts` — 503 antes de procesar si maintenance_mode (verificado: POST directo → 503).
-- Landing (`src/app/page.tsx` + `src/lib/raffles/public-raffle.ts`) muestra el mensaje configurable o uno por defecto.
-- Link "Configuración" en `src/app/admin/layout.tsx`.
+Crear, activar, editar, cerrar, cancelar o eliminar una rifa emite un broadcast (`public:raffle-events`, sin datos de fila) que la portada escucha y responde con `router.refresh()`. Antes el visitante necesitaba recargar a mano para ver un cambio de rifa. Detalle del patrón en `arquitectura.md`.
 
-Migraciones aplicadas:
-- `20260722160000` + `163000` + `164000` — create_purchase_request lee reservation_minutes (ERR-02) y corrige dos bugs runtime pre-existentes (ERR-08: ambigüedad raffle_id + gen_random_bytes sin esquema).
-- `20260722160500` — columna app_settings.maintenance_message.
-- `20260722161000` — tabla audit_log (append-only; service_role select/insert; sin update/delete). Base también para Bloque F.
+### 3.5 Modal de promociones administrable (1-2 ago 2026, migración `20260801120000`)
 
-Verificado E2E: POST create real → 201 + trackingCode + upload a Storage; seguimiento → 200; reservation_minutes=90 respetado por el RPC; mensaje configurable renderizado en la landing; audit_log recibe el insert; todo restaurado/limpiado tras las pruebas.
+Modal de bienvenida con carrusel (3-4 slides), se abre una vez por sesión a los 2s si hay al menos una promoción vigente. Gestionado íntegramente desde `/admin/promotions`: título, descripción, foto (sube y comprime igual que las fotos de rifa, mismo bucket público `raffle-images`), texto y destino del botón (a la sección del sorteo, eligiendo de qué rifa se trata a modo de referencia, o a un enlace propio interno/externo), vigencia por fechas, activar/desactivar. Reemplazó una config estática (`src/config/promotions.ts`) que ya no existe.
 
-Criterios de aceptación
- ✅ Admin activa mantenimiento → portal deja de aceptar solicitudes (landing + endpoint 503)
- ✅ Panel administrativo continúa accesible en modo mantenimiento
- ✅ Mensaje de mantenimiento es configurable
- ✅ Cambios requieren auth y quedan auditados (audit_log)
- ✅ No se exponen secretos ni configuración interna
-6. Bloque C — Expiración y disponibilidad — 🟢 COMPLETADO (22 jul 2026)
+### 3.6 Ganador por premio + mostrado públicamente (2 ago 2026, migración `20260802120000` + `20260802120100`)
 
-Entregado y verificado E2E contra el remoto:
-- create_purchase_request lee reservation_minutes (ERR-02, ya corregido y verificado: 90 min).
-- Mecanismo GLOBAL y PERIÓDICO de expiración: `src/app/api/cron/expire-requests/route.ts` (GET, exige `Authorization: Bearer <CRON_SECRET>`, invoca expire_purchase_requests vía service_role) + `vercel.json` con cron `*/15 * * * *`. Verificado: sin/con secret errado → 401; con secret correcto → 200 `{expired:N}`; solicitud vencida quedó `expired`; re-ejecución → count 0 (idempotente).
-- Cuenta regresiva en vivo: `src/app/countdown.tsx` (client, tick cada 1s, null en primer paint para evitar mismatch de hidratación), cableada en la confirmación de compra (`purchase-form.tsx`) y en el seguimiento pendiente (`tracking-form.tsx`).
-- Disponibilidad ya refleja expiración correctamente SIN depender del cron: tanto getActivePublicRaffle como create_purchase_request cuentan reservado solo con `expires_at > now()`, así que las vencidas nunca ocupan disponibilidad. El cron es higiene de estado (marcar pending→expired para display/consistencia).
-- Revalidación al aprobar: approve_purchase_request ya rechaza vencidas (chequea expires_at <= now() antes de asignar tickets, raise P0001). Confirmado por lectura; verificación conductual del rechazo quedó bloqueada solo por ERR-09 (admin_profiles vacío), no por el código de Bloque C.
+- `register_raffle_winner` acepta `p_prize_id` (obligatorio si la rifa tiene premios desglosados, prohibido si no). Antes: un ganador por rifa, punto. Ahora: un ganador por cada premio de la lista (o uno solo si la rifa no desglosa premios — compatibilidad total con lo ya registrado).
+- `/admin/raffles/[id]/winner`: una tarjeta de registro por premio si la rifa los tiene, o el formulario único de siempre si no.
+- **DEC-04 resuelta (revertida a favor de mostrar)**: la última rifa cerrada con ganador(es) reemplaza la sección del sorteo en la portada mientras no haya una rifa activa, con navegación entre premios. El nombre se enmascara a "Primer nombre + inicial del apellido" — nunca el nombre completo ni el DNI en público.
+- `get_public_ticket_document` ahora devuelve una fila por ticket individual (antes agrupaba varios tickets en un array por solicitud) para poder marcar `is_winner`/`prize_title` por ticket. Un ticket ganador se ve dorado con el nombre del premio en `/seguimiento/tickets`.
+- Reserva de tickets: `reservation_minutes` 60 → **360** (6 horas).
 
-REQUISITO DE DESPLIEGUE: definir `CRON_SECRET` en las variables de entorno de Vercel (Vercel Cron adjunta automáticamente `Authorization: Bearer <CRON_SECRET>`). El schedule `*/15` requiere plan Vercel que permita esa frecuencia; en Hobby (solo diario) la corrección sigue siendo válida porque la disponibilidad no depende del cron — solo se retrasaría el marcado de estado `expired`.
+## 4. Reglas de negocio invariantes (actualizado)
 
-Criterios de aceptación
- ✅ Solicitud vencida no puede aprobarse (lógica confirmada; verificación conductual pendiente por ERR-09)
- ✅ Cambio de estado es idempotente (expire re-run → 0, verificado)
- ✅ Disponibilidad refleja expiración correctamente (filtro expires_at > now())
- ✅ Dos procesos concurrentes no exceden total_tickets (approve bloquea la rifa FOR UPDATE + valida total — preexistente)
- ✅ La BD nunca acepta operación inválida (invariantes en RPC)
-7. Bloque D — PDF, descarga e impresión — 🟢 COMPLETADO (22 jul 2026)
+| Entidad | Estados / regla |
+|---|---|
+| Rifa | `draft → active → closed`; cancelación permitida desde draft o active. Solo una activa a la vez. Al cancelar, los tickets emitidos se congelan (`frozen`). |
+| Solicitud | `pending → approved \| rejected \| expired`. Estados terminales no se revierten. |
+| Ticket | Se asigna tras aprobación, correlativo por rifa, nunca reutilizable. `frozen → reassigned` (original) + nuevo `active` (destino) solo por reasignación explícita del admin. |
+| Ganador | No registrado → registrado, **por premio** (o uno solo si la rifa no desglosa premios). Inmutable, incluso para `service_role`. Mostrado públicamente con nombre enmascarado. |
+| Promoción | `enabled` + rango de fechas opcional determina si aparece en el carrusel de bienvenida. No tiene estados de flujo, es contenido de marketing editable en cualquier momento. |
+| Comprobante | Privado; elegible para eliminación 15 días después del cierre de la rifa. |
 
-Decisión de alcance (DEC-02 resuelta): se usa HTML print-to-PDF A4 (sin librería PDF nueva), consistente con la impresión admin ya existente. Justificación: puppeteer es pesado/problemático en Vercel serverless; jspdf/pdf-lib añaden peso para beneficio marginal frente a una página bien estilizada. Si el cliente exige PDF generado en servidor, es una decisión posterior separada.
+Reglas operativas vigentes:
+- Una solicitud pendiente por DNI y rifa.
+- Reserva de **360 minutos (6 horas)**, `reservation_minutes` en `app_settings`, configurable.
+- Máximo 30 tickets por solicitud.
+- Pago por Yape con validación manual del administrador.
+- Comprobante JPG/PNG/WEBP, entrada máxima 5 MB, objeto final máximo 600 KiB/2000px (comprobantes) o 350 KiB/1920px (imágenes públicas); navegador y servidor reencodan antes de Storage.
+- Aprobación y asignación de tickets atómicas.
+- Máximo de reimpresiones configurable (actual: 5).
+- Ganador manual, único por premio, irreversible.
+- Consulta pública por DNI + código de seguimiento (ambos obligatorios; el código identifica al participante, es reusable entre compras).
+- 3 cuentas administrativas activas.
+- `ticket_price × requestedQuantity` calculado en backend; nunca confiar en el total del cliente.
+- Un ticket congelado nunca se imprime, gana ni se reutiliza; solo se reasigna a un ticket nuevo trazable.
 
-Entregado y verificado E2E:
-- Impresión admin (preexistente): `src/app/admin/tickets/[id]/print/` (1 ticket/página, registrado vía register_ticket_print, límite max_reprints). NOTA: esta ruta y register_ticket_print requieren admin activo → bloqueadas por ERR-09 (admin_profiles vacío) hasta sembrar.
-- NUEVO — descarga pública: RPC `get_public_ticket_document(p_dni, p_tracking_code)` (migración `20260722180000`, solo devuelve datos si la solicitud está aprobada y DNI+code coinciden) + endpoint `POST /api/tickets` + página `/seguimiento/tickets` (formulario DNI+code → documento A4 con TODOS los tickets una vez + botón imprimir/guardar PDF) + enlace desde el seguimiento cuando está aprobada.
-- Verificado: solicitud aprobada → 200 con documento completo y ticketNumbers; pendiente → 404; código errado → 404 (sin enumeración). Cleanup completo tras la prueba.
-- Bonus: se confirmó que aprobar → asignar tickets funciona E2E (sembrando admin_profiles), lo que refuerza que ERR-09 es el único bloqueo del flujo admin.
+## 5. Trabajo genuinamente pendiente
 
-Criterios de aceptación
- ✅ PDF A4 legible, sin cortes, con todos los tickets exactamente una vez (grid A4, cada número una vez)
- ✅ No descargable si solicitud está pendiente, rechazada o es ajena (404 verificado)
- ✅ Primera impresión y cada reimpresión quedan registradas (flujo admin register_ticket_print — requiere ERR-09 sembrado)
- ✅ Sexto intento falla cuando max_reprints = 5 (flujo admin register_ticket_print, preexistente)
-Endpoint autenticado para PDF administrativo
-Descarga pública solo para solicitud aprobada, validada por DNI + tracking code
-Registrar cada impresión/reimpresión (actor, fecha, contador)
-Bloquear reimpresión al alcanzar max_reprints
-Fallo de PDF no revierte aprobación ya confirmada
-Criterios de aceptación
- PDF A4 legible, sin cortes, con todos los tickets exactamente una vez
- No descargable si solicitud está pendiente, rechazada o es ajena
- Primera impresión y cada reimpresión quedan registradas
- Sexto intento falla cuando max_reprints = 5
-8. Bloque E — Ganador irreversible — 🟢 COMPLETADO (22 jul 2026)
+- **Aceptación del cliente** sobre lo desplegado en producción.
+- **Rotar `SUPABASE_SERVICE_ROLE_KEY` y `RATE_LIMIT_SECRET`** — quedaron expuestas en logs de Render por un incidente de configuración (ERR-10, ya corregido en código; la rotación de claves sigue pendiente del usuario).
+- Confirmar que los **2 Render Cron Jobs** (`/api/cron/expire-requests` ~15min, `/api/cron/retention` diario) están activos con `CRON_SECRET` configurado en Render.
+- Revisión legal de las páginas `/legal/*` (marcadas como borrador, `LEGAL_ES_BORRADOR = true` en `src/app/legal/legal-document.tsx`).
+- Completar assets del cliente: `src/config/brand.ts` (redes, contacto, Yape, datos legales) y `src/config/vitrina.ts` (fotos de piezas de joyería) — todo lo vacío ya se oculta solo, no bloquea el despliegue.
+- Ítems 🟡 de `errores.md` (ERR-03 mitigado pero sin scheduler nativo, ERR-17 semántica de cierre/cancelación pendiente de decisión, ERR-18 hallazgos menores sin doble verificación).
+- Decisión de negocio (no técnica): si/cuándo pasar Supabase a plan Pro — ver `alcancefree.md`.
 
-Entregado y verificado E2E:
-- RPC `register_raffle_winner(p_admin_user_id, p_raffle_id, p_ticket_number)` (migración `20260722190000`): assert_active_admin + candado de rifa + valida estado 'closed' + sin ganador previo + ticket existente y perteneciente a la rifa; inserta en raffle_winners (recibe NÚMERO de ticket, resuelve el id).
-- Ruta `POST /api/admin/raffles/[id]/winner` (auth getClaims, mapeo de errores, registra en audit_log action=register_winner).
-- UI: `/admin/raffles/[id]/winner` — vista de solo lectura si ya hay ganador; formulario con doble confirmación (checkbox de irreversibilidad + window.confirm) si la rifa está cerrada; mensaje si no está cerrada. Enlace "Ganador" desde la lista de rifas para rifas cerradas.
-- Inmutabilidad: no hay ruta de edición/eliminación; los triggers raffle_winners_prevent_update/delete bloquean a nivel BD.
-- NO se muestra el ganador públicamente (decisión "no asumir" respetada; ver DEC-04 en errores.md si se decide exponerlo).
+## 6. Definición global de terminado
 
-Verificado: rifa no cerrada → RAFFLE_NOT_CLOSED; ticket inexistente → TICKET_NOT_FOUND; ticket de otra rifa → TICKET_NOT_FOUND; registro válido → 1 fila; segundo intento → RAFFLE_ALREADY_HAS_WINNER; ruta sin auth → 307; auditoría ok. Nota: la prueba dejó 1 rifa de prueba permanente en el remoto (ganador inmutable); SQL de limpieza en errores.md.
-
-Criterios de aceptación
- ✅ No puede registrarse ticket inexistente o de otra rifa
- ✅ No puede registrarse un segundo ganador
- ✅ No existe endpoint de edición o eliminación del ganador
- ✅ Reintento devuelve resultado controlado sin duplicar (RAFFLE_ALREADY_HAS_WINNER)
- ✅ Acción queda auditada (audit_log)
-9. Bloque F — Auditoría y retención de comprobantes — 🟢 COMPLETADO (23 jul 2026)
-
-Auditoría:
-- Helper `src/lib/audit/log.ts` (`recordAuditEvent`) — inserta en audit_log; nunca rompe la operación principal; sin secretos/PII.
-- Cableado en TODAS las rutas admin críticas: create_raffle, update_raffle, activate_raffle, close_raffle, cancel_raffle, approve_purchase_request, reject_purchase_request, ticket_print, register_winner, update_settings, y payment_proof_retention (cron). Cada evento registra actor, acción, entidad, entity_id, metadata mínima.
-
-Retención de comprobantes:
-- RPC `list_payment_proofs_for_retention(p_retention_days default 15)` (migración `20260723120000`) — candidatos: rifa closed/cancelled con closed_at hace >= 15 días y payment_proof_deleted_at null.
-- Ruta `GET /api/cron/retention` (Bearer CRON_SECRET) — elimina cada objeto de Storage, marca payment_proof_deleted_at, conserva la solicitud/tickets/ganador; registra processed/failed en audit_log. Idempotente. Fallos no marcan la fila → se reintentan.
-- Añadida al vercel.json (referencia; en Render es un Cron Job aparte).
-
-Verificado E2E: cron sin secret → 401; con secret → {processed:1}; 2ª ejecución → {processed:0} (idempotente); payment_proof_deleted_at=YES; objeto de Storage GONE; audit_log recibe payment_proof_retention. Nota: auditorías de rutas admin (approve/reject/print/rifas) no probadas por HTTP (requieren sesión) pero usan el mismo helper verificado E2E vía retención.
-
-Criterios de aceptación
- ✅ Toda acción crítica tiene: actor, fecha, tipo, entidad
- ✅ Comprobante vencido por retención deja de existir en Storage (GONE)
- ✅ Ruta no expuesta públicamente (401 sin Bearer)
- ✅ Proceso idempotente (2ª ejecución → 0)
- ✅ Fallos detectables y reintentables (contador failed + no marca la fila)
-10. Bloque G — Seguridad y endurecimiento
-Estado confirmado: no existe ninguna política RLS (CREATE POLICY) en ninguna tabla — en su lugar, TODAS las tablas (app_settings, admin_profiles, raffles, purchase_requests, tickets, ticket_prints, raffle_winners, private.purchase_request_rate_limits) tienen REVOKE ALL de anon/authenticated + acceso exclusivo vía funciones SECURITY DEFINER otorgadas a service_role. Es un patrón de seguridad válido y consistente (no es lo mismo que "falta RLS" — es una decisión de diseño deliberada), pero hay que confirmarlo con el cliente como aceptado, no asumir que falta implementar RLS clásico. Rate limiting real solo cubre POST /api/purchase-requests (5/15min, 20/día por fingerprint); /api/tracking y todas las rutas /admin y /api/admin/** no tienen límite propio. Bucket payment-proofs es privado, sin políticas de Storage (comentario en migración confirma que el acceso pasa solo por el backend con service role, no por cliente directo) — correcto. Tres funciones (approve_purchase_request, reject_purchase_request, expire_purchase_requests, todas de la migración 20260721164313/164609) no tienen GRANT EXECUTE ... TO service_role explícito, a diferencia de las 9 funciones posteriores que sí lo tienen — verificar si funcionan igual por membership de rol o si falta el GRANT.
-🟢 COMPLETADO (23 jul 2026)
-
-Implementado y verificado E2E:
-- Rate limiting en endpoints públicos de consulta (ERR-06): RPC genérico `check_rate_limit(fingerprint, short_limit, daily_limit)` (migración `20260723140000`, reutiliza la tabla existente) + `src/lib/security/rate-limit.ts`. `/api/tracking` y `/api/tickets` comparten ámbito `public-lookup` (20/15 min, 100/día) para que no se pueda alternar entre endpoints y duplicar cuota. El ámbito se separa incluyendo `scope` en el HMAC del fingerprint, así el alta de solicitudes conserva su cuota propia (5/15min, 20/día) intacta. Falla en cerrado (503) si el chequeo no se puede realizar.
-  Verificado: 20 consultas OK, la 21ª → 429 con Retry-After 754; /api/tickets → 429 tras agotar vía /api/tracking (ámbito compartido confirmado).
-- Cabeceras seguras (`next.config.ts`): Content-Security-Policy (default-src 'self'; connect-src incluye el origen Supabase https + wss; frame-ancestors 'none'; object-src 'none'; base-uri/form-action 'self'), X-Content-Type-Options, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, y HSTS solo en producción. Verificado presentes; páginas siguen renderizando.
-- Validación Zod en los endpoints públicos: esquema compartido `src/lib/validation/tracking.ts` usado por /api/tracking y /api/tickets (elimina la duplicación de normalización/regex). Verificado: DNI inválido → 400 con mensaje controlado.
-- Dependencias actualizadas: Next 16.2.10 → 16.2.11 (pin exacto, última parche). Ver nota de CVEs abajo.
-- Auditado y confirmado: `service_role` solo en `src/lib/supabase/admin.ts` (con `import "server-only"`); sin secretos hardcodeados en el repo; `NEXT_PUBLIC_*` solo expone URL y publishable key; las 8 rutas `/api/admin/**` validan sesión con `getClaims` (además del proxy que las gatea); URLs firmadas de comprobantes a 60 s.
-
-Decisiones documentadas (no son trabajo pendiente):
-- Patrón sin RLS clásico: todas las tablas con REVOKE ALL a anon/authenticated + acceso exclusivo por funciones SECURITY DEFINER otorgadas a service_role. Es el diseño aceptado del proyecto (ver DEC-03 en errores.md), no una carencia.
-- CSRF: las mutaciones admin son POST same-origin con cookies de Supabase Auth (SameSite=Lax), lo que bloquea el envío de cookies en POST cross-site. No se añadió verificación extra de Origin para no romper clientes legítimos; documentado como mitigación aceptada.
-- Rate limit en `/api/admin/**`: no aplicado. Esas rutas ya exigen sesión válida y están gateadas por el proxy; el vector de abuso anónimo no existe.
-- Enumeración de tracking codes: 16 caracteres hex (64 bits) + DNI requerido + rate limit → enumeración inviable. ERR-07 (sin reintento ante colisión) permanece como riesgo residual muy bajo.
-- CVEs de dependencias transitivas de Next (sharp <0.35.0 high, postcss moderate): sin corrección disponible que no sea un downgrade absurdo (npm propone next@9.3.3). Impacto real nulo en esta app: `next/image` NO se usa (verificado; la única coincidencia es una regex del matcher del proxy), por lo que sharp nunca procesa imágenes en runtime; los comprobantes van a Supabase Storage y se validan con sniffing de `file-type`, sin pasar por sharp. postcss es build-time sobre CSS propio, no de usuario. Riesgo aceptado; revisar en futuras versiones de Next.
-11. Pruebas críticas — ✅ EJECUTADAS EN PRODUCCIÓN (23 jul 2026)
-
-Ejecutadas contra https://perla-dorada.onrender.com y su BD (proyecto iewcowhkfsywdiyligsq). Todos los datos de prueba fueron eliminados al terminar (0 residuos verificados).
-
-ID	Resultado
-PF-01	✅ POST /api/purchase-requests → 201, trackingCode y expiración a ~60 min
-PF-02	✅ Imagen falsa (texto con extensión .png) → 400 por sniffing de contenido; archivo de 7 MB → 413
-PF-03	✅ Aprobación generó exactamente 3 tickets, únicos y correlativos [1,2,3]
-PF-04	✅ Rechazo deja status=rejected con motivo y revisor; segundo rechazo bloqueado (estado terminal)
-PF-05	✅ Seguimiento devuelve estado correcto; descarga de tickets con solicitud NO aprobada → 404
-PF-06	✅ Guardas del ganador (rifa no cerrada → RAFFLE_NOT_CLOSED). Registro único e irreversible ya verificado en Bloque E
-PF-07	✅ Original + 5 reimpresiones permitidas; la séptima → MAX_REPRINTS_REACHED
-PF-08	✅ Aprobar solicitud vencida → "La reserva de la solicitud ha vencido"
-PC-01	✅ Dos aprobaciones simultáneas: 1 éxito de 2, exactamente 2 tickets (sin duplicar)
-PC-02	✅ Aprobaciones concurrentes: sin números duplicados y dentro de total_tickets
-PS-01	✅ /admin y /api/admin sin sesión → 307; crons sin secret → 401; comprobante en Storage por URL pública → 400 (bloqueado)
-PR-01	✅ RPC de retención responde y filtra candidatos correctamente (proceso completo ya verificado E2E en Bloque F)
-
-Hallazgo de la campaña: ERR-11 (rate limit eludible rotando el User-Agent) — detectado, corregido y verificado el mismo día. Ver errores.md.
-
-Tabla original de referencia:
-ID	Prueba	Resultado requerido
-PF-01	Registro público	Solicitud válida, tracking y expiración
-PF-02	Archivo	Acepta JPG/PNG/WEBP; rechaza inválidos/sobredimensionados
-PF-03	Aprobación	Genera cantidad completa de tickets sin duplicados
-PF-04	Rechazo	Estado terminal y motivo válido
-PF-05	Seguimiento	Estado correcto y PDF cuando aplica
-PF-06	Ganador	Registro único e irreversible
-PF-07	Reimpresión	Máximo configurable, por defecto 5
-PF-08	Expiración	No permite aprobar después de 60 min
-PC-01	Concurrencia aprobación	Una sola resolución; sin tickets duplicados
-PC-02	Concurrencia disponibilidad	Nunca supera total_tickets
-PS-01	Autorización	Público no accede a admin ni comprobantes
-PR-01	Retención	Elimina objetos elegibles; conserva metadatos
-12. Definición global de terminado
- npx tsc --noEmit --pretty false sin errores
- npm run lint sin errores
- npm run build sin errores
- Migraciones reproducibles desde base limpia
- src/types/database.ts actualizado
- Pruebas críticas aprobadas
- Sin referencias funcionales a paquetes
- Sin secretos en código ni repositorio
- Flujo completo: público → aprobación → tickets → consulta → PDF operativo
- Ganador y retención cumplen invariantes
- Producción pasa smoke tests y cliente acepta
+- [x] `npx tsc --noEmit --pretty false` sin errores
+- [x] `npm run lint` sin errores
+- [x] `npm run build` sin errores
+- [x] Migraciones reproducibles, aplicadas al remoto en orden
+- [x] `src/types/database.ts` actualizado
+- [x] Flujo completo: público → aprobación → tickets → consulta → ganador → operativo en producción
+- [x] Producción pasa smoke tests (Fase 7, 23 jul 2026)
+- [ ] Cliente acepta formalmente
+- [ ] Claves rotadas (ERR-10)
+- [ ] Revisión legal de `/legal/*`
 
 PD-CC-02 · Transferencia técnica Joyería Perla Dorada
-
-> Actualización 27 jul 2026 — auditoría local terminada, pendiente de despliegue coordinado. La migración `20260727171136_harden_ticket_lifecycle_and_purchase_limits.sql` incorpora el límite de 30 tickets por solicitud, el ciclo `active → frozen → reassigned`, reasignación explícita desde el panel y consultas públicas con DNI + código. Ver `auditoria_2026-07-27.md` antes de aplicar la migración.

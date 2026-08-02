@@ -106,7 +106,7 @@ Qué falta / decisiones:
 
 Cada byte que Supabase envía cuenta: fotos del premio servidas al público, comprobantes descargados por el admin, imágenes de la vitrina.
 
-El gasto dominante es **la foto del premio en la landing**, que se sirve a *todos* los visitantes:
+El gasto dominante es **la foto del premio en la landing**, que se sirve a *todos* los visitantes. Desde el 1 ago 2026 el mismo bucket público (`raffle-images`) también sirve las fotos del **carrusel de promociones** (`/admin/promotions`), que se abre automáticamente a los 2s de cargar casi cualquier página — súmalas al cálculo de egress si hay varias promociones activas con foto:
 
 | Visitas a la landing/mes | Foto del premio | Egress aprox. |
 |---|---|---|

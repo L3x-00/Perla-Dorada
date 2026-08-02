@@ -1,6 +1,8 @@
 # Auditoría integral — 27 de julio de 2026
 
-Estado: cambios locales validados; la migración aún no se ha aplicado al remoto ni se ha publicado la aplicación.
+> **Archivo histórico — 2 ago 2026.** Todo lo descrito aquí está aplicado al remoto, desplegado en producción (Render) y verificado desde el 23 jul 2026. El contenido vigente vive ahora en `arquitectura.md` §2.1 (invariantes de ciclo de vida de tickets) y `pendiente.md` §3.2 (resumen técnico). Se conserva este archivo como referencia histórica de la auditoría original, no como fuente de verdad del estado actual.
+
+Estado original (27 jul 2026, ya superado): cambios locales validados; la migración aún no se ha aplicado al remoto ni se ha publicado la aplicación.
 
 ## Correcciones implementadas
 

@@ -1,12 +1,19 @@
 PD-CC-04 · Bitácora de errores y deuda técnica conocida
 
-Sistema Web de Gestión de Rifas — Joyería Perla Dorada · Última actualización: 23 jul 2026 (auditoría paralela + mejoras de formulario/panel)
+Sistema Web de Gestión de Rifas — Joyería Perla Dorada · Última actualización: 2 ago 2026 (ganador por premio, promociones administrables, realtime de portada)
 
 1. Propósito de este archivo
 
 Registro vivo de bugs y deuda técnica confirmados por lectura directa de código (no suposiciones). Actualizar este archivo cada vez que se descubra o se corrija un problema. Antes de reportar algo como "arreglado", verificar el fix (tsc/lint/build/prueba manual) y solo entonces cambiar el estado.
 
 Estados: 🔴 abierto (bloqueante) · 🟡 abierto (no bloqueante) · 🟢 corregido · ⚪ decisión pendiente (no es bug)
+
+## Actualización — 1-2 ago 2026 (ver ERR-19 a ERR-21, DEC-04 a DEC-06)
+
+- Todo lo de la "Actualización de auditoría — 27 jul 2026" de abajo está **desplegado y verificado en producción** desde el 23 jul 2026 (Fase 7); la advertencia de "no marcar como verificado hasta desplegar" ya no aplica.
+- **DEC-04 resuelta** (antes ⚪ pendiente): el ganador ahora SÍ se muestra públicamente, con nombre enmascarado. Ver detalle en DEC-04 más abajo.
+- La nota de "DATOS DE PRUEBA A LIMPIAR" (rifa "ZZZ TEST GANADOR") quedó obsoleta: la base se limpió por completo (wipe total solicitado por el usuario) antes de que existieran datos reales de producción; hoy `raffles`/`tickets`/`raffle_winners` contienen únicamente actividad real del cliente. Se retira la sección.
+- Nuevos hallazgos y decisiones de esta sesión: ERR-19, ERR-20, ERR-21, DEC-05, DEC-06.
 
 ## Actualización de auditoría — 27 jul 2026 (pendiente de despliegue)
 
@@ -153,6 +160,25 @@ ERR-18 — 🟡 Bajo — Deuda menor detectada por la auditoría paralela (sin v
   - `src/app/api/admin/raffles/[id]/image/route.ts`: el DELETE borra el objeto de Storage antes de actualizar la fila y descarta el error de lectura de la rifa (reporta 404 ante fallo de BD). Orden y manejo mejorables.
 - Detectado: 23 jul 2026, auditoría paralela (8 dimensiones, ~49 hallazgos brutos; 3 confirmados con doble verificación → ERR-12/13/14, el resto quedó sin verificar por límite de sesión y se trianguló a mano).
 
+ERR-19 — 🟢 Corregido — El modal "Participar" dejó de abrir tras portarlo a document.body
+- Área: `src/components/site/participate.tsx`
+- Causa: al envolver el modal con `createPortal` para que fuera un overlay real de viewport completo, quedó anidado DENTRO de `AnimatePresence` (`<AnimatePresence>{createPortal(...)}</AnimatePresence>`). `AnimatePresence` filtra sus hijos con `React.isValidElement`, y un `ReactPortal` no lo es — lo descartaba en silencio, sin error ni warning, así que el botón "Participar" no abría nada.
+- Fix aplicado: el portal ahora ENVUELVE a `AnimatePresence` completo, nunca al revés (`createPortal(<AnimatePresence>...</AnimatePresence>, document.body)`), gateado por un hook `useMounted` basado en `useSyncExternalStore` (no `useEffect`+`setState`, que dispara el warning de "cascading render" del linter de hooks). Documentado como patrón en `arquitectura.md` §2.5 para no repetirlo.
+- Detectado y corregido: 1 ago 2026, reportado directamente por el usuario ("no me abre el formulario").
+
+ERR-20 — 🟢 Corregido — Las luces del escenario (StageRig) se filtraban dentro del modal de participación
+- Área: `src/components/site/participate.tsx`, `stage-rig.tsx`
+- Causa: el modal (antes de portarlo) vivía anidado dentro de `<Reveal>`, un `motion.div` que anima la posición vertical. Framer Motion deja un `transform` residual en ese contenedor incluso en reposo, y cualquier `transform` en un ancestro se convierte en el "containing block" de sus descendientes `position:fixed` — el modal dejaba de cubrir la pantalla completa y quedaba recortado dentro de la sección del sorteo (`overflow-hidden`), mezclándose visualmente con las luces del escenario (`StageRig`/`RaffleCelebration`).
+- Fix aplicado: mismo fix que ERR-19 (portal a `document.body`) resuelve ambos problemas a la vez — el modal ya no depende de qué transform tenga un ancestro.
+- Detectado y corregido: 1 ago 2026.
+
+ERR-21 — 🟡 Riesgo evitado, no llegó a producción — reconstrucción de `update_raffle` desde memoria casi revirtió una validación real
+- Área: migración `20260802120000_multi_prize_winners.sql` (durante su redacción, antes de aplicar)
+- Causa: al preparar el cambio de `update_raffle` para asignar id a los premios, se reescribió el cuerpo completo de la función de memoria en vez de leer su definición íntegra vigente. La reconstrucción omitió que el chequeo `TICKET_PRICE_LOCKED` aplica siempre que hay `purchase_requests` (no solo con la rifa `active`) y usó el `errcode` equivocado en `TOTAL_TICKETS_BELOW_ASSIGNED_MAX` (`55000` en vez de `22023`).
+- Por qué no llegó a producción: se detectó comparando la reconstrucción contra el archivo fuente real (`20260724120000_raffle_prizes.sql`) antes de ejecutar `supabase db push`. Nunca se aplicó la versión incorrecta.
+- Lección aplicada: `arquitectura.md` §2.5 — nunca reconstruir de memoria el cuerpo de un RPC que se va a modificar; siempre leer la definición completa vigente primero.
+- Detectado y corregido: 2 ago 2026, autodetectado antes de aplicar.
+
 3. Decisiones pendientes (no son bugs, requieren definición del cliente)
 
 DEC-01 — ⚪ src/components/{public,admin}/ no existe
@@ -164,18 +190,17 @@ DEC-02 — 🟢 Resuelta (22 jul 2026) — "PDF" de tickets es HTML print-to-PDF
 DEC-03 — 🟢 Resuelta (23 jul 2026) — Sin RLS clásico: todo vía SECURITY DEFINER + REVOKE ALL
 - Patrón intencional y consistente en todas las migraciones: cada tabla tiene RLS habilitado sin políticas + REVOKE ALL a anon/authenticated; el acceso ocurre solo por funciones SECURITY DEFINER (con search_path fijo) otorgadas a service_role, que únicamente se usa en servidor (`src/lib/supabase/admin.ts`, con `import "server-only"`). Auditado en Bloque G y documentado como el DISEÑO ACEPTADO del proyecto, no como una carencia. No añadir políticas RLS "por completitud" sin una razón concreta.
 
-DEC-04 — ⚪ Mostrar el ganador públicamente — pendiente de decisión del cliente
-- Bloque E registra el ganador y lo muestra solo en el panel admin (vista de solo lectura). El documento de alcance dice "definir si se muestra públicamente (no asumir)". No se expuso en el portal público. Si el cliente lo desea, agregar una vista pública (p. ej. en /seguimiento o la landing) leyendo raffle_winners de la rifa cerrada.
+DEC-04 — 🟢 Resuelta (2 ago 2026) — Mostrar el ganador públicamente
+- Antes: Bloque E registraba el ganador y lo mostraba solo en el panel admin. Decisión pedida explícitamente por el cliente el 2 ago 2026: mostrarlo en público.
+- Implementado: la última rifa cerrada que tenga al menos un ganador registrado reemplaza la sección del sorteo en la portada mientras no haya una rifa activa (`src/lib/raffles/public-winners.ts` + `WinnerShowcase`/`WinnerCarousel`). El nombre se enmascara a "primer nombre + inicial del primer apellido" (`maskWinnerName`) — nunca el nombre completo ni el DNI. Un ticket ganador también se destaca (dorado + nombre del premio) al consultarlo en `/seguimiento/tickets`. Ver `estado_proyecto.md` §11.
 
-DATOS DE PRUEBA A LIMPIAR (remoto iewcowhkfsywdiyligsq) — dejados por la verificación de Bloque E
-- Se creó una rifa de prueba cerrada ("ZZZ TEST GANADOR (borrar)") con 1 solicitud + 1 ticket + 1 ganador para verificar register_raffle_winner. El ganador es INMUTABLE (trigger), por lo que service_role no puede borrarlo. Para limpiar, ejecutar en el SQL editor de Supabase (como owner/postgres):
-  alter table public.raffle_winners disable trigger raffle_winners_prevent_delete;
-  delete from public.raffle_winners w using public.raffles r where w.raffle_id = r.id and r.name = 'ZZZ TEST GANADOR (borrar)';
-  alter table public.raffle_winners enable trigger raffle_winners_prevent_delete;
-  delete from public.tickets t using public.raffles r where t.raffle_id = r.id and r.name = 'ZZZ TEST GANADOR (borrar)';
-  delete from public.purchase_requests pr using public.raffles r where pr.raffle_id = r.id and r.name = 'ZZZ TEST GANADOR (borrar)';
-  delete from public.raffles where name = 'ZZZ TEST GANADOR (borrar)';
-- No afecta el portal público (solo se muestra la rifa activa; esta es cerrada). Prioridad baja.
+DEC-05 — 🟢 Resuelta (1-2 ago 2026) — Promociones: config estática vs. tabla administrable
+- El modal de promociones se construyó primero como config estática (`src/config/promotions.ts`, siguiendo el patrón de `brand.ts`/`vitrina.ts`). El cliente pidió después poder subir fotos y gestionar promociones desde el panel sin tocar código.
+- Decisión: se reemplazó por una tabla (`public.promotions`) administrada en `/admin/promotions`, con CRUD directo (no RPC — es contenido de marketing sin invariantes críticas, mismo criterio que `app_settings`). El archivo de config estática se eliminó.
+
+DEC-06 — 🟢 Resuelta (2 ago 2026) — Un ticket no puede ganar más de un premio en la misma rifa
+- Al diseñar "ganador por premio", se preguntó explícitamente si el mismo ticket podía repetirse como ganador de varios premios en una misma rifa (podría ocurrir en un sorteo físico real). El cliente eligió que no: cada premio debe tener un ticket ganador distinto.
+- Implementado vía el índice único ya existente `raffle_winners_ticket_unique` (sobre `ticket_id`, sin cambios) — un ticket solo puede aparecer una vez en toda la tabla, lo que automáticamente también impide que gane dos veces dentro de la misma rifa.
 
 4. Cómo usar este archivo
 - Antes de tocar código: revisar si el área ya tiene un ERR-xx conocido.

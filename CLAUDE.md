@@ -16,7 +16,7 @@ Senior Software Engineer dentro de un repo existente. Inspeccionar → comprende
 
 ## Stack (versiones exactas — ver estado_proyecto.md §3)
 
-Next.js 16.2.12 (App Router) · React 19.2.8 · TypeScript 5.9.3 estricto · Tailwind CSS v4 (sin config.js) · Supabase (PostgreSQL/Auth/Storage/Realtime) · Zod v4.4.3 (no v3) · Render.
+Next.js 16.2.12 (App Router) · React 19.2.8 · TypeScript 5 estricto · Tailwind CSS v4 (sin config.js) · Supabase (PostgreSQL/Auth/Storage/Realtime) · Zod v4.4.3 (no v3) · motion + gsap/@gsap/react (animación) · Render.
 
 ## No negociable
 
@@ -24,49 +24,36 @@ Next.js 16.2.12 (App Router) · React 19.2.8 · TypeScript 5.9.3 estricto · Tai
 - Venta unitaria: `ticket_price × requestedQuantity`, calculado SIEMPRE en backend/RPC. **Paquetes fueron eliminados por el cliente — nunca reintroducir `packages`/`raffle_packages`.**
 - Monolito modular, sin microservicios. No crear carpetas paralelas (`api-v2`, `services2`, `dashboard-new`).
 - Operaciones críticas (aprobación, asignación de tickets, activar/cerrar rifa) son atómicas vía RPC/PostgreSQL con `SECURITY DEFINER` + `search_path` fijo.
-- Realtime es solo informativo — reconsultar siempre tras un evento.
+- Realtime es solo informativo — reconsultar siempre tras un evento. Implementado como broadcast puro (sin datos de fila) que solo dispara `router.refresh()`; ver `src/lib/realtime/`.
 - `service_role` solo en servidor (`src/lib/supabase/admin.ts`), nunca en cliente ni en `NEXT_PUBLIC_*`.
-- Comprobantes en Storage privado, URLs firmadas de vida corta.
-- Ganador manual, único, irreversible. Nunca automatizar selección de ganador.
+- Comprobantes en Storage privado, URLs firmadas de vida corta. Fotos públicas (premio, promociones) en el bucket público compartido `raffle-images`.
+- Ganador manual, único **por premio** (una rifa puede tener varios premios), irreversible incluso para `service_role`. Nunca automatizar selección de ganador. Se muestra públicamente con nombre enmascarado (primer nombre + inicial del apellido) — nunca el nombre completo ni el DNI.
 - Un ticket de rifa cancelada se congela. Reasignarlo crea otro ticket trazable en una rifa activa; nunca se mueve, reutiliza, imprime ni elige como ganador el original.
 - Seguimiento y documento público requieren DNI + código de seguimiento. El DNI no es un secreto suficiente.
 - Toda imagen se reencoda antes de Storage: el navegador reduce primero y el servidor es el respaldo autoritativo; no persistir originales.
 - No agregar dependencias sin justificar explícitamente (ver DEC-02 en errores.md sobre PDF).
 
-## Estado — ver docs/contex/errores.md para el detalle completo
+## Estado — ver docs/contex/errores.md y pendiente.md para el detalle completo
 
-Sin bugs 🔴 bloqueantes activos (ERR-01 y ERR-04 corregidos el 22 jul 2026). Quedan 🟡 abiertos: ERR-02 (reservation_minutes no conectado al RPC), ERR-03 (sin scheduler de expiración), ERR-05 (grants faltantes en 3 RPC), ERR-06 (rate limiting solo en /api/purchase-requests).
+Sin bugs 🔴 bloqueantes activos. **Bloques A–G completos, desplegados y verificados desde el 23 jul 2026** en **https://perla-dorada.onrender.com** (Render, no Vercel) — portal público, aprobación, tickets, impresión, ganador, auditoría, retención, rate limiting y cabeceras de seguridad. Detalle histórico condensado en `pendiente.md` §2; no repetirlo bloque por bloque aquí.
 
-**Bloques A y B completados el 22 jul 2026**, verificados E2E contra BD real. Bloque B: pantalla `/admin/settings` (mantenimiento, mensaje configurable, reserva, reimpresiones), enforcement 503 en el POST y landing, audit_log de cambios. Durante Bloque B se descubrió y corrigió **ERR-08**: `create_purchase_request` estaba roto (ambigüedad `raffle_id` + `gen_random_bytes` sin esquema) → NINGUNA solicitud pública real se podía crear; ahora POST → 201 verificado. ERR-02 también corregido (reservation_minutes).
+**Construido después de la Fase 7 (23 jul → 2 ago 2026), no perderlo de vista:**
+- **Rediseño de marca** (23 jul): sitio pasó a ser web de marca de joyería con el sorteo como sección intercambiable — ver "Sitio público" y "Panel administrativo" más abajo.
+- **Ciclo de vida de tickets + seguimiento reusable** (27 jul, migración `20260727171136` + `20260727222740`): `ticket_status` active/frozen/reassigned, reasignación trazable con `origin_ticket_id`, código de seguimiento por documento (reusable entre compras, no por solicitud).
+- **Rifas con múltiples premios** (24 jul, ampliado 2 ago): `raffles.prizes` (jsonb, cada elemento con `id` estable vía `assign_prize_ids`).
+- **Realtime de portada** (1 ago): crear/activar/editar/cerrar/cancelar/eliminar una rifa emite un broadcast puro (`public:raffle-events`, sin datos de fila); la portada escucha y hace `router.refresh()`. Ver `src/lib/realtime/`.
+- **Modal de promociones administrable** (1-2 ago, migración `20260801120000`): carrusel de bienvenida gestionado íntegramente desde `/admin/promotions` (foto, texto, vigencia, destino del CTA). Reemplazó una config estática que ya no existe.
+- **Ganador por premio + mostrado públicamente** (2 ago, migración `20260802120000` + `20260802120100`): `register_raffle_winner` ahora acepta `p_prize_id` (un ganador por cada premio de la rifa, o uno solo si no desglosa premios — compatible con lo ya registrado). **DEC-04 revertida**: la última rifa cerrada con ganador(es) reemplaza la sección del sorteo en la portada mientras no haya rifa activa, con nombre enmascarado. Un ticket ganador se ve dorado en `/seguimiento/tickets`. Ver `estado_proyecto.md` §10-11 y `arquitectura.md` §2.2-2.5 para los patrones nuevos (broadcast, staging de imágenes, id estable en jsonb, y dos lecciones operativas: `AnimatePresence`+`createPortal` no se anidan en cualquier orden, y nunca reconstruir de memoria el cuerpo de un RPC que se va a modificar).
+- Reserva de tickets: 60 → **360 minutos (6h)**. 3 cuentas administrativas activas (antes 1).
 
-Migraciones aplicadas al remoto (proyecto iewcowhkfsywdiyligsq): `20260722160000/160500/161000/163000/164000`. `database.ts` regenerado.
+Pendiente real: aceptación del cliente, rotar las claves expuestas por ERR-10, revisión legal de `/legal/*`. Ver `pendiente.md` §5 para la lista completa.
 
-**Bloque C (expiración) completado el 22 jul 2026**, verificado E2E: cron `/api/cron/expire-requests` (Bearer CRON_SECRET) + `vercel.json` (*/15) + countdown en vivo. ERR-05 corregido (grants explícitos). Disponibilidad ya ignora vencidas (filtro expires_at > now()); el cron es higiene de estado.
-
-⚠️ **ERR-09 (setup de datos, pendiente del usuario):** `admin_profiles` está VACÍA en el remoto → aprobar/rechazar fallan con "no es administrador activo" pese a que el admin inicie sesión. Sembrar admin_profiles (user_id de cada admin de auth + is_active=true) es un paso manual; no inventar user_id. Ver errores.md.
-
-⚠️ **CRON_SECRET:** definir en variables de entorno de Vercel para que el cron de expiración funcione en producción.
-
-**Bloque D (PDF/impresión) completado el 22 jul 2026**, verificado E2E. Descarga pública `/seguimiento/tickets` (RPC get_public_ticket_document + /api/tickets), documento A4 HTML print-to-PDF validado por DNI+code para solicitudes aprobadas. DEC-02 resuelta: sin librería PDF. Se confirmó además que aprobar→asignar tickets funciona al sembrar admin_profiles.
-
-**Bloque E (ganador irreversible) completado el 22 jul 2026**, verificado E2E. RPC `register_raffle_winner` + ruta `/api/admin/raffles/[id]/winner` + UI con doble confirmación + vista de solo lectura. No expuesto públicamente (DEC-04). Dejó 1 rifa de prueba permanente en el remoto (ganador inmutable); SQL de limpieza en errores.md.
-
-**Bloque F (auditoría + retención) completado el 23 jul 2026**, verificado E2E. Helper `recordAuditEvent` cableado en todas las rutas admin críticas; RPC `list_payment_proofs_for_retention` + cron `/api/cron/retention` (Bearer CRON_SECRET) elimina comprobantes 15 días tras cierre, marca payment_proof_deleted_at, idempotente y auditado.
-
-**Bloque G (endurecimiento) completado el 23 jul 2026**, verificado E2E. Rate limiting en consultas públicas (`/api/tracking` + `/api/tickets`, ámbito compartido 20/15min · 100/día, ERR-06 cerrado), cabeceras seguras en `next.config.ts` (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS en prod), Zod compartido en lookups públicos, Next 16.2.10 → 16.2.11, y auditoría de secretos/sesiones (limpia). Patrón sin-RLS documentado como diseño aceptado (DEC-03).
-
-**Bloques A–G completos y verificados. Fase 7 ejecutada el 23 jul 2026:** desplegado en **https://perla-dorada.onrender.com** y batería crítica completa (PF-01…PR-01, PC-01/02, PS-01) **PASA** contra producción, con limpieza total de datos de prueba. Durante la campaña se detectó y corrigió **ERR-11** (el rate limit era eludible rotando el User-Agent; ahora se evalúa también un cubo por IP sola).
-
-Pendiente: aceptación del cliente, los 2 Render Cron Jobs, rotar las claves expuestas por ERR-10, y el rediseño visual del portal (decidido: se queda en Render; migrar a Vercel NO requiere reestructurar nada, es solo cuestión de costo/plan).
-
-**Auditoría 27 jul 2026 (cambios locales, pendiente despliegue coordinado):** ver `docs/contex/auditoria_2026-07-27.md`. Incluye la migración de ciclo de tickets, protección de consultas públicas y compresión obligatoria antes de Storage.
-
-**Despliegue: el proyecto va en RENDER (no Vercel).** El `vercel.json` con crons NO aplica en Render. Hay DOS tareas programadas, cada una como un Render Cron Job que hace curl con `Authorization: Bearer <CRON_SECRET>`:
+**Despliegue: el proyecto va en RENDER (no Vercel).** Hay DOS Render Cron Jobs, cada uno con curl `Authorization: Bearer <CRON_SECRET>`:
 - `/api/cron/expire-requests` — cada ~15 min (marca solicitudes vencidas).
 - `/api/cron/retention` — diario (elimina comprobantes 15 días tras cierre).
 Variables de entorno en el dashboard de Render: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY, RATE_LIMIT_SECRET, CRON_SECRET.
 
-**Nota de entorno:** Supabase local NO corre; se aplican migraciones al remoto con `supabase db push --linked` (CLI ya linkeada, password cacheada, no pide interacción) y se regeneran tipos con `supabase gen types typescript --linked > src/types/database.ts` (redirigir vía bash para UTF-8). El `.env.local` apunta al remoto vivo con rifa de prueba → sirve para verificación E2E con `npm run dev`. El warning `pgdelta ... cert ENOENT` al final de `db push` es inocuo (cache de catálogo experimental), las migraciones sí se aplican.
+**Nota de entorno:** Supabase local NO corre; se aplican migraciones al remoto con `supabase db push --linked` (CLI ya linkeada, password cacheada, no pide interacción) y se regeneran tipos con `supabase gen types typescript --linked > src/types/database.ts` (redirigir vía bash para UTF-8). El `.env.local` apunta al remoto vivo **con datos reales de producción** (ya no es una rifa de prueba) → sirve para verificación E2E con `npm run dev`, pero con cuidado: `raffle_winners` es inmutable incluso para `service_role`, así que nunca insertar un ganador de prueba sin permiso explícito del usuario. El warning `pgdelta ... cert ENOENT` al final de `db push` es inocuo (cache de catálogo experimental), las migraciones sí se aplican.
 
 ## Sitio público (rediseño 23 jul 2026)
 
@@ -74,10 +61,11 @@ El sitio es una **web de marca de joyería** con el sorteo como sección que apa
 
 - Estilo "lujo sobrio": negro profundo + oro envejecido como acento. Tokens en `src/app/globals.css` (`@theme`), tipografías Cormorant Garamond (display) + Inter (texto) vía `next/font` (auto-hospedadas, compatibles con la CSP).
 - Animación con **motion** (`src/components/site/reveal.tsx`), lenta y una sola vez; respeta `prefers-reduced-motion`.
-- Componentes del sitio en `src/components/site/` (esta carpeta ya la preveía `arquitectura.md` §3; se adopta para el público, el admin sigue con componentes colocados).
+- Componentes del sitio en `src/components/site/` (público). El admin usa un patrón híbrido: kit compartido en `src/components/admin/` (ui.tsx, confirm-dialog.tsx) + formularios/acciones específicos de cada ruta colocados junto a su `page.tsx`, como antes.
 - **Todo lo no configurado se oculta solo**: redes, contacto, vitrina y datos de pago. Nada de enlaces rotos ni secciones vacías.
 - Datos a completar por el cliente: `src/config/brand.ts` (redes, contacto, **Yape**, datos legales) y `src/config/vitrina.ts` (fotos de piezas). Assets en `public/marca/` (ver su README).
-- Foto del premio: se sube desde `/admin/raffles/[id]/edit` al bucket **público** `raffle-images` (columna `raffles.image_path`). El origen de Supabase está permitido en `img-src` de la CSP.
+- Foto del premio: se sube desde `/admin/raffles/[id]/edit` al bucket **público** `raffle-images` (columna `raffles.image_path`). El origen de Supabase está permitido en `img-src` de la CSP. El mismo bucket también aloja las fotos de premios de la lista (`raffles.prizes[].image_path`) y las de promociones (`/admin/promotions`), cada una en su subcarpeta.
+- Modal de promociones (carrusel de bienvenida, se abre a los 2s una vez por sesión): administrado en `/admin/promotions`, sin config estática. Ver `pendiente.md` §3.5.
 - Páginas legales en `/legal/{terminos,bases,privacidad,devoluciones}`: **borradores** pendientes de revisión legal. Al aprobarse, poner `LEGAL_ES_BORRADOR = false` en `src/app/legal/legal-document.tsx` para quitar el aviso.
 
 ## Panel administrativo (rediseño 23 jul 2026)
@@ -105,8 +93,8 @@ Comparte paleta y tipografía con el sitio público, pero **con densidad de herr
 ## Secuencia tras cada migración
 
 ```bash
-supabase db push
-supabase gen types typescript --local > src/types/database.ts
+npx supabase db push --linked
+npx supabase gen types typescript --linked > src/types/database.ts
 npx tsc --noEmit --pretty false   # corregir TODOS los errores antes de seguir
 npm run lint
 npm run build
