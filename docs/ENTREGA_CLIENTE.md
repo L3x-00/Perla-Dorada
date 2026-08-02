@@ -10,8 +10,9 @@ no hay una rifa activa, el sitio continúa funcionando como vitrina y muestra el
 
 - Administración de rifas: crear borradores, editar, activar, cerrar, cancelar
   y eliminar únicamente borradores sin actividad.
-- Compra pública: selección de cantidad, pago por Yape, carga de comprobante y
-  reserva temporal de tickets.
+- Compra pública: nombres y apellidos por separado, guía de avance entre
+  campos, estado visual de campos válidos, selección de cantidad, pago por
+  Yape, carga de comprobante y reserva temporal de tickets.
 - Seguimiento: un mismo código por documento para consultar todas las compras;
   la consulta exige documento y código.
 - Revisión administrativa: ver comprobante, aprobar o rechazar solicitudes y
@@ -20,7 +21,11 @@ no hay una rifa activa, el sitio continúa funcionando como vitrina y muestra el
   trazable si una rifa se cancela.
 - Ganadores: registro manual, irreversible y por fila de premio; el sitio
   muestra solo el primer nombre e inicial, nunca el DNI completo.
-- Promociones: carrusel de bienvenida administrable desde el panel.
+- Promociones: carrusel de bienvenida administrable desde el panel, visible
+  en cada recarga cuando hay promociones vigentes; su botón cierra el modal y
+  redirige al destino configurado.
+- Panel administrativo: buscador visible en el inicio y menú Perfil para
+  volver al sitio, cambiar tema y cerrar sesión.
 - Imagen y almacenamiento: toda foto se comprime en navegador cuando es
   posible y se valida/reencoda nuevamente en el servidor antes de Storage.
 
@@ -28,7 +33,8 @@ no hay una rifa activa, el sitio continúa funcionando como vitrina y muestra el
 
 ### Participante
 
-1. Ingresa al sorteo activo y completa sus datos.
+1. Ingresa al sorteo activo y completa nombres, apellidos y sus datos; cada
+   campo válido se confirma visualmente y la guía continúa al siguiente.
 2. Realiza el pago por Yape y adjunta la captura del comprobante.
 3. Guarda el código de seguimiento mostrado al finalizar.
 4. Consulta el estado con su tipo de documento, número y código.

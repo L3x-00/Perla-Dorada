@@ -6,6 +6,8 @@ type PromoSlideProps = {
   promo: PublicPromotion;
   /** El primer slide visible no debe esperar lazy-loading. */
   eager?: boolean;
+  /** El CTA cierra el modal antes de navegar. */
+  onCtaClick?: () => void;
 };
 
 function isInternalHref(href: string): boolean {
@@ -17,7 +19,11 @@ function isInternalHref(href: string): boolean {
  * descripción y CTA superpuestos abajo con un gradiente — el texto real
  * nunca va horneado en la imagen, así que funciona igual con o sin foto.
  */
-export function PromoSlide({ promo, eager = false }: PromoSlideProps) {
+export function PromoSlide({
+  promo,
+  eager = false,
+  onCtaClick,
+}: PromoSlideProps) {
   return (
     <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-ink-3 via-ink-2 to-ink">
       {promo.imageUrl ? (
@@ -43,26 +49,38 @@ export function PromoSlide({ promo, eager = false }: PromoSlideProps) {
           </p>
         ) : null}
 
-        <PromoCta ctaText={promo.ctaText} ctaHref={promo.ctaHref} />
+        <PromoCta
+          ctaText={promo.ctaText}
+          ctaHref={promo.ctaHref}
+          onClick={onCtaClick}
+        />
       </div>
     </div>
   );
 }
 
-function PromoCta({ ctaText, ctaHref }: { ctaText: string; ctaHref: string }) {
+function PromoCta({
+  ctaText,
+  ctaHref,
+  onClick,
+}: {
+  ctaText: string;
+  ctaHref: string;
+  onClick?: () => void;
+}) {
   const className =
     "mt-4 inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-300 hover:bg-gold-soft";
 
   if (isInternalHref(ctaHref)) {
     return (
-      <Link href={ctaHref} className={className}>
+      <Link href={ctaHref} onClick={onClick} className={className}>
         {ctaText}
       </Link>
     );
   }
 
   return (
-    <a href={ctaHref} target="_blank" rel="noopener noreferrer" className={className}>
+    <a href={ctaHref} onClick={onClick} className={className}>
       {ctaText}
     </a>
   );

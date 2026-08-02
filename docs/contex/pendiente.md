@@ -45,7 +45,7 @@ Crear, activar, editar, cerrar, cancelar o eliminar una rifa emite un broadcast 
 
 ### 3.5 Modal de promociones administrable (1-2 ago 2026, migración `20260801120000`)
 
-Modal de bienvenida con carrusel (3-4 slides), se abre una vez por sesión a los 2s si hay al menos una promoción vigente. Gestionado íntegramente desde `/admin/promotions`: título, descripción, foto (sube y comprime igual que las fotos de rifa, mismo bucket público `raffle-images`), texto y destino del botón (a la sección del sorteo, eligiendo de qué rifa se trata a modo de referencia, o a un enlace propio interno/externo), vigencia por fechas, activar/desactivar. Reemplazó una config estática (`src/config/promotions.ts`) que ya no existe.
+Modal de bienvenida con carrusel (3-4 slides), se abre a los 2s en cada carga si hay al menos una promoción vigente. Gestionado íntegramente desde `/admin/promotions`: título, descripción, foto (sube y comprime igual que las fotos de rifa, mismo bucket público `raffle-images`), texto y destino del botón (a la sección del sorteo, eligiendo de qué rifa se trata a modo de referencia, o a un enlace propio interno/externo), vigencia por fechas, activar/desactivar. El CTA cierra el modal antes de redirigir. Reemplazó una config estática (`src/config/promotions.ts`) que ya no existe.
 
 ### 3.6 Ganador por premio + mostrado públicamente (2 ago 2026, migración `20260802120000` + `20260802120100`)
 

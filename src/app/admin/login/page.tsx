@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 
 import {
   AdminAlert,
@@ -20,6 +20,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,6 +86,11 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                onBlur={() => {
+                  if (email.trim().length > 0 && email.includes("@")) {
+                    window.requestAnimationFrame(() => passwordRef.current?.focus());
+                  }
+                }}
                 className={adminInput}
               />
             </div>
@@ -96,6 +102,7 @@ export default function AdminLoginPage() {
 
               <input
                 id="password"
+                ref={passwordRef}
                 name="password"
                 type="password"
                 autoComplete="current-password"

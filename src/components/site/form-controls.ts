@@ -4,7 +4,7 @@
  */
 
 export const siteInputClass =
-  "w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-cream outline-none transition-colors duration-300 placeholder:text-muted/60 focus:border-gold";
+  "w-full rounded-lg border border-line bg-ink px-4 py-3.5 text-cream outline-none transition-colors duration-300 placeholder:text-muted/60 focus:border-gold [&:user-valid]:border-emerald-500 [&:user-valid]:bg-emerald-950/15 [&:user-valid]:focus:border-emerald-400";
 
 export const siteLabelClass = "eyebrow mb-2.5 block text-muted";
 

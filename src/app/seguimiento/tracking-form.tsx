@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 
 import { Countdown } from "@/app/countdown";
 import { DocumentField } from "@/components/site/document-field";
-import { siteButtonClass } from "@/components/site/form-controls";
+import {
+  siteButtonClass,
+  siteInputClass,
+} from "@/components/site/form-controls";
 import {
   normalizeTrackingCode,
   type DocumentType,
+  validateDocumentNumber,
 } from "@/lib/validation/document";
 
 type PurchaseRequestStatus = "pending" | "approved" | "rejected" | "expired";
@@ -62,6 +66,11 @@ export function TrackingForm() {
   const [results, setResults] = useState<TrackingResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const trackingCodeRef = useRef<HTMLInputElement | null>(null);
+
+  const documentComplete =
+    documentNumber.length > 0 &&
+    !validateDocumentNumber(documentType, documentNumber);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,6 +128,11 @@ export function TrackingForm() {
           value={documentNumber}
           onValueChange={setDocumentNumber}
           showHint={false}
+          onInputBlur={() => {
+            if (documentComplete) {
+              window.requestAnimationFrame(() => trackingCodeRef.current?.focus());
+            }
+          }}
         />
 
         <div>
@@ -127,6 +141,7 @@ export function TrackingForm() {
           </label>
           <input
             id="tracking-code"
+            ref={trackingCodeRef}
             value={trackingCode}
             onChange={(event) =>
               setTrackingCode(normalizeTrackingCode(event.target.value).slice(0, 16))
@@ -136,7 +151,7 @@ export function TrackingForm() {
             maxLength={16}
             autoComplete="off"
             placeholder="Código de seguimiento"
-            className="h-11 w-full rounded-lg border border-line bg-ink px-3 font-mono text-sm uppercase text-cream outline-none transition placeholder:font-sans placeholder:text-muted/50 focus:border-gold focus:ring-2 focus:ring-gold/20"
+            className={`${siteInputClass} h-11 px-3 font-mono text-sm uppercase placeholder:font-sans focus:ring-2 focus:ring-gold/20`}
           />
           <p className="mt-2 text-xs text-muted">
             Es el mismo código para todas las compras que hagas con este documento.

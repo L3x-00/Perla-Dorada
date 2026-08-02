@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AdminNav } from "./admin-nav";
-import { ThemeToggle } from "@/components/site/theme-toggle";
+import { AdminProfileMenu } from "./admin-profile-menu";
 import { Wordmark } from "@/components/site/wordmark";
 
 type AdminLayoutProps = {
@@ -30,16 +30,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </Link>
 
               <div className="shrink-0 lg:order-3">
-                <ThemeToggle />
+                <AdminProfileMenu />
               </div>
 
-              <Link
-                href="/"
-                target="_blank"
-                className="shrink-0 text-sm text-muted transition-colors hover:text-gold lg:order-3"
-              >
-                Ver sitio ↗
-              </Link>
             </div>
 
             {/* Navegación (deslizable en móvil, centro en escritorio) */}

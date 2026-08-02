@@ -157,12 +157,12 @@ process.env.SUPABASE_SERVICE_ROLE_KEY en un Client Component o NEXT_PUBLIC_*
 
 | ✅ Confiable (input del cliente) | ❌ No confiable (calcular en backend) |
 |---|---|
-| `fullName`, `dni`, `phone`, `whatsapp` | `ticketPrice`, `totalAmount` |
+| `firstName`, `lastName`, `dni`, `phone`, `whatsapp` | `ticketPrice`, `totalAmount` |
 | `requestedQuantity` | `raffleId` seleccionado libremente (se resuelve la rifa activa en servidor) |
 | `paymentProof` | `expiresAt`, `status`, ticket numbers |
 | Elección de premio/enlace en formularios admin | Quién ganó, disponibilidad final |
 
-El backend obtiene la rifa activa, valida cantidad y disponibilidad, calcula cualquier total y crea la reserva.
+El backend une nombres y apellidos en el campo histórico `full_name`, obtiene la rifa activa, valida cantidad y disponibilidad, calcula cualquier total y crea la reserva.
 
 ## 8. Patrón de Route Handler
 

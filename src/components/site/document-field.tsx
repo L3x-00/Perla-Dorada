@@ -11,6 +11,7 @@ import {
   DOCUMENT_TYPES,
   type DocumentType,
 } from "@/lib/validation/document";
+import type { Ref } from "react";
 
 type DocumentFieldProps = {
   /** Prefijo para los id/name, porque puede haber más de uno por página. */
@@ -21,6 +22,10 @@ type DocumentFieldProps = {
   onValueChange: (value: string) => void;
   /** Oculta el texto de ayuda en formularios muy compactos. */
   showHint?: boolean;
+  /** Permite que formularios guiados continÃºen al siguiente campo. */
+  inputRef?: Ref<HTMLInputElement>;
+  onInputBlur?: () => void;
+  inputClassName?: string;
 };
 
 /*
@@ -47,6 +52,9 @@ export function DocumentField({
   value,
   onValueChange,
   showHint = true,
+  inputRef,
+  onInputBlur,
+  inputClassName,
 }: DocumentFieldProps) {
   const inputId = `${idPrefix}-document-number`;
   const groupId = `${idPrefix}-document-type`;
@@ -100,6 +108,7 @@ export function DocumentField({
 
       <input
         id={inputId}
+        ref={inputRef}
         name="documentNumber"
         value={value}
         onChange={(event) =>
@@ -110,7 +119,8 @@ export function DocumentField({
         maxLength={DOCUMENT_MAX_LENGTH[documentType]}
         autoComplete="off"
         placeholder={documentType === "dni" ? "12345678" : "CE123456"}
-        className={`${siteInputClass} ${
+        onBlur={onInputBlur}
+        className={`${siteInputClass} ${inputClassName ?? ""} ${
           documentType === "cui" ? "uppercase" : ""
         }`}
       />

@@ -166,7 +166,9 @@ Todo lo de Bloques A-G (portal público, configuración/mantenimiento, expiraci�
 | Ticket ganador destacado (dorado) en `/seguimiento/tickets`, con nombre del premio | ✅ |
 | **Ganador por premio** (antes: uno solo por rifa) | ✅ — migración `20260802120000`, ver detalle abajo |
 | **Ganadores mostrados públicamente** reemplazando la sección del sorteo cuando no hay rifa activa | ✅ — revierte DEC-04, nombre enmascarado (primer nombre + inicial del apellido) |
-| **Modal de promociones** con carrusel, administrable desde `/admin/promotions` | ✅ — DB-backed, no config estática |
+| **Modal de promociones** con carrusel, administrable desde `/admin/promotions` | ✅ — DB-backed, no config estática; se abre en cada recarga y el CTA cierra antes de redirigir |
+| **Formulario de compra guiado** | ✅ — nombres y apellidos separados, validación visual y avance al siguiente campo |
+| **Perfil y búsqueda admin** | ✅ — buscador en inicio; menú Perfil con sitio, tema y cierre de sesión |
 | Reserva de tickets: 60 min → **360 min (6h)** | ✅ |
 | Modal "Participar" a pantalla completa por pasos, portal a `document.body` | ✅ (ver lección en `errores.md` sobre `AnimatePresence` + `createPortal`) |
 | 3 cuentas administrativas activas en `admin_profiles` | ✅ |

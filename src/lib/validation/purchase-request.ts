@@ -12,11 +12,17 @@ const digitsOnly = (value: string): string =>
 
 export const purchaseRequestSchema = z
   .object({
-    fullName: z
+    firstName: z
       .string()
       .trim()
-      .min(3, "Ingresa el nombre completo.")
-      .max(150, "El nombre es demasiado largo."),
+      .min(2, "Ingresa tus nombres.")
+      .max(74, "Los nombres son demasiado largos."),
+
+    lastName: z
+      .string()
+      .trim()
+      .min(2, "Ingresa tus apellidos.")
+      .max(74, "Los apellidos son demasiado largos."),
 
     documentType: z.enum(DOCUMENT_TYPES, {
       message: "Selecciona el tipo de documento.",
@@ -70,7 +76,16 @@ export const purchaseRequestSchema = z
         path: ["dni"],
       });
     }
-  });
+  })
+  /*
+   * La columna histÃ³rica se llama full_name. Componerla aquÃ­ permite pedir
+   * nombres y apellidos por separado sin romper tickets, consultas ni datos
+   * ya emitidos.
+   */
+  .transform(({ firstName, lastName, ...value }) => ({
+    ...value,
+    fullName: `${firstName} ${lastName}`,
+  }));
 
 export type PurchaseRequestInput = z.infer<
   typeof purchaseRequestSchema

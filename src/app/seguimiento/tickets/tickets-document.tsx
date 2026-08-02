@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { DocumentField } from "@/components/site/document-field";
+import { siteInputClass } from "@/components/site/form-controls";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import {
   normalizeTrackingCode,
   type DocumentType,
+  validateDocumentNumber,
 } from "@/lib/validation/document";
 
 type TicketStatus = "active" | "frozen" | "reassigned";
@@ -73,6 +75,11 @@ export function TicketsDocument() {
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<TicketsPayload | null>(null);
   const [autoLoading, setAutoLoading] = useState(false);
+  const trackingCodeRef = useRef<HTMLInputElement | null>(null);
+
+  const documentComplete =
+    documentNumber.length > 0 &&
+    !validateDocumentNumber(documentType, documentNumber);
 
   const fetchDocument = useCallback(async (
     dt: DocumentType,
@@ -214,6 +221,11 @@ export function TicketsDocument() {
               value={documentNumber}
               onValueChange={setDocumentNumber}
               showHint={false}
+              onInputBlur={() => {
+                if (documentComplete) {
+                  window.requestAnimationFrame(() => trackingCodeRef.current?.focus());
+                }
+              }}
             />
 
             <div>
@@ -222,6 +234,7 @@ export function TicketsDocument() {
               </label>
               <input
                 id="ticket-tracking-code"
+                ref={trackingCodeRef}
                 value={trackingCode}
                 onChange={(event) =>
                   setTrackingCode(
@@ -233,7 +246,7 @@ export function TicketsDocument() {
                 maxLength={16}
                 autoComplete="off"
                 placeholder="Código de seguimiento"
-                className="h-11 w-full rounded-lg border border-line bg-ink px-3 font-mono text-sm uppercase text-cream outline-none transition placeholder:font-sans placeholder:text-muted/50 focus:border-gold focus:ring-2 focus:ring-gold/20"
+                className={`${siteInputClass} h-11 px-3 font-mono text-sm uppercase placeholder:font-sans focus:ring-2 focus:ring-gold/20`}
               />
             </div>
 

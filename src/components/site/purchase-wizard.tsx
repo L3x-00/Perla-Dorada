@@ -6,7 +6,7 @@ import {
   motion,
   useReducedMotion,
 } from "motion/react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, type RefObject, useMemo, useRef, useState } from "react";
 
 import { Countdown } from "@/app/countdown";
 import { DocumentField } from "@/components/site/document-field";
@@ -50,6 +50,15 @@ type ApiResponse = {
 
 type FieldErrors = Record<string, string | undefined>;
 
+function hasValidPersonName(value: string): boolean {
+  return value.trim().length >= 2;
+}
+
+function hasValidPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 const STEPS = [
   { id: 1, label: "Tus datos" },
   { id: 2, label: "Pago" },
@@ -79,7 +88,8 @@ export function PurchaseWizard({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [direction, setDirection] = useState(1);
 
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("dni");
   const [documentNumber, setDocumentNumber] = useState("");
   const [phone, setPhone] = useState("");
@@ -98,12 +108,33 @@ export function PurchaseWizard({
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<SuccessData | null>(null);
 
+  const firstNameRef = useRef<HTMLInputElement | null>(null);
+  const lastNameRef = useRef<HTMLInputElement | null>(null);
+  const documentRef = useRef<HTMLInputElement | null>(null);
+  const phoneRef = useRef<HTMLInputElement | null>(null);
+  const whatsappRef = useRef<HTMLInputElement | null>(null);
+
   const total = useMemo(
     () => formatCurrencyPEN(ticketPrice * quantity),
     [ticketPrice, quantity],
   );
 
   const effectiveWhatsapp = whatsappSameAsPhone ? phone : whatsapp;
+  const firstNameComplete = hasValidPersonName(firstName);
+  const lastNameComplete = hasValidPersonName(lastName);
+  const documentMessage = validateDocumentNumber(documentType, documentNumber);
+  const documentComplete = documentNumber.length > 0 && !documentMessage;
+  const phoneComplete = hasValidPhone(phone);
+  const whatsappComplete = hasValidPhone(whatsapp);
+
+  const completedFieldClass = (completed: boolean) =>
+    completed
+      ? "border-emerald-500 bg-emerald-950/15 focus:border-emerald-400"
+      : "";
+
+  function focusNextField(next: RefObject<HTMLInputElement | null>) {
+    window.requestAnimationFrame(() => next.current?.focus());
+  }
 
   function goTo(next: 1 | 2 | 3) {
     setDirection(next > step ? 1 : -1);
@@ -145,29 +176,24 @@ export function PurchaseWizard({
   function validateStepOne(): boolean {
     const next: FieldErrors = {};
 
-    if (fullName.trim().length < 3) {
-      next.fullName = "Ingresa tu nombre completo.";
+    if (!firstNameComplete) {
+      next.firstName = "Ingresa tus nombres.";
     }
 
-    const documentMessage = validateDocumentNumber(
-      documentType,
-      documentNumber,
-    );
+    if (!lastNameComplete) {
+      next.lastName = "Ingresa tus apellidos.";
+    }
 
     if (documentMessage) {
       next.dni = documentMessage;
     }
 
-    const phoneDigits = phone.replace(/\D/g, "");
-
-    if (phoneDigits.length < 7) {
+    if (!phoneComplete) {
       next.phone = "El teléfono no es válido.";
     }
 
     if (!whatsappSameAsPhone) {
-      const whatsappDigits = whatsapp.replace(/\D/g, "");
-
-      if (whatsappDigits.length < 7) {
+      if (!whatsappComplete) {
         next.whatsapp = "El WhatsApp no es válido.";
       }
     }
@@ -202,7 +228,8 @@ export function PurchaseWizard({
 
     try {
       const formData = new FormData();
-      formData.set("fullName", fullName);
+      formData.set("firstName", firstName);
+      formData.set("lastName", lastName);
       formData.set("documentType", documentType);
       formData.set("dni", documentNumber);
       formData.set("phone", phone);
@@ -266,19 +293,48 @@ export function PurchaseWizard({
               <div className="mt-6 md:mt-7 space-y-5 md:space-y-6">
                 <div>
                   <label htmlFor="wiz-name" className={siteLabelClass}>
-                    Nombre completo
+                    Nombres
                   </label>
                   <input
                     id="wiz-name"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
+                    ref={firstNameRef}
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    onBlur={() => {
+                      if (firstNameComplete) {
+                        focusNextField(lastNameRef);
+                      }
+                    }}
                     required
-                    minLength={3}
-                    maxLength={150}
-                    autoComplete="name"
-                    className={siteInputClass}
+                    minLength={2}
+                    maxLength={74}
+                    autoComplete="given-name"
+                    className={`${siteInputClass} ${completedFieldClass(firstNameComplete)}`}
                   />
-                  <FieldError message={fieldErrors.fullName} />
+                  <FieldError message={fieldErrors.firstName} />
+                </div>
+
+                <div>
+                  <label htmlFor="wiz-last-name" className={siteLabelClass}>
+                    Apellidos
+                  </label>
+                  <input
+                    id="wiz-last-name"
+                    ref={lastNameRef}
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    onBlur={() => {
+                      if (lastNameComplete) {
+                        focusNextField(documentRef);
+                      }
+                    }}
+                    required
+                    minLength={2}
+                    maxLength={74}
+                    autoComplete="family-name"
+                    className={`${siteInputClass} ${completedFieldClass(lastNameComplete)}`}
+                  />
+                  <FieldError message={fieldErrors.lastName} />
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
@@ -289,6 +345,13 @@ export function PurchaseWizard({
                       onDocumentTypeChange={setDocumentType}
                       value={documentNumber}
                       onValueChange={setDocumentNumber}
+                      inputRef={documentRef}
+                      inputClassName={completedFieldClass(documentComplete)}
+                      onInputBlur={() => {
+                        if (documentComplete) {
+                          focusNextField(phoneRef);
+                        }
+                      }}
                     />
                     <FieldError message={fieldErrors.dni} />
                   </div>
@@ -299,13 +362,19 @@ export function PurchaseWizard({
                     </label>
                     <input
                       id="wiz-phone"
+                      ref={phoneRef}
                       value={phone}
                       onChange={(event) => setPhone(event.target.value)}
+                      onBlur={() => {
+                        if (phoneComplete && !whatsappSameAsPhone) {
+                          focusNextField(whatsappRef);
+                        }
+                      }}
                       required
                       inputMode="tel"
                       maxLength={15}
                       autoComplete="tel"
-                      className={siteInputClass}
+                      className={`${siteInputClass} ${completedFieldClass(phoneComplete)}`}
                     />
                     <FieldError message={fieldErrors.phone} />
                   </div>
@@ -344,12 +413,13 @@ export function PurchaseWizard({
                       </label>
                       <input
                         id="wiz-whatsapp"
+                        ref={whatsappRef}
                         value={whatsapp}
                         onChange={(event) => setWhatsapp(event.target.value)}
                         inputMode="tel"
                         maxLength={15}
                         autoComplete="off"
-                        className={siteInputClass}
+                        className={`${siteInputClass} ${completedFieldClass(whatsappComplete)}`}
                       />
                       <FieldError message={fieldErrors.whatsapp} />
                     </motion.div>

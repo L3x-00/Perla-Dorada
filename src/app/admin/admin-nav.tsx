@@ -8,7 +8,6 @@ const LINKS = [
   { label: "Rifas", href: "/admin/raffles" },
   { label: "Promociones", href: "/admin/promotions" },
   { label: "Tickets", href: "/admin/tickets" },
-  { label: "Buscar", href: "/admin/search" },
   { label: "Configuración", href: "/admin/settings" },
 ];
 

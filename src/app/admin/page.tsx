@@ -126,6 +126,30 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
         description="Se muestran las 100 solicitudes más recientes."
       />
 
+      <form
+        action="/admin/search"
+        className="mt-8 flex max-w-2xl flex-col gap-3 rounded-xl border border-line bg-ink-2 p-3 sm:flex-row"
+      >
+        <label htmlFor="dashboard-search" className="sr-only">
+          Buscar por DNI o número de ticket
+        </label>
+        <input
+          id="dashboard-search"
+          name="q"
+          minLength={2}
+          maxLength={50}
+          required
+          placeholder="Buscar por DNI o número de ticket"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-4 py-3 text-sm text-cream outline-none transition-colors placeholder:text-muted/50 focus:border-gold [&:user-valid]:border-emerald-500 [&:user-valid]:bg-emerald-950/15"
+        />
+        <button
+          type="submit"
+          className="rounded-lg bg-gold px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-gold-soft"
+        >
+          Buscar
+        </button>
+      </form>
+
       <nav className="mt-8 flex flex-wrap gap-2">
         <FilterLink href="/admin" label="Todas" active={!selectedStatus} />
 

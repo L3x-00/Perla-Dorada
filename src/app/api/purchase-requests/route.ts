@@ -193,7 +193,8 @@ export async function POST(
     const formData = await request.formData();
 
     const parsedInput = purchaseRequestSchema.parse({
-      fullName: formData.get("fullName"),
+      firstName: formData.get("firstName"),
+      lastName: formData.get("lastName"),
       documentType: formData.get("documentType"),
       dni: formData.get("dni"),
       phone: formData.get("phone"),

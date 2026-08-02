@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 export const adminCard = "rounded-xl border border-line bg-ink-2";
 
 export const adminInput =
-  "w-full rounded-lg border border-line bg-ink px-3.5 py-2.5 text-sm text-cream outline-none transition-colors duration-200 placeholder:text-muted/50 focus:border-gold disabled:opacity-50";
+  "w-full rounded-lg border border-line bg-ink px-3.5 py-2.5 text-sm text-cream outline-none transition-colors duration-200 placeholder:text-muted/50 focus:border-gold disabled:opacity-50 [&:user-valid]:border-emerald-500 [&:user-valid]:bg-emerald-950/15 [&:user-valid]:focus:border-emerald-400";
 
 export const adminLabel =
   "mb-2 block text-[0.68rem] font-medium uppercase tracking-[0.16em] text-muted";

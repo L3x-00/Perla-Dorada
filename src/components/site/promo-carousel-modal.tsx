@@ -17,7 +17,6 @@ import { PromoSlide } from "@/components/site/promo-slide";
 import type { PublicPromotion } from "@/lib/promotions/public-promotions";
 import { useLockBodyScroll } from "@/lib/use-lock-body-scroll";
 
-const SESSION_KEY = "pd:promo-modal-shown";
 const AUTO_OPEN_DELAY_MS = 2000;
 const AUTOPLAY_INTERVAL_MS = 5000;
 
@@ -52,9 +51,9 @@ type PromoCarouselModalProps = {
 /*
  * Modal de bienvenida con carrusel de promociones.
  *
- * Se abre solo una vez por sesión (sessionStorage), 2 segundos después de
- * cargar la portada, y solo si hay al menos una promoción vigente. Si no hay
- * ninguna, el componente no hace nada — ni siquiera arma el temporizador.
+ * Se abre en cada carga de la portada, 2 segundos después, si hay al menos
+ * una promoción vigente. Así, una promoción nueva se muestra sin esperar a
+ * que termine una sesión anterior.
  */
 export function PromoCarouselModal({ promotions }: PromoCarouselModalProps) {
   const reduceMotion = useReducedMotion();
@@ -92,31 +91,13 @@ export function PromoCarouselModal({ promotions }: PromoCarouselModalProps) {
     [index],
   );
 
-  // Apertura automática, una sola vez por sesión.
+  // Apertura automática en cada carga de la portada.
   useEffect(() => {
     if (promotions.length === 0) {
       return;
     }
 
-    let alreadyShown = false;
-
-    try {
-      alreadyShown = window.sessionStorage.getItem(SESSION_KEY) === "1";
-    } catch {
-      // Storage no disponible (modo privado estricto, etc.): se muestra igual.
-    }
-
-    if (alreadyShown) {
-      return;
-    }
-
     const timer = window.setTimeout(() => {
-      try {
-        window.sessionStorage.setItem(SESSION_KEY, "1");
-      } catch {
-        // Falla silenciosa: en el peor caso se muestra más de una vez.
-      }
-
       setOpen(true);
     }, AUTO_OPEN_DELAY_MS);
 
@@ -261,7 +242,11 @@ export function PromoCarouselModal({ promotions }: PromoCarouselModalProps) {
                   }
                   transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <PromoSlide promo={active} eager={index === 0} />
+                  <PromoSlide
+                    promo={active}
+                    eager={index === 0}
+                    onCtaClick={close}
+                  />
                 </motion.div>
               </AnimatePresence>
 
