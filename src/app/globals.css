@@ -419,9 +419,9 @@ html[data-theme="light"] .raffle-festive-wash {
 }
 
 .urn-ticket-receipt {
-  --urn-code-size: 28pt;
-  --urn-date-size: 14pt;
-  --urn-detail-size: 18pt;
+  --urn-code-size: 21pt;
+  --urn-date-size: 10.5pt;
+  --urn-detail-size: 13.5pt;
 
   box-sizing: border-box;
   width: 100%;
@@ -436,9 +436,9 @@ html[data-theme="light"] .raffle-festive-wash {
 }
 
 [data-print-profile="adaptive"] .urn-ticket-receipt {
-  --urn-code-size: 36pt;
-  --urn-date-size: 18pt;
-  --urn-detail-size: 22pt;
+  --urn-code-size: 27pt;
+  --urn-date-size: 13.5pt;
+  --urn-detail-size: 16.5pt;
 
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.15;
@@ -641,9 +641,9 @@ html[data-theme="light"] .raffle-festive-wash {
 
   [data-print-profile="thermal-72"][data-thermal-font="font-b"]
     .urn-ticket-receipt {
-    --urn-code-size: 24pt;
-    --urn-date-size: 12pt;
-    --urn-detail-size: 16pt;
+    --urn-code-size: 18pt;
+    --urn-date-size: 9pt;
+    --urn-detail-size: 12pt;
   }
 
   [data-print-profile="adaptive"] .urn-ticket-print {
