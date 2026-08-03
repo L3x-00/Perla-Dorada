@@ -509,6 +509,17 @@ html[data-theme="light"] .raffle-festive-wash {
     -webkit-print-color-adjust: exact;
   }
 
+  /*
+   * El layout del panel usa un fondo oscuro de altura completa. Sin este
+   * aislamiento, Chrome conserva ese fondo debajo del talón compacto y lo
+   * imprime como una gran franja negra horizontal.
+   */
+  .admin-shell {
+    min-height: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
   .ticket-print {
     break-after: page;
     break-inside: avoid;
