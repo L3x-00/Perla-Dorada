@@ -5,14 +5,10 @@ import { z } from "zod";
  *
  * La base de datos (app_settings) impone además sus propios CHECK:
  *   reservation_minutes > 0
- *   max_reprints between 0 and 20
- *
- * Estos rangos de aplicación son un subconjunto seguro de esos límites.
+ * El campo histórico max_reprints ya no limita las impresiones del panel.
  */
 export const RESERVATION_MINUTES_MIN = 5;
 export const RESERVATION_MINUTES_MAX = 1440;
-export const MAX_REPRINTS_MIN = 0;
-export const MAX_REPRINTS_MAX = 20;
 export const MAINTENANCE_MESSAGE_MAX = 500;
 
 export const appSettingsSchema = z.object({
@@ -30,18 +26,6 @@ export const appSettingsSchema = z.object({
     .max(
       RESERVATION_MINUTES_MAX,
       `La reserva no puede superar los ${RESERVATION_MINUTES_MAX} minutos.`,
-    ),
-
-  maxReprints: z.coerce
-    .number()
-    .int("El máximo de reimpresiones debe ser un número entero.")
-    .min(
-      MAX_REPRINTS_MIN,
-      `El máximo de reimpresiones no puede ser menor a ${MAX_REPRINTS_MIN}.`,
-    )
-    .max(
-      MAX_REPRINTS_MAX,
-      `El máximo de reimpresiones no puede superar ${MAX_REPRINTS_MAX}.`,
     ),
 
   maintenanceMessage: z

@@ -6,6 +6,7 @@ import {
 } from "@/components/admin/ui";
 import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { formatTicketCode, parseTicketCode } from "@/lib/tickets/code";
 
 type AdminSearchPageProps = {
   searchParams: Promise<{
@@ -17,6 +18,7 @@ type PurchaseRequestResult = {
   id: string;
   raffle_id: string;
   full_name: string;
+  document_type: "dni" | "cui";
   dni: string;
   status: string;
   tracking_code: string;
@@ -28,6 +30,7 @@ type TicketResult = {
   raffle_id: string;
   purchase_request_id: string;
   ticket_number: number;
+  ticket_status: "active" | "frozen" | "reassigned";
   assigned_at: string;
 };
 
@@ -52,15 +55,6 @@ function normalizeSearchTerm(
 
 function sanitizeIlikeValue(value: string) {
   return value.replace(/[%_\\]/g, "");
-}
-
-function formatTicketNumber(
-  ticketNumber: number,
-) {
-  return String(ticketNumber).padStart(
-    4,
-    "0",
-  );
 }
 
 function formatDate(value: string) {
@@ -110,21 +104,15 @@ export default async function AdminSearchPage({
   let ticketPrints: TicketPrintResult[] =
     [];
 
-  let maxReprints = 5;
-
   if (safeQuery.length >= 2) {
-    const numericTicket =
-      Number(safeQuery);
+    const numericTicket = parseTicketCode(safeQuery);
 
     const isValidTicketNumber =
-      Number.isSafeInteger(
-        numericTicket,
-      ) && numericTicket > 0;
+      numericTicket !== null;
 
     const [
       requestsResult,
       exactTicketsResult,
-      settingsResult,
     ] = await Promise.all([
       adminClient
         .from("purchase_requests")
@@ -133,6 +121,7 @@ export default async function AdminSearchPage({
             id,
             raffle_id,
             full_name,
+            document_type,
             dni,
             status,
             tracking_code,
@@ -157,12 +146,13 @@ export default async function AdminSearchPage({
                 raffle_id,
                 purchase_request_id,
                 ticket_number,
+                ticket_status,
                 assigned_at
               `,
             )
             .eq(
               "ticket_number",
-              numericTicket,
+              numericTicket as number,
             )
             .order("assigned_at", {
               ascending: false,
@@ -173,11 +163,6 @@ export default async function AdminSearchPage({
             error: null,
           }),
 
-      adminClient
-        .from("app_settings")
-        .select("max_reprints")
-        .limit(1)
-        .maybeSingle(),
     ]);
 
     if (
@@ -199,27 +184,11 @@ export default async function AdminSearchPage({
       );
     }
 
-    if (settingsResult.error) {
-      console.error(
-        "Could not load max reprints",
-        settingsResult.error,
-      );
-
-      throw new Error(
-        "No se pudo cargar la configuración de reimpresiones.",
-      );
-    }
-
     purchaseRequests =
       requestsResult.data ?? [];
 
     exactTickets =
       exactTicketsResult.data ?? [];
-
-    if (settingsResult.data) {
-      maxReprints =
-        settingsResult.data.max_reprints;
-    }
 
     /*
      * Si se buscó un ticket, necesitamos
@@ -251,6 +220,7 @@ export default async function AdminSearchPage({
             id,
             raffle_id,
             full_name,
+            document_type,
             dni,
             status,
             tracking_code,
@@ -306,6 +276,7 @@ export default async function AdminSearchPage({
             raffle_id,
             purchase_request_id,
             ticket_number,
+            ticket_status,
             assigned_at
           `,
         )
@@ -487,7 +458,7 @@ export default async function AdminSearchPage({
           htmlFor="admin-search"
           className="sr-only"
         >
-          DNI o número de ticket
+          DNI, CUI o código de ticket
         </label>
 
         <input
@@ -510,7 +481,7 @@ export default async function AdminSearchPage({
 
       {!query ? (
         <div className="mt-8 rounded-xl border border-line p-6 text-sm text-muted">
-          Ingresa un DNI o número de ticket.
+          Ingresa un DNI, CUI o código como PD-0001.
         </div>
       ) : null}
 
@@ -559,7 +530,7 @@ export default async function AdminSearchPage({
                       </h2>
 
                       <p className="mt-2 text-sm text-muted">
-                        DNI:{" "}
+                        {purchaseRequest.document_type === "cui" ? "CUI" : "DNI"}:{" "}
                         <span className="font-medium text-cream">
                           {
                             purchaseRequest.dni
@@ -629,7 +600,7 @@ export default async function AdminSearchPage({
                                   <div>
                                     <p className="text-2xl font-black tabular-nums">
                                       Ticket{" "}
-                                      {formatTicketNumber(
+                                      {formatTicketCode(
                                         ticket.ticket_number,
                                       )}
                                     </p>
@@ -653,18 +624,18 @@ export default async function AdminSearchPage({
                                     </p>
 
                                     <p className="mt-1 text-xs text-muted">
-                                      Reimpresiones:{" "}
+                                      Reimpresiones registradas:{" "}
                                       {Math.max(
                                         previousPrints -
                                           1,
                                         0,
                                       )}
-                                      /{maxReprints}
                                     </p>
                                   </div>
 
                                   {purchaseRequest.status ===
-                                  "approved" ? (
+                                    "approved" &&
+                                  ticket.ticket_status === "active" ? (
                                     <TicketPrintAction
                                       ticketId={
                                         ticket.id
@@ -672,16 +643,12 @@ export default async function AdminSearchPage({
                                       previousPrints={
                                         previousPrints
                                       }
-                                      maxReprints={
-                                        maxReprints
-                                      }
                                     />
                                   ) : (
                                     <p className="max-w-52 text-xs text-red-400">
-                                      Solo se pueden
-                                      imprimir tickets
-                                      de solicitudes
-                                      aprobadas.
+                                      {ticket.ticket_status === "active"
+                                        ? "Solo se imprimen tickets de solicitudes aprobadas."
+                                        : "Este ticket está congelado o ya fue reasignado."}
                                     </p>
                                   )}
                                 </div>

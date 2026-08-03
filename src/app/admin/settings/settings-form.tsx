@@ -11,8 +11,6 @@ import {
 
 import {
   MAINTENANCE_MESSAGE_MAX,
-  MAX_REPRINTS_MAX,
-  MAX_REPRINTS_MIN,
   RESERVATION_MINUTES_MAX,
   RESERVATION_MINUTES_MIN,
 } from "@/lib/settings/validation";
@@ -21,7 +19,6 @@ type SettingsFormProps = {
   initial: {
     maintenanceMode: boolean;
     reservationMinutes: number;
-    maxReprints: number;
     maintenanceMessage: string;
   };
 };
@@ -40,9 +37,6 @@ export function SettingsForm({ initial }: SettingsFormProps) {
   );
   const [reservationMinutes, setReservationMinutes] = useState(
     String(initial.reservationMinutes),
-  );
-  const [maxReprints, setMaxReprints] = useState(
-    String(initial.maxReprints),
   );
   const [maintenanceMessage, setMaintenanceMessage] = useState(
     initial.maintenanceMessage,
@@ -71,7 +65,6 @@ export function SettingsForm({ initial }: SettingsFormProps) {
         body: JSON.stringify({
           maintenanceMode,
           reservationMinutes: Number(reservationMinutes),
-          maxReprints: Number(maxReprints),
           maintenanceMessage,
         }),
       });
@@ -165,30 +158,6 @@ export function SettingsForm({ initial }: SettingsFormProps) {
         <p className="mt-2 text-xs text-muted">
           Tiempo que dura la reserva de una solicitud pendiente. Entre{" "}
           {RESERVATION_MINUTES_MIN} y {RESERVATION_MINUTES_MAX} minutos.
-        </p>
-      </div>
-
-      <div>
-        <label
-          htmlFor="maxReprints"
-          className={adminLabel}
-        >
-          Máximo de reimpresiones
-        </label>
-        <input
-          id="maxReprints"
-          type="number"
-          inputMode="numeric"
-          min={MAX_REPRINTS_MIN}
-          max={MAX_REPRINTS_MAX}
-          value={maxReprints}
-          onChange={(event) => setMaxReprints(event.target.value)}
-          required
-          className={adminInput}
-        />
-        <p className="mt-2 text-xs text-muted">
-          Reimpresiones permitidas por ticket, además de la impresión
-          original. Entre {MAX_REPRINTS_MIN} y {MAX_REPRINTS_MAX}.
         </p>
       </div>
 

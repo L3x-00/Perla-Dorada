@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { PrintControls } from "@/app/admin/tickets/[id]/print/print-controls";
+import { AdminUrnTicket } from "@/components/admin/printing/admin-urn-ticket";
 import { PrintProfileScope } from "@/components/printing/print-profile";
-import { TicketReceipt } from "@/components/printing/ticket-receipt";
-import { formatDateTime } from "@/lib/format";
+import { formatCompactLimaDateTime } from "@/lib/format";
 import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -25,8 +25,8 @@ function parseBatchId(value: string | string[] | undefined): string | null {
  * Documento único con TODOS los tickets activos de una solicitud aprobada,
  * listo para imprimir de corrido en la impresora térmica (para las ánforas
  * del sorteo). Reemplaza el flujo anterior de un botón/ventana por ticket.
- * Comparte el mismo recibo adaptable que /admin/tickets/[id]/print y el
- * documento público de /seguimiento/tickets.
+ * Usa un talón mínimo exclusivo del panel. El comprobante público conserva
+ * por separado toda la información de la rifa y del participante.
  */
 export default async function PurchaseRequestPrintPage({
   params,
@@ -48,7 +48,7 @@ export default async function PurchaseRequestPrintPage({
     await adminClient
       .from("purchase_requests")
       .select(
-        "id, full_name, document_type, dni, status, created_at, requested_quantity",
+        "id, full_name, phone, status, created_at, requested_quantity",
       )
       .eq("id", purchaseRequestId)
       .maybeSingle();
@@ -64,7 +64,7 @@ export default async function PurchaseRequestPrintPage({
 
   const { data: prints, error: printsError } = await adminClient
     .from("ticket_prints")
-    .select("id, ticket_id, print_type, print_sequence, printed_at")
+    .select("id, ticket_id")
     .eq("print_batch_id", batchId)
     .order("printed_at", { ascending: true });
 
@@ -109,34 +109,25 @@ export default async function PurchaseRequestPrintPage({
     notFound();
   }
 
-  const raffleIds = [...new Set(activeTickets.map((ticket) => ticket.raffle_id))];
-  const { data: raffles, error: rafflesError } = await adminClient
-    .from("raffles")
-    .select("id, name")
-    .in("id", raffleIds);
+  const raffleIds = new Set(activeTickets.map((ticket) => ticket.raffle_id));
 
-  if (rafflesError) {
-    console.error("No se pudieron cargar las rifas:", rafflesError);
-    throw new Error("No se pudieron cargar las rifas.");
-  }
-
-  if ((raffles?.length ?? 0) !== raffleIds.length) {
+  if (raffleIds.size !== 1) {
     notFound();
   }
 
-  const raffleNameById = new Map(
-    (raffles ?? []).map((raffle) => [raffle.id, raffle.name]),
-  );
-
-  const printByTicketId = new Map<
-    string,
-    { print_type: "original" | "reprint"; print_sequence: number; printed_at: string }
-  >();
+  const printedTicketIds = new Set<string>();
   for (const print of batchPrints) {
-    printByTicketId.set(print.ticket_id, print);
+    printedTicketIds.add(print.ticket_id);
   }
 
-  const formattedPurchasedAt = formatDateTime(purchaseRequest.created_at);
+  const formattedPurchasedAt = formatCompactLimaDateTime(
+    purchaseRequest.created_at,
+  );
+
+  if (!formattedPurchasedAt) {
+    throw new Error("La fecha de compra no es válida.");
+  }
+
   const lastTicketId = activeTickets[activeTickets.length - 1].id;
 
   return (
@@ -145,32 +136,17 @@ export default async function PurchaseRequestPrintPage({
         <PrintControls />
 
         {activeTickets.map((ticket) => {
-          const print = printByTicketId.get(ticket.id);
-          const raffleName = raffleNameById.get(ticket.raffle_id);
-
-          if (!print || !raffleName) {
+          if (!printedTicketIds.has(ticket.id)) {
             return null;
           }
 
-          const reprintLabel =
-            print.print_type === "original"
-              ? "Impresión original"
-              : `Reimpresión ${print.print_sequence - 1}`;
-
           return (
-            <TicketReceipt
+            <AdminUrnTicket
               key={ticket.id}
-              raffleId={ticket.raffle_id}
-              raffleName={raffleName}
-              fullName={purchaseRequest.full_name}
-              documentLabel={
-                purchaseRequest.document_type === "cui" ? "CUI" : "DNI"
-              }
-              documentNumber={purchaseRequest.dni}
-              purchasedAt={formattedPurchasedAt}
               ticketNumber={ticket.ticket_number}
-              auditLabel={reprintLabel}
-              printedAt={formatDateTime(print.printed_at)}
+              purchasedAt={formattedPurchasedAt}
+              fullName={purchaseRequest.full_name}
+              phone={purchaseRequest.phone}
               isLastForPrint={ticket.id === lastTicketId}
             />
           );

@@ -43,6 +43,82 @@ const statusTones: Record<PurchaseRequestStatus, BadgeTone> = {
   expired: "expired",
 };
 
+const ADMIN_QUERY_PAGE_SIZE = 1_000;
+
+type DashboardTicket = {
+  id: string;
+  raffle_id: string;
+  purchase_request_id: string;
+};
+
+async function loadApprovedDashboardTickets(
+  adminClient: ReturnType<typeof createAdminClient>,
+  purchaseRequestIds: string[],
+): Promise<DashboardTicket[]> {
+  const tickets: DashboardTicket[] = [];
+  let rangeStart = 0;
+
+  while (true) {
+    const { data, error } = await adminClient
+      .from("tickets")
+      .select("id, raffle_id, purchase_request_id")
+      .in("purchase_request_id", purchaseRequestIds)
+      .eq("ticket_status", "active")
+      .order("id", { ascending: true })
+      .range(rangeStart, rangeStart + ADMIN_QUERY_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const pageRows = data ?? [];
+    tickets.push(...pageRows);
+
+    if (pageRows.length < ADMIN_QUERY_PAGE_SIZE) {
+      return tickets;
+    }
+
+    rangeStart += ADMIN_QUERY_PAGE_SIZE;
+  }
+}
+
+async function loadDashboardPrintCounts(
+  adminClient: ReturnType<typeof createAdminClient>,
+  purchaseRequestIds: string[],
+): Promise<Map<string, number>> {
+  const printCountByTicketId = new Map<string, number>();
+  let rangeStart = 0;
+
+  while (true) {
+    const { data, error } = await adminClient
+      .from("ticket_prints")
+      .select("ticket_id,tickets!inner(purchase_request_id)")
+      .in("tickets.purchase_request_id", purchaseRequestIds)
+      .order("printed_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(rangeStart, rangeStart + ADMIN_QUERY_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const pageRows = data ?? [];
+
+    for (const print of pageRows) {
+      printCountByTicketId.set(
+        print.ticket_id,
+        (printCountByTicketId.get(print.ticket_id) ?? 0) + 1,
+      );
+    }
+
+    if (pageRows.length < ADMIN_QUERY_PAGE_SIZE) {
+      return printCountByTicketId;
+    }
+
+    rangeStart += ADMIN_QUERY_PAGE_SIZE;
+  }
+}
+
 function isPurchaseRequestStatus(
   value: string | undefined,
 ): value is PurchaseRequestStatus {
@@ -148,57 +224,30 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
     .map((request) => request.id);
   const approvedTicketsByRequestId = new Map<
     string,
-    Array<{ id: string; previousPrints: number }>
+    Array<{ id: string; raffleId: string; previousPrints: number }>
   >();
   if (approvedRequestIds.length > 0) {
-    const { data: approvedTickets, error: approvedTicketsError } =
-      await adminClient
-        .from("tickets")
-        .select("id, purchase_request_id")
-        .in("purchase_request_id", approvedRequestIds)
-        .eq("ticket_status", "active");
+    try {
+      const [tickets, printCountByTicketId] = await Promise.all([
+        loadApprovedDashboardTickets(adminClient, approvedRequestIds),
+        loadDashboardPrintCounts(adminClient, approvedRequestIds),
+      ]);
 
-    if (approvedTicketsError) {
+      for (const ticket of tickets) {
+        const current = approvedTicketsByRequestId.get(
+          ticket.purchase_request_id,
+        ) ?? [];
+        current.push({
+          id: ticket.id,
+          raffleId: ticket.raffle_id,
+          previousPrints: printCountByTicketId.get(ticket.id) ?? 0,
+        });
+        approvedTicketsByRequestId.set(ticket.purchase_request_id, current);
+      }
+    } catch (printPreparationError) {
       console.error("No se pudieron preparar las impresiones del panel:", {
-        ticketsError: approvedTicketsError,
+        error: printPreparationError,
       });
-    } else {
-      const tickets = approvedTickets ?? [];
-      const ticketIds = tickets.map((ticket) => ticket.id);
-      const printCountByTicketId = new Map<string, number>();
-      let canShowPrintActions = true;
-
-      if (ticketIds.length > 0) {
-        const { data: prints, error: printsError } = await adminClient
-          .from("ticket_prints")
-          .select("ticket_id")
-          .in("ticket_id", ticketIds);
-
-        if (printsError) {
-          console.error("No se pudieron cargar las impresiones:", printsError);
-          canShowPrintActions = false;
-        } else {
-          for (const print of prints ?? []) {
-            printCountByTicketId.set(
-              print.ticket_id,
-              (printCountByTicketId.get(print.ticket_id) ?? 0) + 1,
-            );
-          }
-        }
-      }
-
-      if (canShowPrintActions) {
-        for (const ticket of tickets) {
-          const current = approvedTicketsByRequestId.get(
-            ticket.purchase_request_id,
-          ) ?? [];
-          current.push({
-            id: ticket.id,
-            previousPrints: printCountByTicketId.get(ticket.id) ?? 0,
-          });
-          approvedTicketsByRequestId.set(ticket.purchase_request_id, current);
-        }
-      }
     }
   }
 
@@ -215,7 +264,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
         className="mt-8 flex max-w-2xl flex-col gap-3 rounded-xl border border-line bg-ink-2 p-3 sm:flex-row"
       >
         <label htmlFor="dashboard-search" className="sr-only">
-          Buscar por DNI o número de ticket
+          Buscar por DNI, CUI o código de ticket
         </label>
         <input
           id="dashboard-search"
@@ -223,7 +272,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
           minLength={2}
           maxLength={50}
           required
-          placeholder="Buscar por DNI o número de ticket"
+          placeholder="DNI, CUI o ticket PD-0001"
           className="min-w-0 flex-1 rounded-lg border border-line bg-ink px-4 py-3 text-sm text-cream outline-none transition-colors placeholder:text-muted/50 focus:border-gold [&:user-valid]:border-emerald-500 [&:user-valid]:bg-emerald-950/15"
         />
         <button
@@ -390,6 +439,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                   <td className="px-4 py-4">
                     <PurchaseRequestActions
                       purchaseRequestId={request.id}
+                      requestedQuantity={request.requested_quantity}
                       status={request.status}
                       approvedTickets={
                         approvedTicketsByRequestId.get(request.id) ?? []
@@ -443,7 +493,11 @@ function RequestCard({
   request: RequestRow;
   index: number;
   reviewerName: string | null;
-  approvedTickets: Array<{ id: string; previousPrints: number }>;
+  approvedTickets: Array<{
+    id: string;
+    raffleId: string;
+    previousPrints: number;
+  }>;
 }) {
   return (
     <article
@@ -518,6 +572,7 @@ function RequestCard({
 
       <PurchaseRequestActions
         purchaseRequestId={request.id}
+        requestedQuantity={request.requested_quantity}
         status={request.status}
         approvedTickets={approvedTickets}
       />

@@ -1,40 +1,25 @@
 import { brand } from "@/config/brand";
+import { formatTicketCode } from "@/lib/tickets/code";
 
 type TicketReceiptProps = {
-  raffleId: string;
   raffleName: string;
   fullName: string;
   documentLabel: string;
   documentNumber: string;
   purchasedAt: string | null;
   ticketNumber: number;
-  auditLabel?: string | null;
-  printedAt?: string | null;
   printOnly?: boolean;
   hiddenForPrint?: boolean;
   isLastForPrint?: boolean;
 };
 
-export function buildTicketReference(
-  raffleId: string,
-  ticketNumber: number,
-): string {
-  const compactRaffleId = raffleId.replaceAll("-", "").toUpperCase();
-  const formattedTicketNumber = String(ticketNumber).padStart(4, "0");
-
-  return `PD-${compactRaffleId}-${formattedTicketNumber}`;
-}
-
 export function TicketReceipt({
-  raffleId,
   raffleName,
   fullName,
   documentLabel,
   documentNumber,
   purchasedAt,
   ticketNumber,
-  auditLabel,
-  printedAt,
   printOnly = false,
   hiddenForPrint = false,
   isLastForPrint = false,
@@ -44,9 +29,6 @@ export function TicketReceipt({
     : printOnly
       ? "hidden print:block"
       : "";
-  const ticketReference = buildTicketReference(raffleId, ticketNumber);
-  const referenceBreakIndex = 19;
-
   return (
     <div
       className={`ticket-print ${visibilityClass}`}
@@ -66,9 +48,9 @@ export function TicketReceipt({
         </section>
 
         <section className="ticket-receipt__number" aria-label="Número de ticket">
-          <p className="ticket-receipt__label">Número asignado</p>
+          <p className="ticket-receipt__label">Código del ticket</p>
           <p className="ticket-receipt__number-value">
-            {String(ticketNumber).padStart(4, "0")}
+            {formatTicketCode(ticketNumber)}
           </p>
         </section>
 
@@ -79,22 +61,6 @@ export function TicketReceipt({
           <TicketRow label={documentLabel} value={documentNumber} />
           {purchasedAt ? <TicketRow label="Fecha" value={purchasedAt} /> : null}
         </dl>
-
-        <div className="ticket-receipt__reference">
-          <p className="ticket-receipt__label">Código único</p>
-          <p>
-            <span>{ticketReference.slice(0, referenceBreakIndex)}</span>
-            <wbr />
-            <span>{ticketReference.slice(referenceBreakIndex)}</span>
-          </p>
-        </div>
-
-        {auditLabel ? (
-          <p className="ticket-receipt__audit">
-            <span>{auditLabel}</span>
-            {printedAt ? <span>{printedAt}</span> : null}
-          </p>
-        ) : null}
 
         <div className="ticket-receipt__cut-feed" aria-hidden="true" />
       </article>

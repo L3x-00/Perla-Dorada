@@ -12,7 +12,7 @@ export default async function SettingsPage() {
   const { data: settings, error } = await adminClient
     .from("app_settings")
     .select(
-      "maintenance_mode, reservation_minutes, max_reprints, maintenance_message",
+      "maintenance_mode, reservation_minutes, maintenance_message",
     )
     .eq("id", true)
     .maybeSingle();
@@ -41,7 +41,6 @@ export default async function SettingsPage() {
             initial={{
               maintenanceMode: settings.maintenance_mode,
               reservationMinutes: settings.reservation_minutes,
-              maxReprints: settings.max_reprints,
               maintenanceMessage: settings.maintenance_message ?? "",
             }}
           />

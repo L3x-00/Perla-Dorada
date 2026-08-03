@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { PrintControls } from "@/app/admin/tickets/[id]/print/print-controls";
+import { AdminUrnTicket } from "@/components/admin/printing/admin-urn-ticket";
 import { PrintProfileScope } from "@/components/printing/print-profile";
-import { TicketReceipt } from "@/components/printing/ticket-receipt";
-import { formatDateTime } from "@/lib/format";
+import { formatCompactLimaDateTime } from "@/lib/format";
 import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -52,11 +52,7 @@ export default async function TicketPrintPage({
       .select(
         `
           id,
-          ticket_id,
-          print_sequence,
-          print_type,
-          printed_at,
-          reason
+          ticket_id
         `,
       )
       .eq("id", printId)
@@ -87,8 +83,7 @@ export default async function TicketPrintPage({
           raffle_id,
           purchase_request_id,
           ticket_number,
-          ticket_status,
-          assigned_at
+          ticket_status
         `,
       )
       .eq("id", ticketId)
@@ -115,7 +110,7 @@ export default async function TicketPrintPage({
   ] = await Promise.all([
     adminClient
       .from("raffles")
-      .select("id, name")
+      .select("id")
       .eq("id", ticket.raffle_id)
       .maybeSingle(),
 
@@ -125,8 +120,7 @@ export default async function TicketPrintPage({
         `
           id,
           full_name,
-          document_type,
-          dni,
+          phone,
           status,
           created_at
         `,
@@ -169,35 +163,23 @@ export default async function TicketPrintPage({
     notFound();
   }
 
-  const formattedPurchasedAt = formatDateTime(
+  const formattedPurchasedAt = formatCompactLimaDateTime(
     purchaseRequest.created_at,
   );
 
-  const formattedPrintedAt = formatDateTime(
-    printRecord.printed_at,
-  );
-
-  const reprintLabel =
-    printRecord.print_type === "original"
-      ? "Impresión original"
-      : `Reimpresión ${printRecord.print_sequence - 1}`;
+  if (!formattedPurchasedAt) {
+    throw new Error("La fecha de compra no es válida.");
+  }
 
   return (
     <main className="min-h-screen bg-neutral-100 p-6 text-black print:min-h-0 print:bg-white print:p-0">
       <PrintProfileScope>
         <PrintControls />
-        <TicketReceipt
-          raffleId={ticket.raffle_id}
-          raffleName={raffle.name}
-          fullName={purchaseRequest.full_name}
-          documentLabel={
-            purchaseRequest.document_type === "cui" ? "CUI" : "DNI"
-          }
-          documentNumber={purchaseRequest.dni}
-          purchasedAt={formattedPurchasedAt}
+        <AdminUrnTicket
           ticketNumber={ticket.ticket_number}
-          auditLabel={reprintLabel}
-          printedAt={formattedPrintedAt}
+          purchasedAt={formattedPurchasedAt}
+          fullName={purchaseRequest.full_name}
+          phone={purchaseRequest.phone}
           isLastForPrint
         />
       </PrintProfileScope>

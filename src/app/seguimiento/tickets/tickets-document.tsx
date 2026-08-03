@@ -11,6 +11,7 @@ import {
 } from "@/components/printing/print-profile";
 import { TicketReceipt } from "@/components/printing/ticket-receipt";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
+import { formatTicketCode } from "@/lib/tickets/code";
 import {
   normalizeTrackingCode,
   type DocumentType,
@@ -613,7 +614,6 @@ function RaffleTicketView({
           return (
             <TicketReceipt
               key={key}
-              raffleId={group.raffleId}
               raffleName={ticket.raffleName}
               fullName={fullName}
               documentLabel={documentType === "cui" ? "CUI" : "DNI"}
@@ -689,7 +689,7 @@ function TicketChip({
         {raffleName}
       </p>
       <p className="mt-0.5 text-xl font-bold tabular-nums">
-        {String(ticketNumber).padStart(4, "0")}
+        {formatTicketCode(ticketNumber)}
       </p>
 
       {isWinner && prizeTitle ? (
