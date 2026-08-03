@@ -22,7 +22,7 @@ export function AdminUrnTicket({
   isLastForPrint = false,
 }: AdminUrnTicketProps) {
   const normalizedName = fullName.trim().toLocaleUpperCase("es-PE");
-  const nameScale = Math.min(1, 32 / Math.max(normalizedName.length, 1));
+  const nameScale = Math.min(1, 29 / Math.max(normalizedName.length, 1));
 
   return (
     <div
