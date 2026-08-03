@@ -7,6 +7,8 @@ import { adminInput, btnPrimary, btnSmall } from "@/components/admin/ui";
 
 type PurchaseRequestPrintActionProps = {
   purchaseRequestId: string;
+  /** Acota la tanda a un único grupo solicitud + rifa. */
+  raffleId: string;
   ticketCount: number;
   /** Cantidad de tickets vigentes con al menos una impresión previa. */
   printedTicketCount: number;
@@ -21,13 +23,14 @@ type ApiResponse = {
 
 /*
  * Un solo botón imprime, en un único documento, TODOS los tickets activos
- * de la solicitud (ver register_purchase_request_ticket_prints). Sin
+ * del grupo solicitud + rifa (ver register_ticket_group_prints). Sin
  * límite de reimpresiones: es uso interno del panel para las ánforas del
- * sorteo, no la reimpresión pública con tope. Si algún ticket ya se
+ * sorteo. Si algún ticket ya se
  * imprimió antes, se pide un motivo — uno solo para toda la tanda.
  */
 export function PurchaseRequestPrintAction({
   purchaseRequestId,
+  raffleId,
   ticketCount,
   printedTicketCount,
 }: PurchaseRequestPrintActionProps) {
@@ -70,6 +73,7 @@ export function PurchaseRequestPrintAction({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             reason: reasonRequired ? normalizedReason : undefined,
+            raffleId,
           }),
         },
       );

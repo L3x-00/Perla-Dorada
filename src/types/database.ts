@@ -536,6 +536,39 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_list_ticket_groups: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_period?: string
+          p_raffle_id?: string
+          p_search?: string
+          p_ticket_number?: number
+          p_ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
+        }
+        Returns: {
+          active_count: number
+          document_number: string
+          document_type: Database["public"]["Enums"]["participant_document_type"]
+          frozen_count: number
+          full_name: string
+          last_assigned_at: string
+          phone: string
+          print_event_count: number
+          printed_ticket_count: number
+          purchase_request_id: string
+          purchased_at: string
+          raffle_id: string
+          raffle_name: string
+          raffle_status: Database["public"]["Enums"]["raffle_status"]
+          reassigned_count: number
+          request_status: Database["public"]["Enums"]["purchase_request_status"]
+          ticket_count: number
+          total_count: number
+        }[]
+      }
       approve_purchase_request: {
         Args: { p_admin_user_id: string; p_purchase_request_id: string }
         Returns: {
@@ -831,6 +864,23 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      register_ticket_group_prints: {
+        Args: {
+          p_admin_user_id: string
+          p_purchase_request_id: string
+          p_raffle_id: string
+          p_reason?: string
+        }
+        Returns: {
+          batch_id: string
+          print_id: string
+          print_sequence: number
+          print_type: Database["public"]["Enums"]["ticket_print_type"]
+          printed_at: string
+          ticket_id: string
+          ticket_number: number
+        }[]
       }
       register_ticket_print: {
         Args: {

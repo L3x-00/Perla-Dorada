@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/site/icons";
+import { formatTicketCode } from "@/lib/tickets/code";
 import type { PublicRaffleWinnerEntry } from "@/lib/raffles/public-winners";
 
 const AUTOPLAY_INTERVAL_MS = 6000;
@@ -158,7 +159,7 @@ function WinnerSlide({ winner }: { winner: PublicRaffleWinnerEntry }) {
           Ticket ganador
         </p>
         <p className="mt-1 font-display text-4xl font-light tabular-nums text-gold-soft sm:text-5xl">
-          {String(winner.ticketNumber).padStart(4, "0")}
+          {formatTicketCode(winner.ticketNumber)}
         </p>
       </div>
     </div>

@@ -32,7 +32,7 @@ El navegador nunca decide precio, disponibilidad, vencimiento, aprobación, nume
 1. La persona abre el sorteo activo.
 2. Completa nombres, apellidos, documento, teléfono y WhatsApp.
 3. Los campos válidos se marcan en verde; el formulario guía al siguiente campo al completar el actual.
-4. Elige hasta 30 boletos, paga por Yape y adjunta una imagen del comprobante.
+4. Elige hasta 50 boletos, paga por Yape y adjunta una imagen del comprobante.
 5. Se crea una reserva temporal y se entrega un código de seguimiento.
 
 Un documento puede mantener hasta 10 solicitudes pendientes para la misma rifa. El código de seguimiento se reutiliza en todas las compras del mismo documento; la consulta nunca se habilita solo con DNI.
@@ -57,10 +57,12 @@ El panel requiere una cuenta activa en `admin_profiles` y permite:
 
 - Crear, editar, activar, cerrar, cancelar y eliminar borradores vacíos.
 - Revisar comprobantes, aprobar o rechazar solicitudes y asignar tickets.
-- Buscar por DNI o número de ticket desde el inicio del panel.
-- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados. Desde Solicitudes, un único botón registra y abre todos los tickets aprobados en un documento continuo, con una página o corte por ticket y sin límite de reimpresiones; el control de cupos se mantiene en la sección general de Tickets.
+- Buscar por nombre, documento, teléfono o código visual `PD-####`; una entrada numérica consulta tanto datos del participante como el número exacto de ticket.
+- Consultar tickets agrupados por solicitud de compra y rifa, con conteo de tickets, filtros por sorteo, fecha, ciclo y sorteo actual/pasado, además de paginación de 20 grupos.
+- Imprimir un ticket vigente o todos los tickets vigentes de una misma solicitud y rifa. Las impresiones administrativas son ilimitadas; cada reimpresión exige un motivo y conserva administrador, fecha, secuencia y tanda para auditoría.
+- Reasignar de forma trazable los tickets congelados de una rifa cancelada.
 - Crear y administrar promociones, imágenes, vigencias y enlaces.
-- Configurar mantenimiento, duración de reservas y reimpresiones.
+- Configurar mantenimiento y duración de reservas.
 - Usar el menú Perfil para volver al sitio, cambiar tema y cerrar sesión.
 
 Las APIs administrativas sin sesión responden `401` JSON; las páginas protegidas redirigen a `/admin/login`.
@@ -70,7 +72,9 @@ Antes de imprimir se puede elegir uno de estos perfiles, sin registrar una nueva
 - **Térmica 72 mm:** usa un ancho físico máximo de 72 mm y un área segura de contenido de 64 mm para tolerar cabezales de 576 o 512 puntos. Las opciones A y B emulan una densidad legible o compacta con tipografía monoespaciada; la fuente térmica física, los DPI y el corte dependen del controlador de la impresora. Configurar escala 100 %, márgenes en cero y desactivar encabezados y pies del navegador.
 - **General adaptable:** ocupa el ancho imprimible disponible hasta 180 mm y sirve para A4, Carta, impresoras de tinta, láser y otros tamaños configurados en el navegador.
 
-La selección queda guardada en el navegador para las siguientes ventanas de impresión. Cada ticket incluye el nombre del negocio, sorteo, número, fecha, datos del cliente y un identificador no secreto formado con la rifa y el número de ticket, combinación única en el sistema. Cada operación conjunta recibe un identificador de tanda y carga exclusivamente sus registros; cada ticket mantiene un salto de página para impresión continua.
+La selección queda guardada en el navegador para las siguientes ventanas de impresión. El comprobante que descarga el cliente conserva nombre del negocio, sorteo, código y datos necesarios. La impresión administrativa para ánforas usa deliberadamente un talón mínimo, sin borde ni relleno: código `PD-####`, fecha y hora de compra en Lima (`YYYY-MM-DD HH:mm:ss`), nombre completo en mayúsculas y teléfono. Una tanda contiene exclusivamente los tickets vigentes de una solicitud y una rifa, con un salto de página o corte entre tickets.
+
+`PD-####` es el código visual del ticket y el relleno de cuatro dígitos es mínimo (`PD-10000` no se trunca). La base mantiene la unicidad real mediante la combinación rifa + número; rutas, APIs, auditoría y relaciones siguen utilizando UUID y números internos. Por ello, toda pantalla presenta el código dentro del contexto de su rifa.
 
 ## Reglas de negocio
 
@@ -78,7 +82,7 @@ La selección queda guardada en el navegador para las siguientes ventanas de imp
 |---|---|
 | Rifa | `draft → active → closed`; solo una puede estar activa. También puede cancelarse. |
 | Solicitud | `pending → approved | rejected | expired`; un estado terminal no se revierte. |
-| Ticket | Se crea tras la aprobación, es correlativo por rifa y no se reutiliza. |
+| Ticket | Se crea tras la aprobación, es correlativo por rifa, se muestra como `PD-####` y no se reutiliza. |
 | Rifa cancelada | Sus tickets se congelan; no se imprimen ni participan como ganadores. |
 | Reasignación | Crea un ticket nuevo trazable en una rifa activa y conserva el original. |
 | Ganador | Manual, inmutable y único por fila de premio. |
@@ -99,6 +103,7 @@ Los comprobantes aceptan JPG, PNG o WebP de hasta 5 MB de entrada. El navegador 
 - Las operaciones sensibles usan RPC transaccionales con permisos limitados y `search_path` fijo.
 - `SUPABASE_SERVICE_ROLE_KEY` se usa solo en servidor, nunca en el cliente.
 - Los comprobantes usan bucket privado y URL firmada de vida corta.
+- Los talones de ánfora contienen teléfono por necesidad operativa y deben permanecer bajo custodia administrativa hasta el sorteo.
 - Las operaciones públicas tienen rate limiting y las imágenes se verifican por tipo real de archivo, tamaño y píxeles.
 - Realtime no transmite datos privados: emite una señal y la UI recarga datos desde el servidor.
 
@@ -118,7 +123,7 @@ Los comprobantes aceptan JPG, PNG o WebP de hasta 5 MB de entrada. El navegador 
 | `app_settings` | Configuración global de operación. |
 | `audit_log` | Registro de operaciones administrativas críticas. |
 
-El repositorio contiene 41 migraciones versionadas en `supabase/migrations/`.
+El repositorio contiene 43 migraciones versionadas en `supabase/migrations/`.
 
 ## Operación y despliegue
 

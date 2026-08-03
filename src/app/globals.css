@@ -346,15 +346,13 @@ html[data-theme="light"] .raffle-festive-wash {
 
 .ticket-receipt__header,
 .ticket-receipt__raffle,
-.ticket-receipt__number,
-.ticket-receipt__reference {
+.ticket-receipt__number {
   text-align: center;
 }
 
 .ticket-receipt__business,
 .ticket-receipt__raffle-name,
-.ticket-receipt__number-value,
-.ticket-receipt__reference p:last-child {
+.ticket-receipt__number-value {
   font-weight: 700;
 }
 
@@ -405,27 +403,83 @@ html[data-theme="light"] .raffle-festive-wash {
   text-align: right;
 }
 
-.ticket-receipt__reference {
-  margin-top: 0.8rem;
+.ticket-receipt__cut-feed {
+  height: 0.75rem;
 }
 
-.ticket-receipt__reference p:last-child {
-  font-size: 0.76em;
-  letter-spacing: 0.02em;
+/* Talón mínimo exclusivo de las impresiones administrativas para ánforas. */
+.urn-ticket-print {
+  box-sizing: border-box;
+  width: min(72mm, 100%);
+  margin: 0 auto 1rem;
 }
 
-.ticket-receipt__audit {
-  display: grid;
-  gap: 0.2rem;
-  margin-top: 0.75rem;
-  border-top: 1px dotted #000;
-  padding-top: 0.6rem;
-  font-size: 0.75em;
+[data-print-profile="adaptive"] .urn-ticket-print {
+  width: min(100%, 180mm);
+}
+
+.urn-ticket-receipt {
+  --urn-code-size: 14pt;
+  --urn-date-size: 7pt;
+  --urn-detail-size: 9pt;
+
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  background: #fff;
+  padding: 0;
+  color: #000;
+  font-family: "Courier New", Courier, monospace;
+  line-height: 1.05;
   text-align: center;
 }
 
-.ticket-receipt__cut-feed {
-  height: 0.75rem;
+[data-print-profile="adaptive"] .urn-ticket-receipt {
+  --urn-code-size: 18pt;
+  --urn-date-size: 9pt;
+  --urn-detail-size: 11pt;
+
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.15;
+}
+
+.urn-ticket-receipt p {
+  margin: 0;
+}
+
+.urn-ticket-receipt__code,
+.urn-ticket-receipt__date,
+.urn-ticket-receipt__name,
+.urn-ticket-receipt__phone {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.urn-ticket-receipt__code {
+  font-size: var(--urn-code-size);
+  font-weight: 700;
+}
+
+.urn-ticket-receipt__date {
+  margin-top: 0.4mm;
+  font-size: var(--urn-date-size);
+}
+
+.urn-ticket-receipt__name {
+  margin-top: 0.8mm !important;
+  font-size: var(--urn-detail-size);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.urn-ticket-receipt__phone {
+  margin-top: 0.6mm !important;
+  font-size: var(--urn-detail-size);
+  font-weight: 700;
 }
 
 @media print {
@@ -496,8 +550,7 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__kind,
-  [data-print-profile="thermal-72"] .ticket-receipt__label,
-  [data-print-profile="thermal-72"] .ticket-receipt__reference p:last-child {
+  [data-print-profile="thermal-72"] .ticket-receipt__label {
     font-size: 1em;
   }
 
@@ -525,16 +578,6 @@ html[data-theme="light"] .raffle-festive-wash {
   [data-print-profile="thermal-72"] .ticket-receipt__row {
     grid-template-columns: 16mm minmax(0, 1fr);
     gap: 1mm;
-  }
-
-  [data-print-profile="thermal-72"] .ticket-receipt__reference {
-    margin-top: 2mm;
-  }
-
-  [data-print-profile="thermal-72"] .ticket-receipt__audit {
-    gap: 0;
-    margin-top: 2mm;
-    padding-top: 1mm;
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__cut-feed {
@@ -565,6 +608,56 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 
   .ticket-print:last-of-type {
+    break-after: auto;
+  }
+
+  [data-print-profile="thermal-72"] .urn-ticket-print {
+    page: ticket-thermal;
+    width: 72mm;
+    max-width: 100%;
+    margin: 0 auto;
+    break-after: page;
+    break-inside: avoid;
+    break-inside: avoid-page;
+  }
+
+  [data-print-profile="thermal-72"] .urn-ticket-receipt {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  [data-print-profile="thermal-72"][data-thermal-font="font-b"]
+    .urn-ticket-receipt {
+    --urn-code-size: 12pt;
+    --urn-date-size: 6pt;
+    --urn-detail-size: 8pt;
+  }
+
+  [data-print-profile="adaptive"] .urn-ticket-print {
+    page: ticket-adaptive;
+    width: 100%;
+    max-width: 180mm;
+    margin: 0 auto;
+    break-after: page;
+    break-inside: avoid;
+    break-inside: avoid-page;
+  }
+
+  [data-print-profile="adaptive"] .urn-ticket-receipt {
+    width: 100%;
+    max-width: 180mm;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    box-shadow: none;
+  }
+
+  .urn-ticket-print:last-of-type {
     break-after: auto;
   }
 }

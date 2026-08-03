@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatDateTime } from "@/lib/format";
+import { formatTicketCode } from "@/lib/tickets/code";
 import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { prizesFromDbJson } from "@/lib/raffles/prizes";
 import { raffleImageUrl } from "@/lib/storage/public-url";
@@ -299,7 +300,7 @@ function WinnerSummary({
         }`}
       >
         {winner.ticketNumber !== null
-          ? String(winner.ticketNumber).padStart(4, "0")
+          ? formatTicketCode(winner.ticketNumber)
           : "—"}
       </p>
 

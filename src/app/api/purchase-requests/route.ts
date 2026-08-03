@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { MAX_TICKETS_PER_PURCHASE_REQUEST } from "@/config/purchase";
 import { PAYMENT_PROOFS_BUCKET } from "@/config/storage";
 import { checkPurchaseRequestRateLimit } from
   "@/lib/security/purchase-request-rate-limit";
@@ -65,7 +66,7 @@ function getPublicDatabaseError(
     case "23514":
       return {
         message:
-          "Puedes solicitar como máximo 30 tickets por compra.",
+          `Puedes solicitar como máximo ${MAX_TICKETS_PER_PURCHASE_REQUEST} tickets por compra.`,
         status: 400,
       };
 

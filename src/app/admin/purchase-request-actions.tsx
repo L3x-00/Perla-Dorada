@@ -10,13 +10,16 @@ import {
 } from "@/components/admin/ui";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { PurchaseRequestPrintAction } from "@/app/admin/purchase-request-print-action";
+import { formatTicketCode } from "@/lib/tickets/code";
 import { useState } from "react";
 
 type PurchaseRequestActionsProps = {
   purchaseRequestId: string;
+  requestedQuantity: number;
   status: "pending" | "approved" | "rejected" | "expired";
   approvedTickets?: Array<{
     id: string;
+    raffleId: string;
     previousPrints: number;
   }>;
 };
@@ -31,6 +34,7 @@ type ApiResponse = {
 
 export function PurchaseRequestActions({
   purchaseRequestId,
+  requestedQuantity,
   status,
   approvedTickets = [],
 }: PurchaseRequestActionsProps) {
@@ -43,13 +47,31 @@ export function PurchaseRequestActions({
   const [confirmApprove, setConfirmApprove] = useState(false);
 
   if (status === "approved") {
-    if (approvedTickets.length === 0) {
-      return <p className="text-xs text-muted">Tickets en preparación.</p>;
+    if (approvedTickets.length !== requestedQuantity) {
+      return (
+        <p className="text-xs text-muted">
+          Tickets en preparación ({approvedTickets.length}/{requestedQuantity}).
+        </p>
+      );
+    }
+
+    const raffleIds = new Set(
+      approvedTickets.map((ticket) => ticket.raffleId),
+    );
+    const [raffleId] = raffleIds;
+
+    if (raffleIds.size !== 1 || !raffleId) {
+      return (
+        <p className="max-w-56 text-xs text-amber-300">
+          Revisa esta solicitud en Tickets antes de imprimirla.
+        </p>
+      );
     }
 
     return (
       <PurchaseRequestPrintAction
         purchaseRequestId={purchaseRequestId}
+        raffleId={raffleId}
         ticketCount={approvedTickets.length}
         printedTicketCount={
           approvedTickets.filter((ticket) => ticket.previousPrints > 0).length
@@ -85,7 +107,9 @@ export function PurchaseRequestActions({
       }
 
       const ticketNumbers =
-        body.tickets?.map((ticket) => ticket.ticket_number) ?? [];
+        body.tickets?.map((ticket) =>
+          formatTicketCode(ticket.ticket_number),
+        ) ?? [];
 
       setMessage(
         ticketNumbers.length > 0

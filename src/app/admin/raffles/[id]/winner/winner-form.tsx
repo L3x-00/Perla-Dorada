@@ -9,6 +9,7 @@ import {
   btnPrimary,
 } from "@/components/admin/ui";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { formatTicketCode, parseTicketCode } from "@/lib/tickets/code";
 
 type WinnerFormProps = {
   raffleId: string;
@@ -42,10 +43,10 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
       return;
     }
 
-    const parsed = Number(ticketNumber);
+    const parsed = parseTicketCode(ticketNumber);
 
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      setError("Ingresa un número de ticket válido.");
+    if (parsed === null) {
+      setError("Ingresa un número de ticket válido (ej. 0001 o PD-0001).");
       return;
     }
 
@@ -122,9 +123,9 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
         </label>
         <input
           id={`ticketNumber-${prizeId ?? "single"}`}
-          type="number"
-          inputMode="numeric"
-          min={1}
+          type="text"
+          inputMode="text"
+          placeholder="0001 o PD-0001"
           value={ticketNumber}
           onChange={(event) => setTicketNumber(event.target.value)}
           required
@@ -194,7 +195,7 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
         description={`Registrarás el ticket ${
           confirmTicketNumber === null
             ? ""
-            : String(confirmTicketNumber).padStart(4, "0")
+            : formatTicketCode(confirmTicketNumber)
         } como ganador. Esta acción es única e irreversible.`}
         confirmLabel="Sí, registrar ganador"
         busy={submitting}

@@ -10,6 +10,7 @@ const UUID_PATTERN =
 
 type RequestBody = {
   reason?: unknown;
+  raffleId?: unknown;
 };
 
 function mapDatabaseError(message: string) {
@@ -51,6 +52,19 @@ function mapDatabaseError(message: string) {
         code: "ACTIVE_TICKET_COUNT_MISMATCH",
         error:
           "Los tickets vigentes todavía no están completos. Finaliza su reasignación antes de imprimir.",
+      };
+    case "TICKET_GROUP_NOT_FOUND":
+      return {
+        status: 404,
+        code: "TICKET_GROUP_NOT_FOUND",
+        error: "No se encontró el grupo de tickets solicitado.",
+      };
+    case "TICKET_GROUP_NOT_PRINTABLE":
+      return {
+        status: 409,
+        code: "TICKET_GROUP_NOT_PRINTABLE",
+        error:
+          "Solo se puede imprimir una tanda completa de una solicitud y una rifa. Finaliza cualquier reasignación pendiente.",
       };
     case "REPRINT_REASON_REQUIRED":
       return {
@@ -108,6 +122,15 @@ export async function POST(
   }
 
   const reason = typeof body.reason === "string" ? body.reason.trim() : undefined;
+  const raffleId =
+    typeof body.raffleId === "string" ? body.raffleId.trim() : undefined;
+
+  if (!raffleId || !UUID_PATTERN.test(raffleId)) {
+    return NextResponse.json(
+      { error: "El identificador de la rifa no es válido." },
+      { status: 400 },
+    );
+  }
 
   if (reason && reason.length > 500) {
     return NextResponse.json(
@@ -125,19 +148,20 @@ export async function POST(
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  const { data, error } = await createAdminClient().rpc(
-    "register_purchase_request_ticket_prints",
-    {
-      p_purchase_request_id: purchaseRequestId,
-      p_admin_user_id: adminUserId,
-      ...(reason ? { p_reason: reason } : {}),
-    },
-  );
+  const adminClient = createAdminClient();
+  const printResult = await adminClient.rpc("register_ticket_group_prints", {
+    p_purchase_request_id: purchaseRequestId,
+    p_raffle_id: raffleId,
+    p_admin_user_id: adminUserId,
+    ...(reason ? { p_reason: reason } : {}),
+  });
+  const { data, error } = printResult;
 
   if (error) {
     logError("ticket.print.batch_failed", error, {
       request_id: request.headers.get("x-request-id"),
       purchase_request_id: purchaseRequestId,
+      raffle_id: raffleId,
       database_code: error.code,
     });
     const mapped = mapDatabaseError(error.message);
@@ -157,6 +181,7 @@ export async function POST(
       {
         request_id: request.headers.get("x-request-id"),
         purchase_request_id: purchaseRequestId,
+        raffle_id: raffleId,
       },
     );
     return NextResponse.json(
@@ -179,6 +204,7 @@ export async function POST(
       {
         request_id: request.headers.get("x-request-id"),
         purchase_request_id: purchaseRequestId,
+        raffle_id: raffleId,
       },
     );
     return NextResponse.json(
@@ -205,12 +231,14 @@ export async function POST(
       original_count: originalCount,
       reprint_count: reprintCount,
       batch_id: batchId,
+      ...(raffleId ? { raffle_id: raffleId } : {}),
     },
   });
 
   logInfo("ticket.print.batch_registered", {
     request_id: request.headers.get("x-request-id"),
     purchase_request_id: purchaseRequestId,
+    raffle_id: raffleId,
     ticket_count: prints.length,
     original_count: originalCount,
     reprint_count: reprintCount,

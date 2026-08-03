@@ -52,7 +52,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     .update({
       maintenance_mode: input.maintenanceMode,
       reservation_minutes: input.reservationMinutes,
-      max_reprints: input.maxReprints,
       maintenance_message: input.maintenanceMessage,
     })
     .eq("id", true);
@@ -73,7 +72,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     metadata: {
       maintenance_mode: input.maintenanceMode,
       reservation_minutes: input.reservationMinutes,
-      max_reprints: input.maxReprints,
       maintenance_message_set: input.maintenanceMessage !== null,
     },
   });
