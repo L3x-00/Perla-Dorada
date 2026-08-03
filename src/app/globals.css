@@ -311,27 +311,138 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 }
 
+/*
+ * Recibo compartido por las impresiones del cliente y del panel. Las
+ * dimensiones físicas se expresan en mm: los puntos por línea pertenecen al
+ * cabezal y el driver es quien los traduce a 512 o 576 dots.
+ */
+.ticket-print {
+  box-sizing: border-box;
+  width: min(72mm, 100%);
+  margin-block-end: 1rem;
+  margin-inline: auto;
+}
+
+.ticket-receipt {
+  box-sizing: border-box;
+  width: min(64mm, 100%);
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+  border: 1px solid #d4d4d4;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+  color: #000;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+}
+
+[data-print-profile="adaptive"] .ticket-print,
+[data-print-profile="adaptive"] .ticket-receipt {
+  width: min(100%, 180mm);
+}
+
+.ticket-receipt__header,
+.ticket-receipt__raffle,
+.ticket-receipt__number,
+.ticket-receipt__reference {
+  text-align: center;
+}
+
+.ticket-receipt__business,
+.ticket-receipt__raffle-name,
+.ticket-receipt__number-value,
+.ticket-receipt__reference p:last-child {
+  font-weight: 700;
+}
+
+.ticket-receipt__business {
+  font-size: 1.2em;
+}
+
+.ticket-receipt__kind,
+.ticket-receipt__label {
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ticket-receipt__separator {
+  margin-block: 0.75rem;
+  border-top: 1px dashed #000;
+}
+
+.ticket-receipt__number {
+  margin-block: 0.75rem;
+}
+
+.ticket-receipt__number-value {
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+
+.ticket-receipt__details {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ticket-receipt__row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, auto) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.ticket-receipt__row dt {
+  font-weight: 700;
+}
+
+.ticket-receipt__row dd {
+  margin: 0;
+  text-align: right;
+}
+
+.ticket-receipt__reference {
+  margin-top: 0.8rem;
+}
+
+.ticket-receipt__reference p:last-child {
+  font-size: 0.76em;
+  letter-spacing: 0.02em;
+}
+
+.ticket-receipt__audit {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.75rem;
+  border-top: 1px dotted #000;
+  padding-top: 0.6rem;
+  font-size: 0.75em;
+  text-align: center;
+}
+
+.ticket-receipt__cut-feed {
+  height: 0.75rem;
+}
+
 @media print {
   @page {
     size: auto;
     margin: 10mm;
   }
 
-  /*
-   * Página con el ancho real del rollo térmico de 80mm (impresora portátil
-   * tipo HOIN HQ300, 203 DPI). CSS no admite combinar un ancho fijo con
-   * un alto automático en @page; por eso el tamaño se toma del driver,
-   * configurado en rollo de 80mm. Margen en 0 porque el
-   * margen de seguridad ya lo pone el propio .ticket-print (72mm de ancho,
-   * centrado, con 2mm de relleno interior) — poner margen aquí además
-   * sería un doble margen. Cada boleto sale en su propio corte de papel: si
-   * el cliente compró 100, son 100 tickets independientes, uno tras otro.
-   * Se aplica solo a los elementos con la clase .ticket-print, así que el
-   * resto de impresiones conserva su tamaño normal (A4).
-   */
-  @page ticket {
+  /* El alto continuo y el corte dependen del driver de cada impresora. */
+  @page ticket-thermal {
     size: auto;
-    margin: 0mm;
+    margin: 0;
+  }
+
+  @page ticket-adaptive {
+    size: auto;
+    margin: 5mm;
   }
 
   html,
@@ -345,9 +456,112 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 
   .ticket-print {
-    page: ticket;
     break-after: page;
     break-inside: avoid;
+    break-inside: avoid-page;
+    margin-block-end: 0;
+    margin-inline: auto;
+  }
+
+  .ticket-receipt {
+    border-radius: 0;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-print {
+    page: ticket-thermal;
+    width: 72mm;
+    max-width: 100%;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt {
+    width: 64mm;
+    max-width: 100%;
+    border: 0;
+    padding: 0;
+    font-family: "Courier New", Courier, monospace;
+    line-height: 3.75mm;
+  }
+
+  [data-print-profile="thermal-72"][data-thermal-font="font-a"]
+    .ticket-receipt {
+    font-size: 2.55mm;
+  }
+
+  [data-print-profile="thermal-72"][data-thermal-font="font-b"]
+    .ticket-receipt {
+    font-size: 2.2mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__kind,
+  [data-print-profile="thermal-72"] .ticket-receipt__label,
+  [data-print-profile="thermal-72"] .ticket-receipt__reference p:last-child {
+    font-size: 1em;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__business {
+    font-size: 1.35em;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__separator {
+    margin-block: 2mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__number {
+    margin-block: 2mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__number-value {
+    font-size: 11mm;
+    line-height: 11mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__details {
+    gap: 0;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__row {
+    grid-template-columns: 16mm minmax(0, 1fr);
+    gap: 1mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__reference {
+    margin-top: 2mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__audit {
+    gap: 0;
+    margin-top: 2mm;
+    padding-top: 1mm;
+  }
+
+  [data-print-profile="thermal-72"] .ticket-receipt__cut-feed {
+    height: 10mm;
+  }
+
+  [data-print-profile="adaptive"] .ticket-print {
+    page: ticket-adaptive;
+    width: 100%;
+    max-width: 180mm;
+  }
+
+  [data-print-profile="adaptive"] .ticket-receipt {
+    width: 100%;
+    max-width: 180mm;
+    padding: 8mm;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  [data-print-profile="adaptive"] .ticket-receipt__number-value {
+    font-size: 34pt;
+  }
+
+  [data-print-profile="adaptive"] .ticket-receipt__cut-feed {
+    height: 4mm;
   }
 
   .ticket-print:last-of-type {

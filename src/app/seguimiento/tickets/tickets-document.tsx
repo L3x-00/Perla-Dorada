@@ -5,6 +5,11 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { DocumentField } from "@/components/site/document-field";
 import { siteInputClass } from "@/components/site/form-controls";
+import {
+  PrintProfileScope,
+  PrintProfileSelector,
+} from "@/components/printing/print-profile";
+import { TicketReceipt } from "@/components/printing/ticket-receipt";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import {
   normalizeTrackingCode,
@@ -30,6 +35,7 @@ type TicketEntry = {
 
 type TicketsPayload = {
   fullName: string;
+  documentType: DocumentType;
   dni: string;
   tickets: TicketEntry[];
 };
@@ -39,6 +45,7 @@ type ApiResponse = TicketsPayload & {
 };
 
 type FlatTicket = {
+  requestId: string;
   raffleName: string;
   purchasedAt: string | null;
   status: TicketStatus;
@@ -299,6 +306,7 @@ function groupByRaffle(tickets: TicketEntry[]): RaffleGroup[] {
     }
 
     group.tickets.push({
+      requestId: ticket.requestId,
       raffleName: ticket.raffleName,
       purchasedAt: formatDateTime(ticket.purchasedAt),
       status: ticket.ticketStatus,
@@ -333,6 +341,7 @@ function RaffleGroups({
       <RaffleTicketView
         group={selectedGroup}
         fullName={payload.fullName}
+        documentType={payload.documentType}
         dni={payload.dni}
         showBackLink={groups.length > 1}
         onBack={() => setSelectedRaffleId(null)}
@@ -432,6 +441,7 @@ function ticketCountLabel(
 function RaffleTicketView({
   group,
   fullName,
+  documentType,
   dni,
   showBackLink,
   onBack,
@@ -439,6 +449,7 @@ function RaffleTicketView({
 }: {
   group: RaffleGroup;
   fullName: string;
+  documentType: DocumentType;
   dni: string;
   showBackLink: boolean;
   onBack: () => void;
@@ -492,8 +503,10 @@ function RaffleTicketView({
       : null;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <PrintProfileScope className="mx-auto max-w-2xl">
       <div className="mb-8 print:hidden">
+        <PrintProfileSelector className="mb-5" />
+
         {showBackLink ? (
           <button
             type="button"
@@ -598,25 +611,28 @@ function RaffleTicketView({
           const key = ticketKey(ticket);
 
           return (
-            <PrintableTicket
+            <TicketReceipt
               key={key}
+              raffleId={group.raffleId}
               raffleName={ticket.raffleName}
               fullName={fullName}
-              dni={dni}
+              documentLabel={documentType === "cui" ? "CUI" : "DNI"}
+              documentNumber={dni}
               purchasedAt={ticket.purchasedAt}
               ticketNumber={ticket.ticketNumber}
+              printOnly
               hiddenForPrint={printOnlyKey !== null && printOnlyKey !== key}
               isLastForPrint={key === lastPrintableKey}
             />
           );
         })}
       </div>
-    </div>
+    </PrintProfileScope>
   );
 }
 
 function ticketKey(ticket: FlatTicket): string {
-  return `${ticket.raffleName}-${ticket.ticketNumber}`;
+  return `${ticket.requestId}-${ticket.ticketNumber}`;
 }
 
 function StatusNotice({ children }: { children: React.ReactNode }) {
@@ -632,7 +648,7 @@ function StatusNotice({ children }: { children: React.ReactNode }) {
  * tickets de un sorteo. Muestra lo esencial (sorteo, número, monto pagado)
  * sin llegar a ser la tarjeta completa. El botón de imprimir vive dentro del
  * mismo recuadro e imprime SOLO ese ticket (el recibo completo real vive
- * oculto, ver PrintableTicket).
+ * oculto, ver TicketReceipt).
  */
 function TicketChip({
   raffleName,
@@ -697,84 +713,6 @@ function TicketChip({
       >
         Imprimir
       </button>
-    </div>
-  );
-}
-
-function PrintableTicket({
-  raffleName,
-  fullName,
-  dni,
-  purchasedAt,
-  ticketNumber,
-  hiddenForPrint,
-  isLastForPrint,
-}: {
-  raffleName: string;
-  fullName: string;
-  dni: string;
-  purchasedAt: string | null;
-  ticketNumber: number;
-  hiddenForPrint: boolean;
-  isLastForPrint: boolean;
-}) {
-  /*
-   * Formato de recibo térmico de 80mm (impresora portátil tipo HOIN HQ300,
-   * 203 DPI): angosto y vertical. Nunca se ve en pantalla (ver el
-   * contenedor padre "hidden print:block"); al imprimir, .ticket-print fija
-   * 72mm de ancho dentro de la página de 80mm (@page "ticket" en
-   * globals.css) y aquí se agregan los 2mm de margen interior a cada lado.
-   * Sin logo: en un recibo térmico no aporta y consume tiempo de impresión.
-   */
-  return (
-    <div
-      className={`ticket-print mx-auto print:mx-auto print:w-[72mm] print:max-w-[576px] ${
-        hiddenForPrint ? "hidden" : "hidden print:block"
-      }`}
-      style={isLastForPrint ? { breakAfter: "auto" } : undefined}
-    >
-      <article className="border-0 bg-white p-0 font-mono text-black print:px-[2mm] print:py-0">
-        <p className="text-center text-[0.62rem] font-bold uppercase tracking-[0.18em]">
-          Ticket de sorteo
-        </p>
-
-        <p className="mt-2 text-center text-base font-bold leading-snug">
-          {raffleName}
-        </p>
-
-        <div className="my-3 border-t border-dashed border-neutral-500" />
-
-        <div className="text-center">
-          <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
-            Número asignado
-          </p>
-          <p className="mt-1 text-5xl font-black leading-none tabular-nums">
-            {String(ticketNumber).padStart(4, "0")}
-          </p>
-        </div>
-
-        <div className="my-3 border-t border-dashed border-neutral-500" />
-
-        <dl className="space-y-2 text-sm">
-          <Field label="Nombre" value={fullName} />
-          <Field label="DNI" value={dni} />
-          {purchasedAt ? <Field label="Fecha de compra" value={purchasedAt} /> : null}
-        </dl>
-
-        {/* Avance final: que el corte/rasgado no pise el texto. */}
-        <div style={{ height: "16mm" }} />
-      </article>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
-        {label}
-      </dt>
-      <dd className="mt-0.5 font-semibold leading-snug break-words">{value}</dd>
     </div>
   );
 }

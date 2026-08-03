@@ -58,14 +58,19 @@ El panel requiere una cuenta activa en `admin_profiles` y permite:
 - Crear, editar, activar, cerrar, cancelar y eliminar borradores vacíos.
 - Revisar comprobantes, aprobar o rechazar solicitudes y asignar tickets.
 - Buscar por DNI o número de ticket desde el inicio del panel.
-- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados. Desde Solicitudes, un único botón registra y abre todos los tickets aprobados en un documento térmico continuo, con un corte por ticket y sin límite de reimpresiones; el control de cupos se mantiene en la sección general de Tickets.
+- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados. Desde Solicitudes, un único botón registra y abre todos los tickets aprobados en un documento continuo, con una página o corte por ticket y sin límite de reimpresiones; el control de cupos se mantiene en la sección general de Tickets.
 - Crear y administrar promociones, imágenes, vigencias y enlaces.
 - Configurar mantenimiento, duración de reservas y reimpresiones.
 - Usar el menú Perfil para volver al sitio, cambiar tema y cerrar sesión.
 
 Las APIs administrativas sin sesión responden `401` JSON; las páginas protegidas redirigen a `/admin/login`.
 
-Para imprimir en una térmica, seleccionar rollo de 80 mm, escala 100 %, sin márgenes y sin encabezados ni pies del navegador. Cada operación conjunta recibe un identificador de tanda y el documento carga exclusivamente los registros de esa tanda; cada ticket mantiene un salto de página para su corte.
+Antes de imprimir se puede elegir uno de estos perfiles, sin registrar una nueva reimpresión al cambiar la selección:
+
+- **Térmica 72 mm:** usa un ancho físico máximo de 72 mm y un área segura de contenido de 64 mm para tolerar cabezales de 576 o 512 puntos. Las opciones A y B emulan una densidad legible o compacta con tipografía monoespaciada; la fuente térmica física, los DPI y el corte dependen del controlador de la impresora. Configurar escala 100 %, márgenes en cero y desactivar encabezados y pies del navegador.
+- **General adaptable:** ocupa el ancho imprimible disponible hasta 180 mm y sirve para A4, Carta, impresoras de tinta, láser y otros tamaños configurados en el navegador.
+
+La selección queda guardada en el navegador para las siguientes ventanas de impresión. Cada ticket incluye el nombre del negocio, sorteo, número, fecha, datos del cliente y un identificador no secreto formado con la rifa y el número de ticket, combinación única en el sistema. Cada operación conjunta recibe un identificador de tanda y carga exclusivamente sus registros; cada ticket mantiene un salto de página para impresión continua.
 
 ## Reglas de negocio
 

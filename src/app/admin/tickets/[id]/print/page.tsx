@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { PrintControls } from "@/app/admin/tickets/[id]/print/print-controls";
-import { BrandLogo } from "@/components/site/brand-logo";
+import { PrintProfileScope } from "@/components/printing/print-profile";
+import { TicketReceipt } from "@/components/printing/ticket-receipt";
 import { formatDateTime } from "@/lib/format";
 import { requireActiveAdminPage } from "@/lib/auth/admin-page";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -124,6 +125,7 @@ export default async function TicketPrintPage({
         `
           id,
           full_name,
+          document_type,
           dni,
           status,
           created_at
@@ -167,10 +169,6 @@ export default async function TicketPrintPage({
     notFound();
   }
 
-  const formattedTicketNumber = String(
-    ticket.ticket_number,
-  ).padStart(4, "0");
-
   const formattedPurchasedAt = formatDateTime(
     purchaseRequest.created_at,
   );
@@ -186,79 +184,23 @@ export default async function TicketPrintPage({
 
   return (
     <main className="min-h-screen bg-neutral-100 p-6 text-black print:min-h-0 print:bg-white print:p-0">
-      <PrintControls />
-
-      {/*
-        Formato de recibo térmico de 80mm (impresora portátil, 203 DPI):
-        mismo diseño que recibe el cliente en /seguimiento/tickets. En
-        pantalla es una tira angosta (vista previa honesta); al imprimir,
-        .ticket-print fija 72mm dentro de la página de 80mm (@page "ticket"
-        en globals.css) y aquí se agrega el margen interior de 2mm.
-      */}
-      <div className="ticket-print mx-auto w-72 print:mx-auto print:w-[72mm] print:max-w-[576px]">
-        <article className="rounded-lg border border-neutral-300 bg-white p-4 font-mono text-black shadow-sm print:rounded-none print:border-0 print:px-[2mm] print:py-0 print:shadow-none">
-          {/*
-            El logo no se imprime: en un recibo térmico no aporta (consume
-            papel y tiempo de impresión rasterizando una imagen). Sigue
-            visible en la vista previa de pantalla.
-          */}
-          <div className="flex flex-col items-center text-center print:hidden">
-            <BrandLogo className="h-auto w-12" />
-          </div>
-
-          <p className="text-center text-[0.62rem] font-bold uppercase tracking-[0.18em]">
-            Ticket de sorteo
-          </p>
-
-          <h1 className="mt-2 text-center text-base font-bold leading-snug">
-            {raffle.name}
-          </h1>
-
-          <div className="my-3 border-t border-dashed border-neutral-500" />
-
-          <div className="text-center">
-            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
-              Número asignado
-            </p>
-            <p className="mt-1 text-5xl font-black leading-none tabular-nums">
-              {formattedTicketNumber}
-            </p>
-          </div>
-
-          <div className="my-3 border-t border-dashed border-neutral-500" />
-
-          <dl className="space-y-2 text-sm">
-            <TicketRow label="Nombre" value={purchaseRequest.full_name} />
-            <TicketRow label="DNI" value={purchaseRequest.dni} />
-            {formattedPurchasedAt ? (
-              <TicketRow
-                label="Fecha de compra"
-                value={formattedPurchasedAt}
-              />
-            ) : null}
-          </dl>
-
-          {/* Control de impresión (uso interno del panel). */}
-          <p className="mt-3 border-t border-dashed border-neutral-500 pt-2 text-[0.6rem] text-neutral-500">
-            {reprintLabel}
-            {formattedPrintedAt ? ` · ${formattedPrintedAt}` : ""}
-          </p>
-
-          {/* Avance final: que el corte/rasgado no pise el texto. */}
-          <div className="hidden print:block" style={{ height: "16mm" }} />
-        </article>
-      </div>
+      <PrintProfileScope>
+        <PrintControls />
+        <TicketReceipt
+          raffleId={ticket.raffle_id}
+          raffleName={raffle.name}
+          fullName={purchaseRequest.full_name}
+          documentLabel={
+            purchaseRequest.document_type === "cui" ? "CUI" : "DNI"
+          }
+          documentNumber={purchaseRequest.dni}
+          purchasedAt={formattedPurchasedAt}
+          ticketNumber={ticket.ticket_number}
+          auditLabel={reprintLabel}
+          printedAt={formattedPrintedAt}
+          isLastForPrint
+        />
+      </PrintProfileScope>
     </main>
-  );
-}
-
-function TicketRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
-        {label}
-      </dt>
-      <dd className="mt-0.5 font-semibold leading-snug break-words">{value}</dd>
-    </div>
   );
 }

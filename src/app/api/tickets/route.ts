@@ -114,6 +114,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   return NextResponse.json(
     {
       fullName: data[0].full_name,
+      documentType: input.documentType,
       dni: data[0].dni,
       /*
        * Una fila por ticket individual (no una por solicitud con un

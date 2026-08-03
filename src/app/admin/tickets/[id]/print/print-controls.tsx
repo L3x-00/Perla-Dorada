@@ -1,8 +1,12 @@
 "use client";
 
+import { PrintProfileSelector } from "@/components/printing/print-profile";
+
 export function PrintControls() {
   return (
     <div className="mx-auto mb-6 max-w-xl space-y-3 print:hidden">
+      <PrintProfileSelector />
+
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
@@ -22,8 +26,9 @@ export function PrintControls() {
       </div>
 
       <p className="text-xs leading-relaxed text-neutral-600">
-        Configura papel de 80 mm, escala 100 %, márgenes ninguno y desactiva
-        encabezados y pies de página. Cada ticket conserva su propio corte.
+        Elige la impresora en el diálogo del navegador. Cada ticket conserva
+        su propia página o corte y cambiar el formato no registra otra
+        reimpresión.
       </p>
     </div>
   );
