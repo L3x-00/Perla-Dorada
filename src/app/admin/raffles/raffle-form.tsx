@@ -52,6 +52,8 @@ type ApiResponse = {
   error?: string;
 };
 
+type RaffleField = keyof RaffleFormValues;
+
 const emptyValues: RaffleFormValues = {
   name: "",
   description: "",
@@ -64,6 +66,16 @@ const emptyValues: RaffleFormValues = {
 
 const inputClassName =
   "h-11 rounded-lg border border-line bg-ink px-3 text-sm text-cream outline-none transition placeholder:text-muted focus:border-gold focus:ring-2 focus:ring-gold/20 disabled:cursor-not-allowed disabled:opacity-60";
+
+const fieldId: Record<RaffleField, string> = {
+  name: "raffle-name",
+  description: "raffle-description",
+  ticketPrice: "raffle-ticket-price",
+  totalTickets: "raffle-total-tickets",
+  startsAt: "raffle-starts-at",
+  closesAt: "raffle-closes-at",
+  drawAt: "raffle-draw-at",
+};
 
 function getInitialValues(
   values?: Partial<RaffleFormValues>,
@@ -111,6 +123,18 @@ export function RaffleForm(
 
   const [errorMessage, setErrorMessage] =
     useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<RaffleField, string>>
+  >({});
+
+  function reportFieldError(field: RaffleField, message: string) {
+    setErrorMessage(null);
+    setFieldErrors({ [field]: message });
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(fieldId[field])?.focus();
+    });
+  }
 
   function updateField(
     field: keyof RaffleFormValues,
@@ -122,6 +146,15 @@ export function RaffleForm(
     }));
 
     setErrorMessage(null);
+    setFieldErrors((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
   }
 
   async function handleSubmit(
@@ -134,6 +167,7 @@ export function RaffleForm(
     }
 
     setErrorMessage(null);
+    setFieldErrors({});
 
     const name = values.name.trim();
     const description =
@@ -146,7 +180,8 @@ export function RaffleForm(
       Number(values.totalTickets);
 
     if (name.length < 3) {
-      setErrorMessage(
+      reportFieldError(
+        "name",
         "El nombre debe tener al menos 3 caracteres.",
       );
       return;
@@ -156,7 +191,8 @@ export function RaffleForm(
       !Number.isFinite(ticketPrice) ||
       ticketPrice <= 0
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "ticketPrice",
         "El precio del ticket debe ser mayor que cero.",
       );
       return;
@@ -166,7 +202,8 @@ export function RaffleForm(
       !Number.isSafeInteger(totalTickets) ||
       totalTickets <= 0
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "totalTickets",
         "El total de tickets debe ser un número entero mayor que cero.",
       );
       return;
@@ -185,7 +222,8 @@ export function RaffleForm(
       values.startsAt &&
       !startsAt
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "startsAt",
         "La fecha de inicio no es válida.",
       );
       return;
@@ -195,7 +233,8 @@ export function RaffleForm(
       values.closesAt &&
       !closesAt
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "closesAt",
         "La fecha de cierre no es válida.",
       );
       return;
@@ -205,7 +244,8 @@ export function RaffleForm(
       values.drawAt &&
       !drawAt
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "drawAt",
         "La fecha del sorteo no es válida.",
       );
       return;
@@ -217,7 +257,8 @@ export function RaffleForm(
       new Date(closesAt).getTime() <=
         new Date(startsAt).getTime()
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "closesAt",
         "La fecha de cierre debe ser posterior al inicio.",
       );
       return;
@@ -229,7 +270,8 @@ export function RaffleForm(
       new Date(drawAt).getTime() <
         new Date(closesAt).getTime()
     ) {
-      setErrorMessage(
+      reportFieldError(
+        "drawAt",
         "La fecha del sorteo no puede ser anterior al cierre.",
       );
       return;
@@ -301,10 +343,14 @@ export function RaffleForm(
         (await response.json()) as ApiResponse;
 
       if (!response.ok) {
-        setErrorMessage(
-          result.error ??
-            "No se pudo guardar la rifa.",
-        );
+        const message = result.error ?? "No se pudo guardar la rifa.";
+        const field = fieldFromServerError(message);
+
+        if (field) {
+          reportFieldError(field, message);
+        } else {
+          setErrorMessage(message);
+        }
         return;
       }
 
@@ -375,8 +421,13 @@ export function RaffleForm(
             disabled={isSubmitting}
             autoComplete="off"
             placeholder="Ejemplo: Sorteo Día de las Madres"
-            className={inputClassName}
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={
+              fieldErrors.name ? "raffle-name-error" : undefined
+            }
+            className={inputClassNameFor(fieldErrors.name)}
           />
+          <FieldError id="raffle-name-error" message={fieldErrors.name} />
         </div>
 
         <div className="grid gap-2">
@@ -401,7 +452,20 @@ export function RaffleForm(
             disabled={isSubmitting}
             rows={5}
             placeholder="Describe el premio y las condiciones principales."
-            className={`${adminInput} resize-y`}
+            aria-invalid={Boolean(fieldErrors.description)}
+            aria-describedby={
+              fieldErrors.description ? "raffle-description-error" : undefined
+            }
+            className={`${adminInput} resize-y ${
+              fieldErrors.description
+                ? "border-red-500 focus:border-red-400 focus:ring-red-500/20"
+                : ""
+            }`}
+          />
+
+          <FieldError
+            id="raffle-description-error"
+            message={fieldErrors.description}
           />
 
           <p className="text-xs text-muted">
@@ -435,7 +499,15 @@ export function RaffleForm(
               required
               disabled={isSubmitting}
               placeholder="500.00"
-              className={inputClassName}
+              aria-invalid={Boolean(fieldErrors.ticketPrice)}
+              aria-describedby={
+                fieldErrors.ticketPrice ? "raffle-ticket-price-error" : undefined
+              }
+              className={inputClassNameFor(fieldErrors.ticketPrice)}
+            />
+            <FieldError
+              id="raffle-ticket-price-error"
+              message={fieldErrors.ticketPrice}
             />
           </div>
 
@@ -465,7 +537,15 @@ export function RaffleForm(
               required
               disabled={isSubmitting}
               placeholder="100"
-              className={inputClassName}
+              aria-invalid={Boolean(fieldErrors.totalTickets)}
+              aria-describedby={
+                fieldErrors.totalTickets ? "raffle-total-tickets-error" : undefined
+              }
+              className={inputClassNameFor(fieldErrors.totalTickets)}
+            />
+            <FieldError
+              id="raffle-total-tickets-error"
+              message={fieldErrors.totalTickets}
             />
           </div>
         </div>
@@ -476,6 +556,7 @@ export function RaffleForm(
             label="Inicio"
             value={values.startsAt}
             disabled={isSubmitting}
+            error={fieldErrors.startsAt}
             onChange={(value) => {
               updateField("startsAt", value);
             }}
@@ -486,6 +567,7 @@ export function RaffleForm(
             label="Cierre"
             value={values.closesAt}
             disabled={isSubmitting}
+            error={fieldErrors.closesAt}
             onChange={(value) => {
               updateField("closesAt", value);
             }}
@@ -496,6 +578,7 @@ export function RaffleForm(
             label="Sorteo"
             value={values.drawAt}
             disabled={isSubmitting}
+            error={fieldErrors.drawAt}
             onChange={(value) => {
               updateField("drawAt", value);
             }}
@@ -561,6 +644,7 @@ type DateFieldProps = {
   label: string;
   value: string;
   disabled: boolean;
+  error?: string;
   onChange: (value: string) => void;
 };
 
@@ -569,6 +653,7 @@ function DateField({
   label,
   value,
   disabled,
+  error,
   onChange,
 }: DateFieldProps) {
   return (
@@ -588,8 +673,41 @@ function DateField({
           onChange(event.target.value);
         }}
         disabled={disabled}
-        className={inputClassName}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={inputClassNameFor(error)}
       />
+      <FieldError id={`${id}-error`} message={error} />
     </div>
   );
+}
+
+function inputClassNameFor(error?: string) {
+  return `${inputClassName} ${
+    error ? "border-red-500 focus:border-red-400 focus:ring-red-500/20" : ""
+  }`;
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  return message ? (
+    <p id={id} role="alert" className="text-xs text-red-300">
+      {message}
+    </p>
+  ) : null;
+}
+
+function fieldFromServerError(message: string): RaffleField | null {
+  const normalized = message.toLocaleLowerCase("es-PE");
+
+  if (normalized.includes("nombre")) return "name";
+  if (normalized.includes("descripción")) return "description";
+  if (normalized.includes("precio")) return "ticketPrice";
+  if (normalized.includes("cantidad") || normalized.includes("total")) {
+    return "totalTickets";
+  }
+  if (normalized.includes("cierre")) return "closesAt";
+  if (normalized.includes("sorteo")) return "drawAt";
+  if (normalized.includes("inicio")) return "startsAt";
+
+  return null;
 }

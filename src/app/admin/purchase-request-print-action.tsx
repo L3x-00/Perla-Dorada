@@ -3,77 +3,48 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type TicketPrintActionProps = {
-  ticketId: string;
-  previousPrints: number;
-  maxReprints?: number;
-  printEndpoint?: string;
-  unlimitedReprints?: boolean;
+import { adminInput, btnPrimary, btnSmall } from "@/components/admin/ui";
+
+type PurchaseRequestPrintActionProps = {
+  purchaseRequestId: string;
+  ticketCount: number;
+  /** Cantidad de tickets vigentes con al menos una impresión previa. */
+  printedTicketCount: number;
 };
 
-type PrintResponse = {
+type ApiResponse = {
   success?: boolean;
-  printableUrl?: string;
   error?: string;
   code?: string;
-  print?: {
-    ticket_id: string;
-    ticket_number: number;
-    print_id: string;
-    print_type: "original" | "reprint";
-    print_sequence: number;
-    printed_at: string;
-    reprints_used: number;
-    max_reprints: number | null;
-  };
+  printableUrl?: string;
 };
 
-export function TicketPrintAction({
-  ticketId,
-  previousPrints,
-  maxReprints = 0,
-  printEndpoint,
-  unlimitedReprints = false,
-}: TicketPrintActionProps) {
+/*
+ * Un solo botón imprime, en un único documento, TODOS los tickets activos
+ * de la solicitud (ver register_purchase_request_ticket_prints). Sin
+ * límite de reimpresiones: es uso interno del panel para las ánforas del
+ * sorteo, no la reimpresión pública con tope. Si algún ticket ya se
+ * imprimió antes, se pide un motivo — uno solo para toda la tanda.
+ */
+export function PurchaseRequestPrintAction({
+  purchaseRequestId,
+  ticketCount,
+  printedTicketCount,
+}: PurchaseRequestPrintActionProps) {
   const router = useRouter();
 
+  const [showReasonForm, setShowReasonForm] = useState(false);
+  const [serverRequiresReason, setServerRequiresReason] = useState(false);
   const [reason, setReason] = useState("");
-  const [showReasonForm, setShowReasonForm] =
-    useState(false);
-  const [serverRequiresReason, setServerRequiresReason] =
-    useState(false);
-  const [submitting, setSubmitting] =
-    useState(false);
-  const [error, setError] =
-    useState<string | null>(null);
-
-  const isReprint = previousPrints > 0 || serverRequiresReason;
-
-  const reprintsUsed = Math.max(
-    previousPrints - 1,
-    0,
-  );
-
-  const limitReached =
-    !unlimitedReprints && isReprint && reprintsUsed >= maxReprints;
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const reasonRequired = printedTicketCount > 0 || serverRequiresReason;
 
   async function registerPrint() {
     const normalizedReason = reason.trim();
 
-    if (
-      isReprint &&
-      normalizedReason.length < 3
-    ) {
-      setError(
-        "Debes indicar un motivo de reimpresión.",
-      );
-      return;
-    }
-
-    if (normalizedReason.length > 500) {
-      setError(
-        "El motivo no puede superar los 500 caracteres.",
-      );
+    if (reasonRequired && normalizedReason.length < 3) {
+      setError("Debes indicar un motivo de reimpresión.");
       return;
     }
 
@@ -92,29 +63,20 @@ export function TicketPrintAction({
 
     try {
       const response = await fetch(
-        printEndpoint ?? `/api/admin/tickets/${ticketId}/print`,
+        `/api/admin/purchase-requests/${purchaseRequestId}/print`,
         {
           method: "POST",
           credentials: "same-origin",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            reason: isReprint
-              ? normalizedReason
-              : undefined,
+            reason: reasonRequired ? normalizedReason : undefined,
           }),
         },
       );
 
-      const body =
-        (await response.json()) as PrintResponse;
+      const body = (await response.json()) as ApiResponse;
 
-      if (
-        !response.ok ||
-        !body.success ||
-        !body.printableUrl
-      ) {
+      if (!response.ok || !body.success || !body.printableUrl) {
         printableWindow.close();
 
         if (body.code === "REPRINT_REASON_REQUIRED") {
@@ -123,17 +85,13 @@ export function TicketPrintAction({
           router.refresh();
         }
 
-        throw new Error(
-          body.error ??
-            "No se pudo registrar la impresión.",
-        );
+        throw new Error(body.error ?? "No se pudo registrar la impresión.");
       }
 
       printableWindow.location.replace(body.printableUrl);
 
       setShowReasonForm(false);
       setReason("");
-
       router.refresh();
     } catch (caughtError) {
       if (
@@ -153,33 +111,25 @@ export function TicketPrintAction({
     }
   }
 
-  if (limitReached) {
-    return (
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-red-400">
-          Límite alcanzado
-        </p>
+  const newTicketCount = Math.max(ticketCount - printedTicketCount, 0);
+  const label = serverRequiresReason
+    ? `Imprimir/reimprimir tickets (${ticketCount})`
+    : printedTicketCount === 0
+      ? `Imprimir tickets (${ticketCount})`
+      : printedTicketCount === ticketCount
+        ? `Reimprimir tickets (${ticketCount})`
+        : `Imprimir ${newTicketCount} y reimprimir ${printedTicketCount}`;
 
-        <p className="text-xs text-muted">
-          Reimpresiones: {reprintsUsed}/
-          {maxReprints}
-        </p>
-      </div>
-    );
-  }
-
-  if (!isReprint) {
+  if (!reasonRequired) {
     return (
-      <div className="space-y-2">
+      <div className="min-w-52 space-y-2">
         <button
           type="button"
           onClick={registerPrint}
           disabled={submitting}
-          className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-cream disabled:cursor-not-allowed disabled:opacity-50"
+          className={`${btnPrimary} ${btnSmall}`}
         >
-          {submitting
-            ? "Registrando..."
-            : "Imprimir original"}
+          {submitting ? "Registrando..." : label}
         </button>
 
         {error ? (
@@ -203,50 +153,43 @@ export function TicketPrintAction({
           disabled={submitting}
           className="inline-flex items-center justify-center rounded-lg border border-amber-800/70 bg-amber-950/25 px-3 py-2 text-xs font-medium text-amber-200 transition-colors duration-200 hover:bg-amber-950/50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {unlimitedReprints
-            ? "Reimprimir"
-            : `Reimprimir (${reprintsUsed}/${maxReprints})`}
+          {label}
         </button>
       ) : (
         <div className="space-y-2">
           <label
-            htmlFor={`reason-${ticketId}`}
+            htmlFor={`reason-${purchaseRequestId}`}
             className="block text-xs font-medium text-muted"
           >
-            Motivo de reimpresión
+            {printedTicketCount > 0
+              ? `Motivo para ${printedTicketCount} ${
+                  printedTicketCount === 1 ? "reimpresión" : "reimpresiones"
+                }`
+              : "Motivo de reimpresión"}
           </label>
 
           <textarea
-            id={`reason-${ticketId}`}
+            id={`reason-${purchaseRequestId}`}
             value={reason}
-            onChange={(event) =>
-              setReason(event.target.value)
-            }
+            onChange={(event) => setReason(event.target.value)}
             rows={3}
             minLength={3}
             maxLength={500}
             disabled={submitting}
-            placeholder="Ejemplo: el original se deterioró"
-            className="w-full rounded-lg border border-line bg-ink p-2 text-sm text-cream outline-none focus:border-gold"
+            placeholder="Ejemplo: el rollo original se dañó en la impresora"
+            className={`${adminInput} text-xs`}
           />
 
-          <p className="text-right text-xs text-muted">
-            {reason.length}/500
-          </p>
+          <p className="text-right text-xs text-muted">{reason.length}/500</p>
 
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={registerPrint}
-              disabled={
-                submitting ||
-                reason.trim().length < 3
-              }
+              disabled={submitting || reason.trim().length < 3}
               className="inline-flex items-center justify-center rounded-lg border border-amber-700/70 bg-amber-900/40 px-3 py-2 text-xs font-medium text-amber-100 transition-colors duration-200 hover:bg-amber-900/70 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting
-                ? "Registrando..."
-                : "Confirmar reimpresión"}
+              {submitting ? "Registrando..." : "Confirmar reimpresión"}
             </button>
 
             <button

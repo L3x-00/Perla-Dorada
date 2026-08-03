@@ -143,6 +143,65 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
     }
   }
 
+  const approvedRequestIds = requests
+    .filter((request) => request.status === "approved")
+    .map((request) => request.id);
+  const approvedTicketsByRequestId = new Map<
+    string,
+    Array<{ id: string; previousPrints: number }>
+  >();
+  if (approvedRequestIds.length > 0) {
+    const { data: approvedTickets, error: approvedTicketsError } =
+      await adminClient
+        .from("tickets")
+        .select("id, purchase_request_id")
+        .in("purchase_request_id", approvedRequestIds)
+        .eq("ticket_status", "active");
+
+    if (approvedTicketsError) {
+      console.error("No se pudieron preparar las impresiones del panel:", {
+        ticketsError: approvedTicketsError,
+      });
+    } else {
+      const tickets = approvedTickets ?? [];
+      const ticketIds = tickets.map((ticket) => ticket.id);
+      const printCountByTicketId = new Map<string, number>();
+      let canShowPrintActions = true;
+
+      if (ticketIds.length > 0) {
+        const { data: prints, error: printsError } = await adminClient
+          .from("ticket_prints")
+          .select("ticket_id")
+          .in("ticket_id", ticketIds);
+
+        if (printsError) {
+          console.error("No se pudieron cargar las impresiones:", printsError);
+          canShowPrintActions = false;
+        } else {
+          for (const print of prints ?? []) {
+            printCountByTicketId.set(
+              print.ticket_id,
+              (printCountByTicketId.get(print.ticket_id) ?? 0) + 1,
+            );
+          }
+        }
+      }
+
+      if (canShowPrintActions) {
+        for (const ticket of tickets) {
+          const current = approvedTicketsByRequestId.get(
+            ticket.purchase_request_id,
+          ) ?? [];
+          current.push({
+            id: ticket.id,
+            previousPrints: printCountByTicketId.get(ticket.id) ?? 0,
+          });
+          approvedTicketsByRequestId.set(ticket.purchase_request_id, current);
+        }
+      }
+    }
+  }
+
   return (
     <AdminPage wide>
       <AdminPageHeader
@@ -215,6 +274,9 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                 request.reviewed_by
                   ? reviewerNameById.get(request.reviewed_by) ?? "Administrador"
                   : null
+              }
+              approvedTickets={
+                approvedTicketsByRequestId.get(request.id) ?? []
               }
             />
           ))}
@@ -329,6 +391,9 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                     <PurchaseRequestActions
                       purchaseRequestId={request.id}
                       status={request.status}
+                      approvedTickets={
+                        approvedTicketsByRequestId.get(request.id) ?? []
+                      }
                     />
                   </td>
                 </tr>
@@ -373,10 +438,12 @@ function RequestCard({
   request,
   index,
   reviewerName,
+  approvedTickets,
 }: {
   request: RequestRow;
   index: number;
   reviewerName: string | null;
+  approvedTickets: Array<{ id: string; previousPrints: number }>;
 }) {
   return (
     <article
@@ -452,6 +519,7 @@ function RequestCard({
       <PurchaseRequestActions
         purchaseRequestId={request.id}
         status={request.status}
+        approvedTickets={approvedTickets}
       />
     </article>
   );

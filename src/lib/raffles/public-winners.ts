@@ -9,6 +9,7 @@ export type PublicRaffleWinnerEntry = {
   prizeImageUrl: string | null;
   ticketNumber: number;
   winnerDisplayName: string;
+  winnerLocation: string | null;
 };
 
 export type PublicRaffleWinners = {
@@ -49,7 +50,7 @@ export async function getLatestClosedRaffleWinners(): Promise<PublicRaffleWinner
   const { data: candidates, error: raffleError } = await supabase
     .from("raffles")
     .select(
-      "id, name, image_path, draw_at, closed_at, raffle_winners(id, ticket_id, prize_id, prize_title, prize_image_path)",
+      "id, name, image_path, draw_at, closed_at, raffle_winners(id, ticket_id, prize_id, prize_title, prize_image_path, winner_location)",
     )
     .eq("status", "closed")
     .order("closed_at", { ascending: false, nullsFirst: false })
@@ -106,6 +107,7 @@ export async function getLatestClosedRaffleWinners(): Promise<PublicRaffleWinner
           : raffleImageUrl(raffle.image_path),
         ticketNumber: ticket.ticket_number,
         winnerDisplayName: purchase ? maskWinnerName(purchase.full_name) : "Participante",
+        winnerLocation: winner.winner_location,
       };
     })
     .filter((entry): entry is PublicRaffleWinnerEntry => entry !== null)

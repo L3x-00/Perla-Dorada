@@ -17,6 +17,7 @@ type ResolvedWinner = {
   ticketNumber: number | null;
   winnerName: string | null;
   winnerDni: string | null;
+  winnerLocation: string | null;
   confirmedAt: string | null;
 };
 
@@ -54,7 +55,7 @@ export default async function RaffleWinnerPage({
 
   const { data: winners, error: winnersError } = await adminClient
     .from("raffle_winners")
-    .select("id, ticket_id, prize_id, prize_title, confirmed_at")
+    .select("id, ticket_id, prize_id, prize_title, winner_location, confirmed_at")
     .eq("raffle_id", id);
 
   if (winnersError) {
@@ -128,6 +129,7 @@ export default async function RaffleWinnerPage({
       ticketNumber: ticket?.ticket_number ?? null,
       winnerName: purchase?.full_name ?? null,
       winnerDni: purchase?.dni ?? null,
+      winnerLocation: winner.winner_location,
       confirmedAt: formatDateTime(winner.confirmed_at),
     };
   }
@@ -312,6 +314,13 @@ function WinnerSummary({
         <p className="mt-1.5 text-sm text-muted">
           <span className="text-muted">DNI:</span>{" "}
           <span className="font-medium">{winner.winnerDni}</span>
+        </p>
+      ) : null}
+
+      {winner.winnerLocation ? (
+        <p className="mt-1.5 text-sm text-muted">
+          <span className="text-muted">Compra en:</span>{" "}
+          <span className="font-medium">{winner.winnerLocation}</span>
         </p>
       ) : null}
 

@@ -154,7 +154,7 @@ export function Participate({
                     */}
                     <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line p-5 sm:p-9 sm:pb-6">
                       <div>
-                        <p className="eyebrow text-muted">Participar en</p>
+                        <p className="eyebrow text-muted">Participar en el gran sorteo del Tio Freddy</p>
                         <p className="mt-1 font-display text-lg font-light text-cream">
                           {raffleName}
                         </p>

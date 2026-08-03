@@ -40,9 +40,8 @@ export function RaffleImageUpload({
 
     try {
       /*
-       * Optimización en el navegador antes de subir (ver
-       * docs/contex/alcancefree.md §4.2 y §8): esta foto se sirve a todos
-       * los visitantes de la landing, así que su peso es el que más pesa en
+       * Optimización en el navegador antes de subir: esta foto se sirve a
+       * todos los visitantes de la landing, así que su peso es el que más pesa en
        * el egress público. Si Canvas falla, no se sube el original: se pide
        * otra imagen y el servidor mantiene el mismo tope como defensa final.
        */

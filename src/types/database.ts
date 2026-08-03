@@ -306,6 +306,7 @@ export type Database = {
           prize_title: string | null
           raffle_id: string
           ticket_id: string
+          winner_location: string | null
         }
         Insert: {
           confirmed_at?: string
@@ -317,6 +318,7 @@ export type Database = {
           prize_title?: string | null
           raffle_id: string
           ticket_id: string
+          winner_location?: string | null
         }
         Update: {
           confirmed_at?: string
@@ -328,6 +330,7 @@ export type Database = {
           prize_title?: string | null
           raffle_id?: string
           ticket_id?: string
+          winner_location?: string | null
         }
         Relationships: [
           {
@@ -403,6 +406,7 @@ export type Database = {
       ticket_prints: {
         Row: {
           id: string
+          print_batch_id: string | null
           print_sequence: number
           print_type: Database["public"]["Enums"]["ticket_print_type"]
           printed_at: string
@@ -412,6 +416,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          print_batch_id?: string | null
           print_sequence: number
           print_type: Database["public"]["Enums"]["ticket_print_type"]
           printed_at?: string
@@ -421,6 +426,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          print_batch_id?: string | null
           print_sequence?: number
           print_type?: Database["public"]["Enums"]["ticket_print_type"]
           printed_at?: string
@@ -765,12 +771,47 @@ export type Database = {
           target_raffle_name: string
         }[]
       }
+      register_purchase_request_ticket_print: {
+        Args: {
+          p_admin_user_id: string
+          p_purchase_request_id: string
+          p_reason?: string
+          p_ticket_id: string
+        }
+        Returns: {
+          max_reprints: number
+          print_id: string
+          print_sequence: number
+          print_type: Database["public"]["Enums"]["ticket_print_type"]
+          printed_at: string
+          reprints_used: number
+          ticket_id: string
+          ticket_number: number
+        }[]
+      }
+      register_purchase_request_ticket_prints: {
+        Args: {
+          p_admin_user_id: string
+          p_purchase_request_id: string
+          p_reason?: string
+        }
+        Returns: {
+          batch_id: string
+          print_id: string
+          print_sequence: number
+          print_type: Database["public"]["Enums"]["ticket_print_type"]
+          printed_at: string
+          ticket_id: string
+          ticket_number: number
+        }[]
+      }
       register_raffle_winner: {
         Args: {
           p_admin_user_id: string
           p_prize_id?: string
           p_raffle_id: string
           p_ticket_number: number
+          p_winner_location?: string
         }
         Returns: {
           confirmed_at: string
@@ -782,6 +823,7 @@ export type Database = {
           prize_title: string | null
           raffle_id: string
           ticket_id: string
+          winner_location: string | null
         }
         SetofOptions: {
           from: "*"

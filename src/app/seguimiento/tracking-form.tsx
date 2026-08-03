@@ -25,7 +25,6 @@ type TrackingResult = {
   expiresAt: string;
   reviewedAt: string | null;
   rejectionReason: string | null;
-  ticketNumbers: number[];
 };
 
 type TrackingResponse = {
@@ -67,6 +66,7 @@ export function TrackingForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const trackingCodeRef = useRef<HTMLInputElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   const documentComplete =
     documentNumber.length > 0 &&
@@ -101,6 +101,12 @@ export function TrackingForm() {
       }
 
       setResults(body.requests);
+      window.requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -173,7 +179,7 @@ export function TrackingForm() {
       ) : null}
 
       {results && results.length > 0 ? (
-        <div className="mt-6 space-y-4">
+        <div ref={resultsRef} className="mt-6 scroll-mt-24 space-y-4">
           <p className="text-sm text-muted">
             {results.length === 1
               ? "1 solicitud encontrada."
@@ -259,25 +265,11 @@ function TrackingResultCard({ result }: { result: TrackingResult }) {
 
         {result.status === "approved" ? (
           <div>
-            <dt className="text-sm text-muted">Tickets asignados</dt>
-
-            {result.ticketNumbers.length > 0 ? (
-              <dd className="mt-3 flex flex-wrap gap-3">
-                {result.ticketNumbers.map((ticketNumber) => (
-                  <span
-                    key={ticketNumber}
-                    className="rounded-xl border border-emerald-700 bg-emerald-950 px-4 py-3 text-xl font-bold tabular-nums text-emerald-200"
-                  >
-                    {String(ticketNumber).padStart(4, "0")}
-                  </span>
-                ))}
-              </dd>
-            ) : (
-              <dd className="mt-2 text-sm text-muted">
-                La solicitud está aprobada, pero todavía no aparecen tickets
-                asignados.
-              </dd>
-            )}
+            <dt className="text-sm text-muted">Tickets</dt>
+            <dd className="mt-1 text-sm text-emerald-200">
+              Tu compra fue aprobada. Selecciona el sorteo al final para ver,
+              descargar o imprimir tus tickets.
+            </dd>
           </div>
         ) : null}
 

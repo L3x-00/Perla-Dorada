@@ -9,11 +9,16 @@ import {
   btnSuccess,
 } from "@/components/admin/ui";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PurchaseRequestPrintAction } from "@/app/admin/purchase-request-print-action";
 import { useState } from "react";
 
 type PurchaseRequestActionsProps = {
   purchaseRequestId: string;
   status: "pending" | "approved" | "rejected" | "expired";
+  approvedTickets?: Array<{
+    id: string;
+    previousPrints: number;
+  }>;
 };
 
 type ApiResponse = {
@@ -27,6 +32,7 @@ type ApiResponse = {
 export function PurchaseRequestActions({
   purchaseRequestId,
   status,
+  approvedTickets = [],
 }: PurchaseRequestActionsProps) {
   const router = useRouter();
 
@@ -35,6 +41,22 @@ export function PurchaseRequestActions({
   const [rejectionReason, setRejectionReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [confirmApprove, setConfirmApprove] = useState(false);
+
+  if (status === "approved") {
+    if (approvedTickets.length === 0) {
+      return <p className="text-xs text-muted">Tickets en preparación.</p>;
+    }
+
+    return (
+      <PurchaseRequestPrintAction
+        purchaseRequestId={purchaseRequestId}
+        ticketCount={approvedTickets.length}
+        printedTicketCount={
+          approvedTickets.filter((ticket) => ticket.previousPrints > 0).length
+        }
+      />
+    );
+  }
 
   if (status !== "pending") {
     return null;
