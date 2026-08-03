@@ -17,19 +17,22 @@ function mapDatabaseError(message: string) {
     case "ADMIN_NOT_ACTIVE":
       return { status: 403, error: "El administrador no está activo." };
     case "PURCHASE_REQUEST_NOT_FOUND":
-    case "TICKET_NOT_FOUND":
-      return { status: 404, error: "No se encontró el ticket solicitado." };
+      return { status: 404, error: "No se encontró la solicitud." };
     case "PURCHASE_REQUEST_NOT_APPROVED":
       return {
         status: 409,
         error: "La solicitud debe estar aprobada para imprimir sus tickets.",
       };
-    case "TICKET_DOES_NOT_BELONG_TO_PURCHASE_REQUEST":
-      return { status: 409, error: "El ticket no pertenece a esta solicitud." };
+    case "PURCHASE_REQUEST_HAS_NO_TICKETS":
+      return {
+        status: 409,
+        error: "Esta solicitud todavía no tiene tickets asignados.",
+      };
     case "TICKET_NOT_ACTIVE":
       return {
         status: 409,
-        error: "El ticket está congelado o fue reasignado y no se puede imprimir.",
+        error:
+          "Uno o más tickets de esta solicitud están congelados o fueron reasignados y no se pueden imprimir.",
       };
     case "REPRINT_REASON_REQUIRED":
       return { status: 400, error: "El motivo de reimpresión es obligatorio." };
@@ -40,19 +43,22 @@ function mapDatabaseError(message: string) {
   }
 }
 
+/*
+ * Registra e imprime, en una sola operación atómica, TODOS los tickets
+ * activos de una solicitud aprobada. Reemplaza el flujo anterior de un
+ * botón por ticket (torpe con solicitudes de decenas de tickets: un click
+ * y una ventana emergente por cada uno). Sin límite de reimpresiones
+ * (uso interno del panel para las ánforas del sorteo).
+ */
 export async function POST(
   request: Request,
-  {
-    params,
-  }: {
-    params: Promise<{ id: string; ticketId: string }>;
-  },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: purchaseRequestId, ticketId } = await params;
+  const { id: purchaseRequestId } = await params;
 
-  if (!UUID_PATTERN.test(purchaseRequestId) || !UUID_PATTERN.test(ticketId)) {
+  if (!UUID_PATTERN.test(purchaseRequestId)) {
     return NextResponse.json(
-      { error: "El identificador de impresión no es válido." },
+      { error: "El identificador de la solicitud no es válido." },
       { status: 400 },
     );
   }
@@ -90,20 +96,18 @@ export async function POST(
   }
 
   const { data, error } = await createAdminClient().rpc(
-    "register_purchase_request_ticket_print",
+    "register_purchase_request_ticket_prints",
     {
       p_purchase_request_id: purchaseRequestId,
-      p_ticket_id: ticketId,
       p_admin_user_id: adminUserId,
       ...(reason ? { p_reason: reason } : {}),
     },
   );
 
   if (error) {
-    logError("ticket.print.unlimited_failed", error, {
+    logError("ticket.print.batch_failed", error, {
       request_id: request.headers.get("x-request-id"),
       purchase_request_id: purchaseRequestId,
-      ticket_id: ticketId,
       database_code: error.code,
     });
     const mapped = mapDatabaseError(error.message);
@@ -111,49 +115,44 @@ export async function POST(
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
 
-  const printResult = data?.[0];
+  const prints = data ?? [];
 
-  if (!printResult) {
+  if (prints.length === 0) {
     logError(
-      "ticket.print.unlimited_missing_result",
-      new Error("La RPC no devolvió el registro de impresión."),
+      "ticket.print.batch_missing_result",
+      new Error("La RPC no devolvió registros de impresión."),
       {
         request_id: request.headers.get("x-request-id"),
         purchase_request_id: purchaseRequestId,
-        ticket_id: ticketId,
       },
     );
     return NextResponse.json(
-      { error: "La operación no produjo un registro de impresión." },
+      { error: "La operación no produjo ningún registro de impresión." },
       { status: 500 },
     );
   }
 
   await recordAuditEvent({
     actorUserId: adminUserId,
-    action: "ticket_print_unlimited_from_purchase_request",
-    entity: "tickets",
-    entityId: ticketId,
+    action: "ticket_print_batch_from_purchase_request",
+    entity: "purchase_requests",
+    entityId: purchaseRequestId,
     metadata: {
-      purchase_request_id: purchaseRequestId,
-      print_type: printResult.print_type,
-      print_sequence: printResult.print_sequence,
+      ticket_count: prints.length,
+      print_type: prints[0].print_type,
     },
   });
 
-  logInfo("ticket.print.unlimited_registered", {
+  logInfo("ticket.print.batch_registered", {
     request_id: request.headers.get("x-request-id"),
     purchase_request_id: purchaseRequestId,
-    ticket_id: ticketId,
-    print_type: printResult.print_type,
-    print_sequence: printResult.print_sequence,
+    ticket_count: prints.length,
+    print_type: prints[0].print_type,
   });
 
   return NextResponse.json({
     success: true,
-    print: printResult,
-    printableUrl:
-      `/admin/tickets/${printResult.ticket_id}/print` +
-      `?printId=${printResult.print_id}`,
+    prints,
+    printableUrl: `/admin/purchase-requests/${purchaseRequestId}/print`,
   });
 }

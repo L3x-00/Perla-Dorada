@@ -210,7 +210,7 @@ export default async function TicketPrintPage({
             Ticket de sorteo
           </p>
 
-          <h1 className="mt-2 text-center text-sm font-bold leading-snug">
+          <h1 className="mt-2 text-center text-base font-bold leading-snug">
             {raffle.name}
           </h1>
 
@@ -220,14 +220,14 @@ export default async function TicketPrintPage({
             <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
               Número asignado
             </p>
-            <p className="mt-1 text-6xl font-black leading-none tabular-nums">
+            <p className="mt-1 text-5xl font-black leading-none tabular-nums">
               {formattedTicketNumber}
             </p>
           </div>
 
           <div className="my-3 border-t border-dashed border-neutral-500" />
 
-          <dl className="space-y-2 text-xs">
+          <dl className="space-y-2 text-sm">
             <TicketRow label="Nombre" value={purchaseRequest.full_name} />
             <TicketRow label="DNI" value={purchaseRequest.dni} />
             {formattedPurchasedAt ? (
@@ -255,7 +255,7 @@ export default async function TicketPrintPage({
 function TicketRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
+      <dt className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
         {label}
       </dt>
       <dd className="mt-0.5 font-semibold leading-snug break-words">{value}</dd>

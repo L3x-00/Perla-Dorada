@@ -738,7 +738,7 @@ function PrintableTicket({
           Ticket de sorteo
         </p>
 
-        <p className="mt-2 text-center text-sm font-bold leading-snug">
+        <p className="mt-2 text-center text-base font-bold leading-snug">
           {raffleName}
         </p>
 
@@ -748,14 +748,14 @@ function PrintableTicket({
           <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em]">
             Número asignado
           </p>
-          <p className="mt-1 text-6xl font-black leading-none tabular-nums">
+          <p className="mt-1 text-5xl font-black leading-none tabular-nums">
             {String(ticketNumber).padStart(4, "0")}
           </p>
         </div>
 
         <div className="my-3 border-t border-dashed border-neutral-500" />
 
-        <dl className="space-y-2 text-xs">
+        <dl className="space-y-2 text-sm">
           <Field label="Nombre" value={fullName} />
           <Field label="DNI" value={dni} />
           {purchasedAt ? <Field label="Fecha de compra" value={purchasedAt} /> : null}
@@ -771,7 +771,7 @@ function PrintableTicket({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[0.6rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
+      <dt className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-neutral-500">
         {label}
       </dt>
       <dd className="mt-0.5 font-semibold leading-snug break-words">{value}</dd>

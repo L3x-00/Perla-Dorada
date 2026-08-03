@@ -9,7 +9,7 @@ import {
   btnSuccess,
 } from "@/components/admin/ui";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
-import { TicketPrintAction } from "@/app/admin/ticket-print-action";
+import { PurchaseRequestPrintAction } from "@/app/admin/purchase-request-print-action";
 import { useState } from "react";
 
 type PurchaseRequestActionsProps = {
@@ -48,20 +48,11 @@ export function PurchaseRequestActions({
     }
 
     return (
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-emerald-200">
-          Imprimir tickets aprobados (sin límite)
-        </p>
-        {approvedTickets.map((ticket) => (
-          <TicketPrintAction
-            key={ticket.id}
-            ticketId={ticket.id}
-            previousPrints={ticket.previousPrints}
-            unlimitedReprints
-            printEndpoint={`/api/admin/purchase-requests/${purchaseRequestId}/tickets/${ticket.id}/print`}
-          />
-        ))}
-      </div>
+      <PurchaseRequestPrintAction
+        purchaseRequestId={purchaseRequestId}
+        ticketCount={approvedTickets.length}
+        hasReprints={approvedTickets.some((ticket) => ticket.previousPrints > 0)}
+      />
     );
   }
 
