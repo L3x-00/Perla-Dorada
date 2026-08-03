@@ -486,9 +486,9 @@ html[data-theme="light"] .raffle-festive-wash {
     margin: 10mm;
   }
 
-  /* El alto continuo y el corte dependen del driver de cada impresora. */
+  /* El driver puede imponer un largo mínimo o controlar el corte físico. */
   @page ticket-thermal {
-    size: auto;
+    size: 72mm 25mm;
     margin: 0;
   }
 
