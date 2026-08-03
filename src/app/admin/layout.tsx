@@ -10,7 +10,7 @@ type AdminLayoutProps = {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen bg-ink text-cream">
+    <div className="admin-shell min-h-screen bg-ink text-cream">
       {/*
         Cabecera fija: en pantallas largas de datos, la navegación queda
         siempre a mano. Se oculta al imprimir (la vista de ticket va a papel).
