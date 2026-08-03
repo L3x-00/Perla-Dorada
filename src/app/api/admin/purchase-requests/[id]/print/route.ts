@@ -15,31 +15,61 @@ type RequestBody = {
 function mapDatabaseError(message: string) {
   switch (message) {
     case "ADMIN_NOT_ACTIVE":
-      return { status: 403, error: "El administrador no está activo." };
+      return {
+        status: 403,
+        code: "ADMIN_NOT_ACTIVE",
+        error: "El administrador no está activo.",
+      };
     case "PURCHASE_REQUEST_NOT_FOUND":
-      return { status: 404, error: "No se encontró la solicitud." };
+      return {
+        status: 404,
+        code: "PURCHASE_REQUEST_NOT_FOUND",
+        error: "No se encontró la solicitud.",
+      };
     case "PURCHASE_REQUEST_NOT_APPROVED":
       return {
         status: 409,
+        code: "PURCHASE_REQUEST_NOT_APPROVED",
         error: "La solicitud debe estar aprobada para imprimir sus tickets.",
       };
     case "PURCHASE_REQUEST_HAS_NO_TICKETS":
       return {
         status: 409,
+        code: "PURCHASE_REQUEST_HAS_NO_TICKETS",
         error: "Esta solicitud todavía no tiene tickets asignados.",
       };
     case "TICKET_NOT_ACTIVE":
       return {
         status: 409,
+        code: "TICKET_NOT_ACTIVE",
         error:
           "Uno o más tickets de esta solicitud están congelados o fueron reasignados y no se pueden imprimir.",
       };
+    case "ACTIVE_TICKET_COUNT_MISMATCH":
+      return {
+        status: 409,
+        code: "ACTIVE_TICKET_COUNT_MISMATCH",
+        error:
+          "Los tickets vigentes todavía no están completos. Finaliza su reasignación antes de imprimir.",
+      };
     case "REPRINT_REASON_REQUIRED":
-      return { status: 400, error: "El motivo de reimpresión es obligatorio." };
+      return {
+        status: 400,
+        code: "REPRINT_REASON_REQUIRED",
+        error: "El motivo de reimpresión es obligatorio.",
+      };
     case "REPRINT_REASON_TOO_LONG":
-      return { status: 400, error: "El motivo no puede superar los 500 caracteres." };
+      return {
+        status: 400,
+        code: "REPRINT_REASON_TOO_LONG",
+        error: "El motivo no puede superar los 500 caracteres.",
+      };
     default:
-      return { status: 500, error: "No se pudo registrar la impresión." };
+      return {
+        status: 500,
+        code: "PRINT_REGISTRATION_FAILED",
+        error: "No se pudo registrar la impresión.",
+      };
   }
 }
 
@@ -112,7 +142,10 @@ export async function POST(
     });
     const mapped = mapDatabaseError(error.message);
 
-    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+    return NextResponse.json(
+      { error: mapped.error, code: mapped.code },
+      { status: mapped.status },
+    );
   }
 
   const prints = data ?? [];
@@ -132,6 +165,36 @@ export async function POST(
     );
   }
 
+  const batchIds = new Set(prints.map((print) => print.batch_id));
+  const batchId = prints[0].batch_id;
+
+  if (
+    batchIds.size !== 1 ||
+    typeof batchId !== "string" ||
+    !UUID_PATTERN.test(batchId)
+  ) {
+    logError(
+      "ticket.print.batch_invalid_result",
+      new Error("La RPC devolvió una tanda inconsistente."),
+      {
+        request_id: request.headers.get("x-request-id"),
+        purchase_request_id: purchaseRequestId,
+      },
+    );
+    return NextResponse.json(
+      {
+        error:
+          "La operación no produjo un identificador de impresión válido.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const originalCount = prints.filter(
+    (print) => print.print_type === "original",
+  ).length;
+  const reprintCount = prints.length - originalCount;
+
   await recordAuditEvent({
     actorUserId: adminUserId,
     action: "ticket_print_batch_from_purchase_request",
@@ -139,7 +202,9 @@ export async function POST(
     entityId: purchaseRequestId,
     metadata: {
       ticket_count: prints.length,
-      print_type: prints[0].print_type,
+      original_count: originalCount,
+      reprint_count: reprintCount,
+      batch_id: batchId,
     },
   });
 
@@ -147,12 +212,18 @@ export async function POST(
     request_id: request.headers.get("x-request-id"),
     purchase_request_id: purchaseRequestId,
     ticket_count: prints.length,
-    print_type: prints[0].print_type,
+    original_count: originalCount,
+    reprint_count: reprintCount,
+    batch_id: batchId,
   });
+
+  const printQuery = new URLSearchParams({ batchId });
 
   return NextResponse.json({
     success: true,
-    prints,
-    printableUrl: `/admin/purchase-requests/${purchaseRequestId}/print`,
+    ticketCount: prints.length,
+    printableUrl:
+      `/admin/purchase-requests/${purchaseRequestId}/print?` +
+      printQuery.toString(),
   });
 }

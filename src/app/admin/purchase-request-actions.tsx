@@ -51,7 +51,9 @@ export function PurchaseRequestActions({
       <PurchaseRequestPrintAction
         purchaseRequestId={purchaseRequestId}
         ticketCount={approvedTickets.length}
-        hasReprints={approvedTickets.some((ticket) => ticket.previousPrints > 0)}
+        printedTicketCount={
+          approvedTickets.filter((ticket) => ticket.previousPrints > 0).length
+        }
       />
     );
   }

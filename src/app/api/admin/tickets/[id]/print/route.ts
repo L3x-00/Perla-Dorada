@@ -16,24 +16,28 @@ function mapDatabaseError(message: string) {
     case "ADMIN_NOT_ACTIVE":
       return {
         status: 403,
+        code: "ADMIN_NOT_ACTIVE",
         error: "El administrador no está activo.",
       };
 
     case "TICKET_NOT_FOUND":
       return {
         status: 404,
+        code: "TICKET_NOT_FOUND",
         error: "El ticket no existe.",
       };
 
     case "TICKET_NOT_ACTIVE":
       return {
         status: 409,
+        code: "TICKET_NOT_ACTIVE",
         error: "El ticket está congelado o fue reasignado y no se puede imprimir.",
       };
 
     case "PURCHASE_REQUEST_NOT_APPROVED":
       return {
         status: 409,
+        code: "PURCHASE_REQUEST_NOT_APPROVED",
         error:
           "El ticket no pertenece a una solicitud aprobada.",
       };
@@ -41,6 +45,7 @@ function mapDatabaseError(message: string) {
     case "APP_SETTINGS_NOT_FOUND":
       return {
         status: 500,
+        code: "APP_SETTINGS_NOT_FOUND",
         error:
           "No se encontró la configuración del sistema.",
       };
@@ -48,6 +53,7 @@ function mapDatabaseError(message: string) {
     case "MAX_REPRINTS_REACHED":
       return {
         status: 409,
+        code: "MAX_REPRINTS_REACHED",
         error:
           "Se alcanzó el máximo permitido de reimpresiones.",
       };
@@ -55,6 +61,7 @@ function mapDatabaseError(message: string) {
     case "REPRINT_REASON_REQUIRED":
       return {
         status: 400,
+        code: "REPRINT_REASON_REQUIRED",
         error:
           "El motivo de reimpresión es obligatorio.",
       };
@@ -62,6 +69,7 @@ function mapDatabaseError(message: string) {
     case "REPRINT_REASON_TOO_LONG":
       return {
         status: 400,
+        code: "REPRINT_REASON_TOO_LONG",
         error:
           "El motivo no puede superar los 500 caracteres.",
       };
@@ -69,6 +77,7 @@ function mapDatabaseError(message: string) {
     default:
       return {
         status: 500,
+        code: "PRINT_REGISTRATION_FAILED",
         error:
           "No se pudo registrar la impresión.",
       };
@@ -168,6 +177,7 @@ export async function POST(
     return NextResponse.json(
       {
         error: mappedError.error,
+        code: mappedError.code,
       },
       {
         status: mappedError.status,

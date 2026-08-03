@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import {
   FacebookIcon,
   InstagramIcon,
@@ -16,13 +14,6 @@ const SOCIAL_META = {
   tiktok: { label: "TikTok", Icon: TiktokIcon },
   facebook: { label: "Facebook", Icon: FacebookIcon },
 } as const;
-
-const LEGAL_LINKS = [
-  { label: "Términos y condiciones", href: "/legal/terminos" },
-  { label: "Bases del sorteo", href: "/legal/bases" },
-  { label: "Política de privacidad", href: "/legal/privacidad" },
-  { label: "Política de devoluciones", href: "/legal/devoluciones" },
-];
 
 export function SiteFooter() {
   const social = activeSocialLinks();

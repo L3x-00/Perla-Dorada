@@ -15,6 +15,7 @@ type PrintResponse = {
   success?: boolean;
   printableUrl?: string;
   error?: string;
+  code?: string;
   print?: {
     ticket_id: string;
     ticket_number: number;
@@ -39,12 +40,14 @@ export function TicketPrintAction({
   const [reason, setReason] = useState("");
   const [showReasonForm, setShowReasonForm] =
     useState(false);
+  const [serverRequiresReason, setServerRequiresReason] =
+    useState(false);
   const [submitting, setSubmitting] =
     useState(false);
   const [error, setError] =
     useState<string | null>(null);
 
-  const isReprint = previousPrints > 0;
+  const isReprint = previousPrints > 0 || serverRequiresReason;
 
   const reprintsUsed = Math.max(
     previousPrints - 1,
@@ -74,6 +77,16 @@ export function TicketPrintAction({
       return;
     }
 
+    const printableWindow = window.open("about:blank", "_blank");
+
+    if (!printableWindow) {
+      setError(
+        "El navegador bloqueó la ventana de impresión. Habilita las ventanas emergentes e inténtalo nuevamente.",
+      );
+      return;
+    }
+
+    printableWindow.opener = null;
     setSubmitting(true);
     setError(null);
 
@@ -102,29 +115,34 @@ export function TicketPrintAction({
         !body.success ||
         !body.printableUrl
       ) {
+        printableWindow.close();
+
+        if (body.code === "REPRINT_REASON_REQUIRED") {
+          setServerRequiresReason(true);
+          setShowReasonForm(true);
+          router.refresh();
+        }
+
         throw new Error(
           body.error ??
             "No se pudo registrar la impresión.",
         );
       }
 
-      const printableWindow = window.open(
-        body.printableUrl,
-        "_blank",
-        "noopener,noreferrer",
-      );
-
-      if (!printableWindow) {
-        setError(
-          "La impresión fue registrada, pero el navegador bloqueó la nueva ventana. Habilita las ventanas emergentes.",
-        );
-      }
+      printableWindow.location.replace(body.printableUrl);
 
       setShowReasonForm(false);
       setReason("");
 
       router.refresh();
     } catch (caughtError) {
+      if (
+        !printableWindow.closed &&
+        printableWindow.location.href === "about:blank"
+      ) {
+        printableWindow.close();
+      }
+
       setError(
         caughtError instanceof Error
           ? caughtError.message
@@ -165,7 +183,7 @@ export function TicketPrintAction({
         </button>
 
         {error ? (
-          <p className="max-w-xs text-xs text-red-400">
+          <p role="alert" className="max-w-xs text-xs text-red-400">
             {error}
           </p>
         ) : null}
@@ -248,7 +266,7 @@ export function TicketPrintAction({
       )}
 
       {error ? (
-        <p className="max-w-xs text-xs text-red-400">
+        <p role="alert" className="max-w-xs text-xs text-red-400">
           {error}
         </p>
       ) : null}

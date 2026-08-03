@@ -8,13 +8,14 @@ import { adminInput, btnPrimary, btnSmall } from "@/components/admin/ui";
 type PurchaseRequestPrintActionProps = {
   purchaseRequestId: string;
   ticketCount: number;
-  /** true si al menos uno de los tickets ya tiene una impresión previa. */
-  hasReprints: boolean;
+  /** Cantidad de tickets vigentes con al menos una impresión previa. */
+  printedTicketCount: number;
 };
 
 type ApiResponse = {
   success?: boolean;
   error?: string;
+  code?: string;
   printableUrl?: string;
 };
 
@@ -28,23 +29,35 @@ type ApiResponse = {
 export function PurchaseRequestPrintAction({
   purchaseRequestId,
   ticketCount,
-  hasReprints,
+  printedTicketCount,
 }: PurchaseRequestPrintActionProps) {
   const router = useRouter();
 
   const [showReasonForm, setShowReasonForm] = useState(false);
+  const [serverRequiresReason, setServerRequiresReason] = useState(false);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const reasonRequired = printedTicketCount > 0 || serverRequiresReason;
 
   async function registerPrint() {
     const normalizedReason = reason.trim();
 
-    if (hasReprints && normalizedReason.length < 3) {
+    if (reasonRequired && normalizedReason.length < 3) {
       setError("Debes indicar un motivo de reimpresión.");
       return;
     }
 
+    const printableWindow = window.open("about:blank", "_blank");
+
+    if (!printableWindow) {
+      setError(
+        "El navegador bloqueó la ventana de impresión. Habilita las ventanas emergentes e inténtalo nuevamente.",
+      );
+      return;
+    }
+
+    printableWindow.opener = null;
     setSubmitting(true);
     setError(null);
 
@@ -56,7 +69,7 @@ export function PurchaseRequestPrintAction({
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            reason: hasReprints ? normalizedReason : undefined,
+            reason: reasonRequired ? normalizedReason : undefined,
           }),
         },
       );
@@ -64,25 +77,30 @@ export function PurchaseRequestPrintAction({
       const body = (await response.json()) as ApiResponse;
 
       if (!response.ok || !body.success || !body.printableUrl) {
+        printableWindow.close();
+
+        if (body.code === "REPRINT_REASON_REQUIRED") {
+          setServerRequiresReason(true);
+          setShowReasonForm(true);
+          router.refresh();
+        }
+
         throw new Error(body.error ?? "No se pudo registrar la impresión.");
       }
 
-      const printableWindow = window.open(
-        body.printableUrl,
-        "_blank",
-        "noopener,noreferrer",
-      );
-
-      if (!printableWindow) {
-        setError(
-          "La impresión fue registrada, pero el navegador bloqueó la nueva ventana. Habilita las ventanas emergentes.",
-        );
-      }
+      printableWindow.location.replace(body.printableUrl);
 
       setShowReasonForm(false);
       setReason("");
       router.refresh();
     } catch (caughtError) {
+      if (
+        !printableWindow.closed &&
+        printableWindow.location.href === "about:blank"
+      ) {
+        printableWindow.close();
+      }
+
       setError(
         caughtError instanceof Error
           ? caughtError.message
@@ -93,11 +111,16 @@ export function PurchaseRequestPrintAction({
     }
   }
 
-  const label = hasReprints
-    ? `Reimprimir tickets (${ticketCount})`
-    : `Imprimir tickets (${ticketCount})`;
+  const newTicketCount = Math.max(ticketCount - printedTicketCount, 0);
+  const label = serverRequiresReason
+    ? `Imprimir/reimprimir tickets (${ticketCount})`
+    : printedTicketCount === 0
+      ? `Imprimir tickets (${ticketCount})`
+      : printedTicketCount === ticketCount
+        ? `Reimprimir tickets (${ticketCount})`
+        : `Imprimir ${newTicketCount} y reimprimir ${printedTicketCount}`;
 
-  if (!hasReprints) {
+  if (!reasonRequired) {
     return (
       <div className="min-w-52 space-y-2">
         <button
@@ -109,7 +132,11 @@ export function PurchaseRequestPrintAction({
           {submitting ? "Registrando..." : label}
         </button>
 
-        {error ? <p className="max-w-xs text-xs text-red-400">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="max-w-xs text-xs text-red-400">
+            {error}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -134,7 +161,11 @@ export function PurchaseRequestPrintAction({
             htmlFor={`reason-${purchaseRequestId}`}
             className="block text-xs font-medium text-muted"
           >
-            Motivo de reimpresión (aplica a los {ticketCount} tickets)
+            {printedTicketCount > 0
+              ? `Motivo para ${printedTicketCount} ${
+                  printedTicketCount === 1 ? "reimpresión" : "reimpresiones"
+                }`
+              : "Motivo de reimpresión"}
           </label>
 
           <textarea
@@ -177,7 +208,11 @@ export function PurchaseRequestPrintAction({
         </div>
       )}
 
-      {error ? <p className="max-w-xs text-xs text-red-400">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="max-w-xs text-xs text-red-400">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -58,12 +58,14 @@ El panel requiere una cuenta activa en `admin_profiles` y permite:
 - Crear, editar, activar, cerrar, cancelar y eliminar borradores vacíos.
 - Revisar comprobantes, aprobar o rechazar solicitudes y asignar tickets.
 - Buscar por DNI o número de ticket desde el inicio del panel.
-- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados. Desde Solicitudes, los tickets aprobados se pueden imprimir y reimprimir sin límite; el control de cupos se mantiene en la sección general de Tickets.
+- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados. Desde Solicitudes, un único botón registra y abre todos los tickets aprobados en un documento térmico continuo, con un corte por ticket y sin límite de reimpresiones; el control de cupos se mantiene en la sección general de Tickets.
 - Crear y administrar promociones, imágenes, vigencias y enlaces.
 - Configurar mantenimiento, duración de reservas y reimpresiones.
 - Usar el menú Perfil para volver al sitio, cambiar tema y cerrar sesión.
 
 Las APIs administrativas sin sesión responden `401` JSON; las páginas protegidas redirigen a `/admin/login`.
+
+Para imprimir en una térmica, seleccionar rollo de 80 mm, escala 100 %, sin márgenes y sin encabezados ni pies del navegador. Cada operación conjunta recibe un identificador de tanda y el documento carga exclusivamente los registros de esa tanda; cada ticket mantiene un salto de página para su corte.
 
 ## Reglas de negocio
 
@@ -102,6 +104,7 @@ Los comprobantes aceptan JPG, PNG o WebP de hasta 5 MB de entrada. El navegador 
 | `raffles` | Sorteos, precios, fechas, imágenes, premios y estado. |
 | `purchase_requests` | Participante, comprobante, reserva y estado. |
 | `tickets` | Número correlativo, ciclo de vida y origen de reasignación. |
+| `ticket_prints` | Auditoría de originales y reimpresiones; las impresiones conjuntas comparten un identificador de tanda. |
 | `raffle_winners` | Ticket, premio y ciudad/distrito del ganador; es inmutable. |
 | `participant_tracking_codes` | Código canónico reutilizable por documento. |
 | `participant_tracking_code_aliases` | Compatibilidad con códigos históricos. |
@@ -110,7 +113,7 @@ Los comprobantes aceptan JPG, PNG o WebP de hasta 5 MB de entrada. El navegador 
 | `app_settings` | Configuración global de operación. |
 | `audit_log` | Registro de operaciones administrativas críticas. |
 
-El repositorio contiene 37 migraciones versionadas en `supabase/migrations/`.
+El repositorio contiene 41 migraciones versionadas en `supabase/migrations/`.
 
 ## Operación y despliegue
 
@@ -138,7 +141,8 @@ Eventos relevantes:
 - `http.proxy.completed` y `http.proxy.failed`: tránsito y errores en el Proxy de autenticación.
 - `request.unhandled_error`: excepción no controlada capturada globalmente por Next.js, con ruta sin parámetros sensibles.
 - `application.console_error`: error de servidor existente normalizado al formato estructurado.
-- `ticket.print.unlimited_registered` y `ticket.print.unlimited_failed`: impresión desde una solicitud aprobada.
+- `ticket.print.batch_registered` y `ticket.print.batch_failed`: impresión conjunta desde una solicitud aprobada.
+- `ticket.print.batch_missing_result` y `ticket.print.batch_invalid_result`: respuesta inesperada del registro atómico; la API se cierra sin abrir un documento inconsistente.
 
 Render conserva y muestra estos eventos en **Logs**. Para localizar un caso, buscar el `request_id` o el nombre del evento; no hace falta exponer información del cliente para investigar un fallo.
 

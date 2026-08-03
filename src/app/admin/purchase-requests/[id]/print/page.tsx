@@ -10,7 +10,14 @@ const UUID_PATTERN =
 
 type PurchaseRequestPrintPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ batchId?: string | string[] }>;
 };
+
+const MAX_BATCH_TICKETS = 100;
+
+function parseBatchId(value: string | string[] | undefined): string | null {
+  return typeof value === "string" && UUID_PATTERN.test(value) ? value : null;
+}
 
 /*
  * Documento único con TODOS los tickets activos de una solicitud aprobada,
@@ -22,10 +29,13 @@ type PurchaseRequestPrintPageProps = {
  */
 export default async function PurchaseRequestPrintPage({
   params,
+  searchParams,
 }: PurchaseRequestPrintPageProps) {
   const { id: purchaseRequestId } = await params;
+  const resolvedSearchParams = await searchParams;
+  const batchId = parseBatchId(resolvedSearchParams.batchId);
 
-  if (!UUID_PATTERN.test(purchaseRequestId)) {
+  if (!UUID_PATTERN.test(purchaseRequestId) || !batchId) {
     notFound();
   }
 
@@ -36,7 +46,7 @@ export default async function PurchaseRequestPrintPage({
   const { data: purchaseRequest, error: purchaseRequestError } =
     await adminClient
       .from("purchase_requests")
-      .select("id, full_name, dni, status, created_at")
+      .select("id, full_name, dni, status, created_at, requested_quantity")
       .eq("id", purchaseRequestId)
       .maybeSingle();
 
@@ -49,11 +59,33 @@ export default async function PurchaseRequestPrintPage({
     notFound();
   }
 
+  const { data: prints, error: printsError } = await adminClient
+    .from("ticket_prints")
+    .select("id, ticket_id, print_type, print_sequence, printed_at")
+    .eq("print_batch_id", batchId)
+    .order("printed_at", { ascending: true });
+
+  if (printsError) {
+    console.error("No se pudieron cargar las impresiones:", printsError);
+    throw new Error("No se pudieron cargar las impresiones.");
+  }
+
+  const batchPrints = prints ?? [];
+  const ticketIds = batchPrints.map((print) => print.ticket_id);
+
+  if (
+    batchPrints.length === 0 ||
+    batchPrints.length > MAX_BATCH_TICKETS ||
+    batchPrints.length !== purchaseRequest.requested_quantity ||
+    new Set(ticketIds).size !== batchPrints.length
+  ) {
+    notFound();
+  }
+
   const { data: tickets, error: ticketsError } = await adminClient
     .from("tickets")
-    .select("id, raffle_id, ticket_number")
-    .eq("purchase_request_id", purchaseRequestId)
-    .eq("ticket_status", "active")
+    .select("id, raffle_id, purchase_request_id, ticket_number, ticket_status")
+    .in("id", ticketIds)
     .order("ticket_number", { ascending: true });
 
   if (ticketsError) {
@@ -63,53 +95,42 @@ export default async function PurchaseRequestPrintPage({
 
   const activeTickets = tickets ?? [];
 
-  if (activeTickets.length === 0) {
-    return (
-      <main className="min-h-screen bg-neutral-100 p-6 text-black print:hidden">
-        <p className="mx-auto max-w-xl rounded-lg border border-neutral-300 bg-white p-6 text-sm">
-          Esta solicitud no tiene tickets vigentes para imprimir en este
-          momento.
-        </p>
-      </main>
-    );
+  if (
+    activeTickets.length !== batchPrints.length ||
+    activeTickets.some(
+      (ticket) =>
+        ticket.purchase_request_id !== purchaseRequestId ||
+        ticket.ticket_status !== "active",
+    )
+  ) {
+    notFound();
   }
 
-  const { data: raffle, error: raffleError } = await adminClient
+  const raffleIds = [...new Set(activeTickets.map((ticket) => ticket.raffle_id))];
+  const { data: raffles, error: rafflesError } = await adminClient
     .from("raffles")
     .select("id, name")
-    .eq("id", activeTickets[0].raffle_id)
-    .maybeSingle();
+    .in("id", raffleIds);
 
-  if (raffleError || !raffle) {
-    console.error("No se pudo cargar la rifa:", raffleError);
-    throw new Error("No se pudo cargar la rifa.");
+  if (rafflesError) {
+    console.error("No se pudieron cargar las rifas:", rafflesError);
+    throw new Error("No se pudieron cargar las rifas.");
   }
 
-  const ticketIds = activeTickets.map((ticket) => ticket.id);
-
-  const { data: prints, error: printsError } = await adminClient
-    .from("ticket_prints")
-    .select("ticket_id, print_type, print_sequence, printed_at")
-    .in("ticket_id", ticketIds)
-    .order("print_sequence", { ascending: false });
-
-  if (printsError) {
-    console.error("No se pudieron cargar las impresiones:", printsError);
-    throw new Error("No se pudieron cargar las impresiones.");
+  if ((raffles?.length ?? 0) !== raffleIds.length) {
+    notFound();
   }
 
-  /*
-   * Ordenado por print_sequence descendente arriba, así que el primer
-   * registro que se encuentra por ticket_id ya es el más reciente.
-   */
-  const latestPrintByTicketId = new Map<
+  const raffleNameById = new Map(
+    (raffles ?? []).map((raffle) => [raffle.id, raffle.name]),
+  );
+
+  const printByTicketId = new Map<
     string,
     { print_type: "original" | "reprint"; print_sequence: number; printed_at: string }
   >();
-  for (const print of prints ?? []) {
-    if (!latestPrintByTicketId.has(print.ticket_id)) {
-      latestPrintByTicketId.set(print.ticket_id, print);
-    }
+  for (const print of batchPrints) {
+    printByTicketId.set(print.ticket_id, print);
   }
 
   const formattedPurchasedAt = formatDateTime(purchaseRequest.created_at);
@@ -120,24 +141,28 @@ export default async function PurchaseRequestPrintPage({
       <PrintControls />
 
       {activeTickets.map((ticket) => {
-        const print = latestPrintByTicketId.get(ticket.id);
+        const print = printByTicketId.get(ticket.id);
+        const raffleName = raffleNameById.get(ticket.raffle_id);
 
-        const reprintLabel = print
-          ? print.print_type === "original"
+        if (!print || !raffleName) {
+          return null;
+        }
+
+        const reprintLabel =
+          print.print_type === "original"
             ? "Impresión original"
-            : `Reimpresión ${print.print_sequence - 1}`
-          : null;
+            : `Reimpresión ${print.print_sequence - 1}`;
 
         return (
           <PurchaseRequestTicket
             key={ticket.id}
-            raffleName={raffle.name}
+            raffleName={raffleName}
             fullName={purchaseRequest.full_name}
             dni={purchaseRequest.dni}
             purchasedAt={formattedPurchasedAt}
             ticketNumber={ticket.ticket_number}
             reprintLabel={reprintLabel}
-            printedAt={print ? formatDateTime(print.printed_at) : null}
+            printedAt={formatDateTime(print.printed_at)}
             isLastForPrint={ticket.id === lastTicketId}
           />
         );

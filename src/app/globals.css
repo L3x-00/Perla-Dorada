@@ -319,8 +319,9 @@ html[data-theme="light"] .raffle-festive-wash {
 
   /*
    * Página con el ancho real del rollo térmico de 80mm (impresora portátil
-   * tipo HOIN HQ300, 203 DPI): "auto" en el alto porque el papel es un
-   * rollo continuo, no una hoja de tamaño fijo. Margen en 0 porque el
+   * tipo HOIN HQ300, 203 DPI). CSS no admite combinar un ancho fijo con
+   * un alto automático en @page; por eso el tamaño se toma del driver,
+   * configurado en rollo de 80mm. Margen en 0 porque el
    * margen de seguridad ya lo pone el propio .ticket-print (72mm de ancho,
    * centrado, con 2mm de relleno interior) — poner margen aquí además
    * sería un doble margen. Cada boleto sale en su propio corte de papel: si
@@ -329,7 +330,7 @@ html[data-theme="light"] .raffle-festive-wash {
    * resto de impresiones conserva su tamaño normal (A4).
    */
   @page ticket {
-    size: 80mm auto;
+    size: auto;
     margin: 0mm;
   }
 
