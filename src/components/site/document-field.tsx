@@ -20,7 +20,7 @@ type DocumentFieldProps = {
   onDocumentTypeChange: (documentType: DocumentType) => void;
   value: string;
   onValueChange: (value: string) => void;
-  /** Oculta el texto de ayuda en formularios muy compactos. */
+  /** Oculta el texto de ayuda en formularios muy compactos. para mejorar el desarrollo del sistema*/
   showHint?: boolean;
   /** Permite que formularios guiados continÃºen al siguiente campo. */
   inputRef?: Ref<HTMLInputElement>;

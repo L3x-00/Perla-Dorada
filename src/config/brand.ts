@@ -20,7 +20,7 @@ export const brand = {
   contact: {
     /** Solo dígitos con código de país, p. ej. "51987654321". */
     whatsapp: "51956252677",
-    phone: "956252677",
+    phone: "953 084 074",
     email: "info@joyeriaperladorada.com",
     address: "",
     city: "Huancayo",
@@ -37,7 +37,7 @@ export const brand = {
     /** Titular tal como aparece en Yape. */
     holder: "",
     /** Número de Yape, p. ej. "987 654 321". */
-    yapeNumber: "956 252 677",
+    yapeNumber: "953 084 074",
     /** QR de Yape en public/marca/pago/qr.webp */
     qrImage: "/marca/pago/qr.webp",
   },
