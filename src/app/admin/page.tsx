@@ -143,6 +143,75 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
     }
   }
 
+  const approvedRequestIds = requests
+    .filter((request) => request.status === "approved")
+    .map((request) => request.id);
+  const approvedTicketsByRequestId = new Map<
+    string,
+    Array<{ id: string; previousPrints: number }>
+  >();
+  let maxReprints = 0;
+
+  if (approvedRequestIds.length > 0) {
+    const [approvedTicketsResult, settingsResult] = await Promise.all([
+      adminClient
+        .from("tickets")
+        .select("id, purchase_request_id")
+        .in("purchase_request_id", approvedRequestIds)
+        .eq("ticket_status", "active"),
+      adminClient
+        .from("app_settings")
+        .select("max_reprints")
+        .eq("id", true)
+        .maybeSingle(),
+    ]);
+
+    if (approvedTicketsResult.error || settingsResult.error) {
+      console.error("No se pudieron preparar las impresiones del panel:", {
+        ticketsError: approvedTicketsResult.error,
+        settingsError: settingsResult.error,
+      });
+    } else {
+      maxReprints = settingsResult.data?.max_reprints ?? 0;
+      const approvedTickets = approvedTicketsResult.data ?? [];
+      const ticketIds = approvedTickets.map((ticket) => ticket.id);
+      const printCountByTicketId = new Map<string, number>();
+      let canShowPrintActions = true;
+
+      if (ticketIds.length > 0) {
+        const { data: prints, error: printsError } = await adminClient
+          .from("ticket_prints")
+          .select("ticket_id")
+          .in("ticket_id", ticketIds);
+
+        if (printsError) {
+          console.error("No se pudieron cargar las impresiones:", printsError);
+          canShowPrintActions = false;
+        } else {
+          for (const print of prints ?? []) {
+            printCountByTicketId.set(
+              print.ticket_id,
+              (printCountByTicketId.get(print.ticket_id) ?? 0) + 1,
+            );
+          }
+        }
+      }
+
+      if (canShowPrintActions) {
+        for (const ticket of approvedTickets) {
+          const current = approvedTicketsByRequestId.get(
+            ticket.purchase_request_id,
+          ) ?? [];
+          current.push({
+            id: ticket.id,
+            previousPrints: printCountByTicketId.get(ticket.id) ?? 0,
+          });
+          approvedTicketsByRequestId.set(ticket.purchase_request_id, current);
+        }
+      }
+    }
+  }
+
   return (
     <AdminPage wide>
       <AdminPageHeader
@@ -216,6 +285,10 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                   ? reviewerNameById.get(request.reviewed_by) ?? "Administrador"
                   : null
               }
+              approvedTickets={
+                approvedTicketsByRequestId.get(request.id) ?? []
+              }
+              maxReprints={maxReprints}
             />
           ))}
         </div>
@@ -329,6 +402,10 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                     <PurchaseRequestActions
                       purchaseRequestId={request.id}
                       status={request.status}
+                      approvedTickets={
+                        approvedTicketsByRequestId.get(request.id) ?? []
+                      }
+                      maxReprints={maxReprints}
                     />
                   </td>
                 </tr>
@@ -373,10 +450,14 @@ function RequestCard({
   request,
   index,
   reviewerName,
+  approvedTickets,
+  maxReprints,
 }: {
   request: RequestRow;
   index: number;
   reviewerName: string | null;
+  approvedTickets: Array<{ id: string; previousPrints: number }>;
+  maxReprints: number;
 }) {
   return (
     <article
@@ -452,6 +533,8 @@ function RequestCard({
       <PurchaseRequestActions
         purchaseRequestId={request.id}
         status={request.status}
+        approvedTickets={approvedTickets}
+        maxReprints={maxReprints}
       />
     </article>
   );

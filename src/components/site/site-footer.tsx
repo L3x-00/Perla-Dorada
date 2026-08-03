@@ -104,30 +104,6 @@ export function SiteFooter() {
               ) : null}
             </ul>
           </div>
-
-          <div>
-            <h2 className="eyebrow text-gold">Legal</h2>
-            <ul className="mt-5 space-y-3 text-sm text-muted">
-              {LEGAL_LINKS.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="transition-colors hover:text-cream"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <Link
-                  href="/seguimiento"
-                  className="transition-colors hover:text-cream"
-                >
-                  Consultar mi solicitud
-                </Link>
-              </li>
-            </ul>
-          </div>
         </div>
 
         <div className="mt-14 hairline" />

@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -306,6 +306,7 @@ export type Database = {
           prize_title: string | null
           raffle_id: string
           ticket_id: string
+          winner_location: string | null
         }
         Insert: {
           confirmed_at?: string
@@ -317,6 +318,7 @@ export type Database = {
           prize_title?: string | null
           raffle_id: string
           ticket_id: string
+          winner_location?: string | null
         }
         Update: {
           confirmed_at?: string
@@ -328,6 +330,7 @@ export type Database = {
           prize_title?: string | null
           raffle_id?: string
           ticket_id?: string
+          winner_location?: string | null
         }
         Relationships: [
           {
@@ -771,6 +774,7 @@ export type Database = {
           p_prize_id?: string
           p_raffle_id: string
           p_ticket_number: number
+          p_winner_location?: string
         }
         Returns: {
           confirmed_at: string
@@ -782,6 +786,7 @@ export type Database = {
           prize_title: string | null
           raffle_id: string
           ticket_id: string
+          winner_location: string | null
         }
         SetofOptions: {
           from: "*"

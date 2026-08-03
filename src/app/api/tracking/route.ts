@@ -116,13 +116,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     reviewedAt: result.reviewed_at,
     rejectionReason:
       result.request_status === "rejected" ? result.rejection_reason : null,
-    /*
-     * Defensa adicional: aunque el RPC ya filtra los tickets, el endpoint
-     * vuelve a garantizar que solo se devuelvan si la solicitud está
-     * aprobada.
-     */
-    ticketNumbers:
-      result.request_status === "approved" ? result.ticket_numbers : [],
   }));
 
   return NextResponse.json(

@@ -35,9 +35,5 @@ npm run build
 
 ## Documentación
 
-- [`docs/ENTREGA_CLIENTE.md`](docs/ENTREGA_CLIENTE.md): descripción, flujos y
-  consideraciones para el cliente.
-- [`docs/AUDITORIA_ENTREGA_2026-08-02.md`](docs/AUDITORIA_ENTREGA_2026-08-02.md):
-  correcciones, pruebas y riesgos residuales.
-- [`docs/contex/arquitectura.md`](docs/contex/arquitectura.md): reglas y
-  convenciones técnicas de mantenimiento.
+- [`docs/DOCUMENTACION_SISTEMA.md`](docs/DOCUMENTACION_SISTEMA.md): arquitectura,
+  funcionalidades, flujos, reglas de negocio, seguridad, operación y desarrollo.

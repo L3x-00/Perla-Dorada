@@ -14,10 +14,9 @@ import {
  * hace normalize_document_number() en PostgreSQL, para que ambos lados de
  * la comparación se escriban igual.
  *
- * Solo pide el documento: la consulta ya no exige código de seguimiento
- * (decisión de producto, ver docs/contex/errores.md). `documentType` es
- * opcional y por defecto 'dni', y solo sirve para exigir el formato
- * correcto: la búsqueda compara el número normalizado sin mirar el tipo.
+ * La consulta exige documento y código de seguimiento. `documentType` solo
+ * sirve para exigir el formato correcto antes de consultar la información
+ * agrupada del participante.
  */
 export const trackingLookupSchema = z
   .object({

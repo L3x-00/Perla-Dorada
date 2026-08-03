@@ -8,6 +8,7 @@ import {
   adminLabel,
   btnPrimary,
 } from "@/components/admin/ui";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 type WinnerFormProps = {
   raffleId: string;
@@ -29,6 +30,10 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmTicketNumber, setConfirmTicketNumber] = useState<number | null>(
+    null,
+  );
+  const [location, setLocation] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,13 +54,16 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
       return;
     }
 
-    const confirmed = window.confirm(
-      `Vas a registrar el ticket ${parsed} como GANADOR. Esta acción es única e IRREVERSIBLE. ¿Continuar?`,
-    );
-
-    if (!confirmed) {
+    if (location.trim().length < 2) {
+      setError("Indica la ciudad o distrito donde se realizó la compra.");
       return;
     }
+
+    setConfirmTicketNumber(parsed);
+  }
+
+  async function registerWinner(ticketNumberToRegister: number) {
+    const normalizedLocation = location.trim().replace(/\s+/g, " ");
 
     setSubmitting(true);
     setError(null);
@@ -67,7 +75,11 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ticketNumber: parsed, prizeId }),
+          body: JSON.stringify({
+            ticketNumber: ticketNumberToRegister,
+            prizeId,
+            location: normalizedLocation,
+          }),
         },
       );
 
@@ -79,6 +91,7 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
         );
       }
 
+      setConfirmTicketNumber(null);
       router.refresh();
     } catch (caughtError) {
       setError(
@@ -86,6 +99,7 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
           ? caughtError.message
           : "Ocurrió un error inesperado.",
       );
+    } finally {
       setSubmitting(false);
     }
   }
@@ -114,8 +128,33 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
           value={ticketNumber}
           onChange={(event) => setTicketNumber(event.target.value)}
           required
+          disabled={submitting}
           className={adminInput}
         />
+      </div>
+
+      <div>
+        <label
+          htmlFor={`winner-location-${prizeId ?? "single"}`}
+          className={adminLabel}
+        >
+          Ciudad o distrito de compra
+        </label>
+        <input
+          id={`winner-location-${prizeId ?? "single"}`}
+          type="text"
+          value={location}
+          onChange={(event) => setLocation(event.target.value)}
+          minLength={2}
+          maxLength={120}
+          required
+          disabled={submitting}
+          placeholder="Ejemplo: Miraflores, Lima"
+          className={adminInput}
+        />
+        <p className="mt-1.5 text-xs text-muted">
+          Se mostrará públicamente como referencia, sin dirección exacta.
+        </p>
       </div>
 
       <label className="flex items-start gap-3 text-sm text-muted">
@@ -147,6 +186,25 @@ export function WinnerForm({ raffleId, prizeId, compact = false }: WinnerFormPro
       >
         {submitting ? "Registrando..." : "Registrar ganador"}
       </button>
+
+      <ConfirmDialog
+        open={confirmTicketNumber !== null}
+        tone="success"
+        title="Confirmar ganador"
+        description={`Registrarás el ticket ${
+          confirmTicketNumber === null
+            ? ""
+            : String(confirmTicketNumber).padStart(4, "0")
+        } como ganador. Esta acción es única e irreversible.`}
+        confirmLabel="Sí, registrar ganador"
+        busy={submitting}
+        onConfirm={() => {
+          if (confirmTicketNumber !== null) {
+            void registerWinner(confirmTicketNumber);
+          }
+        }}
+        onCancel={() => setConfirmTicketNumber(null)}
+      />
     </form>
   );
 }

@@ -148,6 +148,12 @@ function WinnerSlide({ winner }: { winner: PublicRaffleWinnerEntry }) {
           🏆 {winner.winnerDisplayName}
         </p>
 
+        {winner.winnerLocation ? (
+          <p className="mt-2 text-sm text-cream/80">
+            Compró en {winner.winnerLocation}
+          </p>
+        ) : null}
+
         <p className="mt-4 text-xs uppercase tracking-[0.18em] text-muted">
           Ticket ganador
         </p>

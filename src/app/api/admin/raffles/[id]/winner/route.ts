@@ -10,6 +10,7 @@ const UUID_PATTERN =
 type WinnerRequestBody = {
   ticketNumber?: unknown;
   prizeId?: unknown;
+  location?: unknown;
 };
 
 function mapWinnerError(message: string): {
@@ -81,6 +82,12 @@ function mapWinnerError(message: string): {
   if (normalized.includes("INVALID_TICKET_NUMBER")) {
     return { status: 400, error: "El número de ticket no es válido." };
   }
+  if (normalized.includes("INVALID_WINNER_LOCATION")) {
+    return {
+      status: 400,
+      error: "La ciudad o distrito de compra no es válido.",
+    };
+  }
 
   return { status: 500, error: "No se pudo registrar el ganador." };
 }
@@ -135,6 +142,22 @@ export async function POST(
     );
   }
 
+  if (typeof body.location !== "string") {
+    return NextResponse.json(
+      { error: "La ciudad o distrito de compra es obligatorio." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const location = body.location.trim().replace(/\s+/g, " ");
+
+  if (location.length < 2 || location.length > 120) {
+    return NextResponse.json(
+      { error: "La ciudad o distrito debe tener entre 2 y 120 caracteres." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   let prizeId: string | null = null;
 
   if (body.prizeId !== undefined && body.prizeId !== null) {
@@ -160,6 +183,7 @@ export async function POST(
       p_raffle_id: id,
       p_ticket_number: ticketNumber,
       p_prize_id: prizeId ?? undefined,
+      p_winner_location: location,
     },
   );
 
@@ -182,7 +206,10 @@ export async function POST(
     action: "register_winner",
     entity: "raffle_winners",
     entityId: id,
-    metadata: { ticket_number: ticketNumber, prize_id: prizeId },
+    metadata: {
+      ticket_number: ticketNumber,
+      prize_id: prizeId,
+    },
   });
 
   return NextResponse.json(

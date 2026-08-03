@@ -9,11 +9,17 @@ import {
   btnSuccess,
 } from "@/components/admin/ui";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { TicketPrintAction } from "@/app/admin/ticket-print-action";
 import { useState } from "react";
 
 type PurchaseRequestActionsProps = {
   purchaseRequestId: string;
   status: "pending" | "approved" | "rejected" | "expired";
+  approvedTickets?: Array<{
+    id: string;
+    previousPrints: number;
+  }>;
+  maxReprints?: number;
 };
 
 type ApiResponse = {
@@ -27,6 +33,8 @@ type ApiResponse = {
 export function PurchaseRequestActions({
   purchaseRequestId,
   status,
+  approvedTickets = [],
+  maxReprints = 0,
 }: PurchaseRequestActionsProps) {
   const router = useRouter();
 
@@ -35,6 +43,28 @@ export function PurchaseRequestActions({
   const [rejectionReason, setRejectionReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [confirmApprove, setConfirmApprove] = useState(false);
+
+  if (status === "approved") {
+    if (approvedTickets.length === 0) {
+      return <p className="text-xs text-muted">Tickets en preparación.</p>;
+    }
+
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-emerald-200">
+          Imprimir tickets aprobados
+        </p>
+        {approvedTickets.map((ticket) => (
+          <TicketPrintAction
+            key={ticket.id}
+            ticketId={ticket.id}
+            previousPrints={ticket.previousPrints}
+            maxReprints={maxReprints}
+          />
+        ))}
+      </div>
+    );
+  }
 
   if (status !== "pending") {
     return null;

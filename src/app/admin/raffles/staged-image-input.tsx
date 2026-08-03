@@ -49,8 +49,7 @@ export function StagedImageInput({
     try {
       /*
        * Se optimiza en el navegador antes de subir: baja el peso de la foto
-       * (el egress público la sirve a todos los visitantes de la landing —
-       * ver docs/contex/alcancefree.md §4.2 y §8) sin usar ningún job de
+       * que se sirve a todos los visitantes de la landing sin usar ningún job de
        * pago. Si Canvas falla, no se sube el archivo original.
        */
       let uploadFile = file;
