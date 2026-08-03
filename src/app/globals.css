@@ -486,9 +486,9 @@ html[data-theme="light"] .raffle-festive-wash {
     margin: 10mm;
   }
 
-  /* El driver puede imponer un largo mínimo o controlar el corte físico. */
+  /* El rollo continuo conserva la orientación definida por el driver. */
   @page ticket-thermal {
-    size: 72mm 25mm;
+    size: auto;
     margin: 0;
   }
 
@@ -625,7 +625,7 @@ html[data-theme="light"] .raffle-festive-wash {
     width: 72mm;
     max-width: 100%;
     margin: 0 auto;
-    break-after: page;
+    break-after: auto;
     break-inside: avoid;
     break-inside: avoid-page;
   }
