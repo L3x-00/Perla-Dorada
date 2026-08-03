@@ -4,13 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { readRequiredEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  requestHeaders: Headers,
+) {
   const supabaseUrl = readRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
   const supabasePublishableKey = readRequiredEnv(
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   );
 
-  let response = NextResponse.next({ request });
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     supabaseUrl,
@@ -26,7 +29,9 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value);
           });
 
-          response = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: { headers: requestHeaders },
+          });
 
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);

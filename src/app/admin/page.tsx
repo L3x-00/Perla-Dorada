@@ -150,31 +150,21 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
     string,
     Array<{ id: string; previousPrints: number }>
   >();
-  let maxReprints = 0;
-
   if (approvedRequestIds.length > 0) {
-    const [approvedTicketsResult, settingsResult] = await Promise.all([
-      adminClient
+    const { data: approvedTickets, error: approvedTicketsError } =
+      await adminClient
         .from("tickets")
         .select("id, purchase_request_id")
         .in("purchase_request_id", approvedRequestIds)
-        .eq("ticket_status", "active"),
-      adminClient
-        .from("app_settings")
-        .select("max_reprints")
-        .eq("id", true)
-        .maybeSingle(),
-    ]);
+        .eq("ticket_status", "active");
 
-    if (approvedTicketsResult.error || settingsResult.error) {
+    if (approvedTicketsError) {
       console.error("No se pudieron preparar las impresiones del panel:", {
-        ticketsError: approvedTicketsResult.error,
-        settingsError: settingsResult.error,
+        ticketsError: approvedTicketsError,
       });
     } else {
-      maxReprints = settingsResult.data?.max_reprints ?? 0;
-      const approvedTickets = approvedTicketsResult.data ?? [];
-      const ticketIds = approvedTickets.map((ticket) => ticket.id);
+      const tickets = approvedTickets ?? [];
+      const ticketIds = tickets.map((ticket) => ticket.id);
       const printCountByTicketId = new Map<string, number>();
       let canShowPrintActions = true;
 
@@ -198,7 +188,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
       }
 
       if (canShowPrintActions) {
-        for (const ticket of approvedTickets) {
+        for (const ticket of tickets) {
           const current = approvedTicketsByRequestId.get(
             ticket.purchase_request_id,
           ) ?? [];
@@ -288,7 +278,6 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
               approvedTickets={
                 approvedTicketsByRequestId.get(request.id) ?? []
               }
-              maxReprints={maxReprints}
             />
           ))}
         </div>
@@ -405,7 +394,6 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                       approvedTickets={
                         approvedTicketsByRequestId.get(request.id) ?? []
                       }
-                      maxReprints={maxReprints}
                     />
                   </td>
                 </tr>
@@ -451,13 +439,11 @@ function RequestCard({
   index,
   reviewerName,
   approvedTickets,
-  maxReprints,
 }: {
   request: RequestRow;
   index: number;
   reviewerName: string | null;
   approvedTickets: Array<{ id: string; previousPrints: number }>;
-  maxReprints: number;
 }) {
   return (
     <article
@@ -534,7 +520,6 @@ function RequestCard({
         purchaseRequestId={request.id}
         status={request.status}
         approvedTickets={approvedTickets}
-        maxReprints={maxReprints}
       />
     </article>
   );

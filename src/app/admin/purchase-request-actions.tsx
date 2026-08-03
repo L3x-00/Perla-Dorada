@@ -19,7 +19,6 @@ type PurchaseRequestActionsProps = {
     id: string;
     previousPrints: number;
   }>;
-  maxReprints?: number;
 };
 
 type ApiResponse = {
@@ -34,7 +33,6 @@ export function PurchaseRequestActions({
   purchaseRequestId,
   status,
   approvedTickets = [],
-  maxReprints = 0,
 }: PurchaseRequestActionsProps) {
   const router = useRouter();
 
@@ -52,14 +50,15 @@ export function PurchaseRequestActions({
     return (
       <div className="space-y-2">
         <p className="text-xs font-medium text-emerald-200">
-          Imprimir tickets aprobados
+          Imprimir tickets aprobados (sin límite)
         </p>
         {approvedTickets.map((ticket) => (
           <TicketPrintAction
             key={ticket.id}
             ticketId={ticket.id}
             previousPrints={ticket.previousPrints}
-            maxReprints={maxReprints}
+            unlimitedReprints
+            printEndpoint={`/api/admin/purchase-requests/${purchaseRequestId}/tickets/${ticket.id}/print`}
           />
         ))}
       </div>

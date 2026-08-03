@@ -6,7 +6,9 @@ import { useState } from "react";
 type TicketPrintActionProps = {
   ticketId: string;
   previousPrints: number;
-  maxReprints: number;
+  maxReprints?: number;
+  printEndpoint?: string;
+  unlimitedReprints?: boolean;
 };
 
 type PrintResponse = {
@@ -21,14 +23,16 @@ type PrintResponse = {
     print_sequence: number;
     printed_at: string;
     reprints_used: number;
-    max_reprints: number;
+    max_reprints: number | null;
   };
 };
 
 export function TicketPrintAction({
   ticketId,
   previousPrints,
-  maxReprints,
+  maxReprints = 0,
+  printEndpoint,
+  unlimitedReprints = false,
 }: TicketPrintActionProps) {
   const router = useRouter();
 
@@ -48,7 +52,7 @@ export function TicketPrintAction({
   );
 
   const limitReached =
-    isReprint && reprintsUsed >= maxReprints;
+    !unlimitedReprints && isReprint && reprintsUsed >= maxReprints;
 
   async function registerPrint() {
     const normalizedReason = reason.trim();
@@ -75,7 +79,7 @@ export function TicketPrintAction({
 
     try {
       const response = await fetch(
-        `/api/admin/tickets/${ticketId}/print`,
+        printEndpoint ?? `/api/admin/tickets/${ticketId}/print`,
         {
           method: "POST",
           credentials: "same-origin",
@@ -181,8 +185,9 @@ export function TicketPrintAction({
           disabled={submitting}
           className="inline-flex items-center justify-center rounded-lg border border-amber-800/70 bg-amber-950/25 px-3 py-2 text-xs font-medium text-amber-200 transition-colors duration-200 hover:bg-amber-950/50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Reimprimir ({reprintsUsed}/
-          {maxReprints})
+          {unlimitedReprints
+            ? "Reimprimir"
+            : `Reimprimir (${reprintsUsed}/${maxReprints})`}
         </button>
       ) : (
         <div className="space-y-2">

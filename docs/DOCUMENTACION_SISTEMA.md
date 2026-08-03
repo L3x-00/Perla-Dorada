@@ -58,7 +58,7 @@ El panel requiere una cuenta activa en `admin_profiles` y permite:
 - Crear, editar, activar, cerrar, cancelar y eliminar borradores vacíos.
 - Revisar comprobantes, aprobar o rechazar solicitudes y asignar tickets.
 - Buscar por DNI o número de ticket desde el inicio del panel.
-- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados.
+- Imprimir tickets, controlar reimpresiones y reasignar tickets congelados. Desde Solicitudes, los tickets aprobados se pueden imprimir y reimprimir sin límite; el control de cupos se mantiene en la sección general de Tickets.
 - Crear y administrar promociones, imágenes, vigencias y enlaces.
 - Configurar mantenimiento, duración de reservas y reimpresiones.
 - Usar el menú Perfil para volver al sitio, cambiar tema y cerrar sesión.
@@ -125,6 +125,22 @@ CRON_SECRET
 ```
 
 No se guardan valores de estas variables en el repositorio.
+
+`LOG_LEVEL` es opcional (`debug`, `info`, `warn` o `error`) y por defecto usa `info`.
+
+### Observabilidad en Render
+
+El backend emite registros JSON estructurados a los logs de Render. Cada solicitud procesada por el Proxy recibe un `x-request-id`, que permite relacionar la ruta, método, duración y decisión de acceso con los errores de servidor. No se registran DNI, nombres, teléfonos, comprobantes, códigos de seguimiento, cookies, tokens, secretos ni motivos de reimpresión.
+
+Eventos relevantes:
+
+- `service.started`: arranque de una instancia.
+- `http.proxy.completed` y `http.proxy.failed`: tránsito y errores en el Proxy de autenticación.
+- `request.unhandled_error`: excepción no controlada capturada globalmente por Next.js, con ruta sin parámetros sensibles.
+- `application.console_error`: error de servidor existente normalizado al formato estructurado.
+- `ticket.print.unlimited_registered` y `ticket.print.unlimited_failed`: impresión desde una solicitud aprobada.
+
+Render conserva y muestra estos eventos en **Logs**. Para localizar un caso, buscar el `request_id` o el nombre del evento; no hace falta exponer información del cliente para investigar un fallo.
 
 ### Tareas Cron de Render
 
