@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 import { brand } from "@/config/brand";
 
 /*
- * ⚠️ Cambia a false cuando un abogado haya revisado y aprobado los textos.
- * Mientras sea true, cada página legal muestra un aviso de borrador.
+ * Un abogado revisó y aprobó las bases del sorteo, la política de
+ * privacidad y la de devoluciones (04 ago 2026); términos y condiciones es
+ * texto genérico de uso del sitio, sin contenido propio del sorteo.
  */
-export const LEGAL_ES_BORRADOR = true;
+export const LEGAL_ES_BORRADOR = false;
 
 type LegalDocumentProps = {
   title: string;

@@ -127,12 +127,14 @@ const TICKET_STATUS_LABELS: Record<TicketLifecycleStatus, string> = {
   active: "Vigente",
   frozen: "Congelado",
   reassigned: "Reasignado",
+  voided: "Anulado",
 };
 
 const TICKET_STATUS_TONES: Record<TicketLifecycleStatus, BadgeTone> = {
   active: "approved",
   frozen: "gold",
   reassigned: "neutral",
+  voided: "rejected",
 };
 
 function firstSearchParam(value: SearchParamValue): string {
@@ -706,13 +708,14 @@ function TicketGroupCard({
   const activeCount = toSafeCount(group.active_count);
   const frozenCount = toSafeCount(group.frozen_count);
   const reassignedCount = toSafeCount(group.reassigned_count);
+  const voidedCount = toSafeCount(group.voided_count);
   const printedTicketCount = toSafeCount(group.printed_ticket_count);
   const printEventCount = toSafeCount(group.print_event_count);
   const canPrintGroup =
     group.request_status === "approved" &&
     activeCount > 0 &&
-    activeCount === ticketCount &&
-    activeCount === requestedQuantity;
+    activeCount + voidedCount === ticketCount &&
+    activeCount + voidedCount === requestedQuantity;
   const headingId = `ticket-group-${group.purchase_request_id}-${group.raffle_id}`;
 
   return (
@@ -760,6 +763,7 @@ function TicketGroupCard({
           <CountCell label="Vigentes" value={activeCount} tone="approved" />
           <CountCell label="Congelados" value={frozenCount} tone="gold" />
           <CountCell label="Reasignados" value={reassignedCount} />
+          <CountCell label="Anulados" value={voidedCount} tone="rejected" />
           <CountCell label="Tickets impresos" value={printedTicketCount} />
           <CountCell label="Impresiones totales" value={printEventCount} />
         </dl>
@@ -897,12 +901,13 @@ function CountCell({
 }: {
   label: string;
   value: number;
-  tone?: "neutral" | "approved" | "gold";
+  tone?: "neutral" | "approved" | "gold" | "rejected";
 }) {
   const toneClasses = {
     neutral: "border-line bg-ink-2 text-cream",
     approved: "border-emerald-900/60 bg-emerald-950/20 text-emerald-200",
     gold: "border-amber-900/60 bg-amber-950/20 text-amber-200",
+    rejected: "border-red-900/60 bg-red-950/20 text-red-200",
   };
 
   return (

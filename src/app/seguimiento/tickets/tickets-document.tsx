@@ -18,7 +18,7 @@ import {
   validateDocumentNumber,
 } from "@/lib/validation/document";
 
-type TicketStatus = "active" | "frozen" | "reassigned";
+type TicketStatus = "active" | "frozen" | "reassigned" | "voided";
 type RaffleStatus = "draft" | "active" | "closed" | "cancelled";
 
 type TicketEntry = {
@@ -377,6 +377,9 @@ function RaffleGroups({
           const reassigned = group.tickets.filter(
             (ticket) => ticket.status === "reassigned",
           ).length;
+          const voided = group.tickets.filter(
+            (ticket) => ticket.status === "voided",
+          ).length;
           const winnerCount = group.tickets.filter(
             (ticket) => ticket.isWinner,
           ).length;
@@ -405,7 +408,7 @@ function RaffleGroups({
                 ) : null}
               </div>
               <p className="mt-1.5 text-sm text-muted">
-                {ticketCountLabel(active, frozen, reassigned)}
+                {ticketCountLabel(active, frozen, reassigned, voided)}
               </p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-gold">
                 Ver mis tickets de este sorteo
@@ -423,6 +426,7 @@ function ticketCountLabel(
   active: number,
   frozen: number,
   reassigned: number,
+  voided: number,
 ): string {
   const parts = [
     `${active} ticket${active === 1 ? "" : "s"} vigente${active === 1 ? "" : "s"}`,
@@ -434,6 +438,10 @@ function ticketCountLabel(
 
   if (reassigned > 0) {
     parts.push(`${reassigned} reasignado${reassigned === 1 ? "" : "s"}`);
+  }
+
+  if (voided > 0) {
+    parts.push(`${voided} anulado${voided === 1 ? "" : "s"}`);
   }
 
   return parts.join(" · ");
@@ -486,6 +494,9 @@ function RaffleTicketView({
   );
   const reassignedTickets = group.tickets.filter(
     (ticket) => ticket.status === "reassigned",
+  );
+  const voidedTickets = group.tickets.filter(
+    (ticket) => ticket.status === "voided",
   );
   const statusLabel = RAFFLE_STATUS_LABEL[group.raffleStatus];
 
@@ -578,6 +589,14 @@ function RaffleTicketView({
           {reassignedTickets.length === 1
             ? "Un ticket anterior fue reasignado; se conserva solo como historial y no es válido para imprimir."
             : `${reassignedTickets.length} tickets anteriores fueron reasignados; se conservan solo como historial y no son válidos para imprimir.`}
+        </StatusNotice>
+      ) : null}
+
+      {voidedTickets.length > 0 ? (
+        <StatusNotice>
+          {voidedTickets.length === 1
+            ? "Un ticket fue anulado (devolución de compra) y no participa en el sorteo."
+            : `${voidedTickets.length} tickets fueron anulados (devolución de compra) y no participan en el sorteo.`}
         </StatusNotice>
       ) : null}
 

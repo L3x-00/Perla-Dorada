@@ -10,6 +10,7 @@ import {
 } from "@/components/admin/ui";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { PurchaseRequestPrintAction } from "@/app/admin/purchase-request-print-action";
+import { VoidParticipationAction } from "@/app/admin/void-participation-action";
 import { formatTicketCode } from "@/lib/tickets/code";
 import { useState } from "react";
 
@@ -22,6 +23,7 @@ type PurchaseRequestActionsProps = {
     raffleId: string;
     previousPrints: number;
   }>;
+  voidedTicketCount?: number;
 };
 
 type ApiResponse = {
@@ -37,6 +39,7 @@ export function PurchaseRequestActions({
   requestedQuantity,
   status,
   approvedTickets = [],
+  voidedTicketCount = 0,
 }: PurchaseRequestActionsProps) {
   const router = useRouter();
 
@@ -47,10 +50,20 @@ export function PurchaseRequestActions({
   const [confirmApprove, setConfirmApprove] = useState(false);
 
   if (status === "approved") {
-    if (approvedTickets.length !== requestedQuantity) {
+    if (approvedTickets.length + voidedTicketCount !== requestedQuantity) {
       return (
         <p className="text-xs text-muted">
-          Tickets en preparación ({approvedTickets.length}/{requestedQuantity}).
+          Tickets en preparación (
+          {approvedTickets.length + voidedTicketCount}/{requestedQuantity}).
+        </p>
+      );
+    }
+
+    if (approvedTickets.length === 0) {
+      return (
+        <p className="max-w-56 text-xs text-red-300">
+          Participación anulada ({voidedTicketCount}{" "}
+          {voidedTicketCount === 1 ? "ticket" : "tickets"}).
         </p>
       );
     }
@@ -69,14 +82,29 @@ export function PurchaseRequestActions({
     }
 
     return (
-      <PurchaseRequestPrintAction
-        purchaseRequestId={purchaseRequestId}
-        raffleId={raffleId}
-        ticketCount={approvedTickets.length}
-        printedTicketCount={
-          approvedTickets.filter((ticket) => ticket.previousPrints > 0).length
-        }
-      />
+      <div className="flex flex-col items-start gap-2">
+        <PurchaseRequestPrintAction
+          purchaseRequestId={purchaseRequestId}
+          raffleId={raffleId}
+          ticketCount={approvedTickets.length}
+          printedTicketCount={
+            approvedTickets.filter((ticket) => ticket.previousPrints > 0)
+              .length
+          }
+        />
+
+        {voidedTicketCount > 0 ? (
+          <p className="text-xs text-muted">
+            {voidedTicketCount}{" "}
+            {voidedTicketCount === 1 ? "ticket anulado" : "tickets anulados"}.
+          </p>
+        ) : null}
+
+        <VoidParticipationAction
+          purchaseRequestId={purchaseRequestId}
+          ticketCount={approvedTickets.length}
+        />
+      </div>
     );
   }
 

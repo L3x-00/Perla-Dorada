@@ -6,6 +6,8 @@ import {
   LegalSection,
 } from "../legal-document";
 import { brand } from "@/config/brand";
+import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
+import { getActivePublicRaffle } from "@/lib/raffles/public-raffle";
 
 export const metadata: Metadata = {
   title: "Bases del sorteo",
@@ -13,49 +15,105 @@ export const metadata: Metadata = {
     "Bases y condiciones de participación en los sorteos de Joyería Perla Dorada.",
 };
 
-export default function BasesPage() {
+/*
+ * Sin esto, Next preselecciona render estático: la sección de vigencia y
+ * premios quedaría congelada con los datos de la rifa activa al momento
+ * del build, en vez de reflejar la rifa realmente vigente en cada visita.
+ */
+export const dynamic = "force-dynamic";
+
+export default async function BasesPage() {
+  const activeRaffle = await getActivePublicRaffle();
+
   return (
     <LegalDocument
       title="Bases del sorteo"
-      updatedAt="23 de julio de 2026"
+      updatedAt="04 de agosto de 2026"
       intro={`Estas bases regulan la participación en los sorteos organizados por ${brand.name}. Al comprar un boleto, el participante declara conocerlas y aceptarlas.`}
     >
       <LegalSection title="1. Organizador">
         <p>
           El sorteo es organizado por {brand.legal.businessName || brand.name}
-          {brand.legal.ruc ? `, con RUC ${brand.legal.ruc}` : ""}. Toda
-          comunicación oficial se realiza por los canales publicados en este
-          sitio y en nuestras redes oficiales.
+          {brand.legal.ruc ? `, con RUC ${brand.legal.ruc}` : ""}
+          {brand.contact.address
+            ? `, domiciliada en ${brand.contact.address}${
+                brand.contact.city ? `, ${brand.contact.city}` : ""
+              }`
+            : ""}
+          . Toda comunicación oficial se realiza por los canales publicados en
+          este sitio y en nuestras redes oficiales.
         </p>
       </LegalSection>
 
       <LegalSection title="2. Quién puede participar">
         <LegalList
           items={[
-            "Personas naturales mayores de 18 años con Documento Nacional de Identidad (DNI) vigente.",
-            "Cada solicitud se registra a nombre de un único DNI, que debe coincidir con el titular del pago.",
-            "No pueden participar los titulares ni el personal de la joyería, ni sus familiares directos.",
+            "Personas naturales mayores de 18 años con Documento Nacional de Identidad (DNI) o Carné de Extranjería vigente.",
+            "Cada solicitud se registra a nombre de un único documento, que debe coincidir con el titular del pago.",
+            "No pueden participar los titulares ni el personal de la joyería, ni sus familiares hasta el segundo grado de consanguinidad.",
           ]}
         />
       </LegalSection>
 
       <LegalSection title="3. Cómo participar">
+        <p>
+          La convocatoria se difunde de forma física y virtual, incluyendo
+          nuestras redes sociales oficiales (TikTok, Instagram, Facebook,
+          WhatsApp, YouTube). Para participar:
+        </p>
         <LegalList
           items={[
             "Elegir la cantidad de boletos en el formulario del sitio web.",
             "Pagar por Yape el monto exacto correspondiente a la cantidad elegida.",
-            "Completar el formulario con nombre completo, DNI, teléfono y WhatsApp, adjuntando la captura del comprobante de pago.",
+            "Completar el formulario con nombre completo, documento, teléfono y WhatsApp, adjuntando la captura del comprobante de pago.",
             "Conservar el código único de seguimiento entregado al registrar la primera solicitud.",
           ]}
         />
         <p>
-          El precio por boleto y la cantidad total de boletos se muestran en el
-          sitio y son los únicos válidos. El monto total lo calcula siempre el
+          El aporte mínimo de participación equivale al valor de un boleto
+          {activeRaffle
+            ? ` (${formatCurrencyPEN(activeRaffle.ticketPrice)} en el sorteo vigente)`
+            : ""}
+          . El precio por boleto y la cantidad total se muestran en el sitio y
+          son los únicos válidos: el monto total lo calcula siempre el
           sistema.
         </p>
       </LegalSection>
 
-      <LegalSection title="4. Reserva y vigencia de la solicitud">
+      <LegalSection title="4. Vigencia y premios del sorteo vigente">
+        {activeRaffle ? (
+          <>
+            <p>
+              <strong className="text-cream">{activeRaffle.name}</strong>.
+              Periodo de participación: desde el{" "}
+              {formatDateTime(activeRaffle.startsAt) ?? "—"} hasta el{" "}
+              {formatDateTime(activeRaffle.closesAt) ?? "—"} (hora de Perú).
+            </p>
+            <p>
+              Fecha del sorteo: {formatDateTime(activeRaffle.drawAt) ?? "—"},
+              mediante transmisión en vivo por nuestras redes oficiales
+              (TikTok / Facebook).
+            </p>
+            {activeRaffle.prizes.length > 0 ? (
+              <LegalList
+                items={activeRaffle.prizes.map((prize) =>
+                  prize.quantity > 1
+                    ? `${prize.title} (${prize.quantity} ganadores)`
+                    : prize.title,
+                )}
+              />
+            ) : null}
+          </>
+        ) : (
+          <p>
+            En este momento no hay un sorteo activo. Cuando se abra uno
+            nuevo, esta sección mostrará su periodo de participación, la
+            fecha del sorteo y el detalle de premios vigente.
+          </p>
+        )}
+      </LegalSection>
+
+      <LegalSection title="5. Reserva y vigencia de la solicitud">
         <p>
           Al registrar una solicitud, los boletos quedan reservados por un
           tiempo limitado (60 minutos, salvo que se indique otro plazo en el
@@ -67,7 +125,7 @@ export default function BasesPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="5. Validación del pago">
+      <LegalSection title="6. Validación del pago">
         <p>
           La verificación de los comprobantes es manual. Una solicitud puede ser
           rechazada, indicando el motivo, cuando el comprobante sea ilegible, el
@@ -77,36 +135,28 @@ export default function BasesPage() {
         <p>
           Solo tras la aprobación se asignan los números de boleto, de forma
           correlativa y única para cada sorteo. Los números asignados no se
-          modifican ni se reasignan.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="6. Fecha y modalidad del sorteo">
-        <p>
-          La fecha del sorteo es la publicada en el sitio para el sorteo
-          vigente. El sorteo se realiza de forma manual y supervisada, y su
-          resultado se registra en el sistema de manera única e irreversible.
-        </p>
-        <p>
-          En caso de fuerza mayor, el organizador podrá reprogramar la fecha,
-          comunicándolo por los canales oficiales con la mayor anticipación
-          posible.
+          modifican ni se reasignan. El sorteo se realiza de forma manual y
+          supervisada, y su resultado se registra en el sistema de manera única
+          e irreversible. En caso de fuerza mayor, el organizador podrá
+          reprogramar la fecha, comunicándolo por los canales oficiales con la
+          mayor anticipación posible.
         </p>
       </LegalSection>
 
       <LegalSection title="7. Ganador y entrega del premio">
         <LegalList
           items={[
-            "Se determina un único ganador por sorteo, correspondiente a un número de boleto efectivamente asignado.",
+            "Se determina un único ganador por cada premio, correspondiente a un número de boleto efectivamente asignado.",
             "El ganador será contactado por el teléfono o WhatsApp registrados en su solicitud.",
-            "Para recibir el premio deberá presentar su DNI original, que debe coincidir con el registrado en la solicitud.",
-            "El premio es personal, no transferible y no canjeable por dinero en efectivo.",
+            "Para recibir el premio deberá presentar su documento original, que debe coincidir con el registrado en la solicitud.",
+            "El premio es personal, intransferible y no canjeable por dinero en efectivo.",
           ]}
         />
         <p>
-          Si el ganador no puede ser contactado o no reclama el premio en el
-          plazo comunicado, el organizador informará el procedimiento aplicable
-          por los canales oficiales.
+          El ganador tiene un plazo máximo de dos (2) días calendario para
+          reclamar su premio contado desde el anuncio de resultados. Vencido
+          ese plazo sin haber sido reclamado, el organizador podrá sortearlo
+          nuevamente entre los participantes elegibles o declararlo desierto.
         </p>
       </LegalSection>
 

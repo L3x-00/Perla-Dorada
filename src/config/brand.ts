@@ -22,7 +22,7 @@ export const brand = {
     whatsapp: "51956252677",
     phone: "950 303 489",
     email: "info@joyeriaperladorada.com",
-    address: "",
+    address: "Prolongación San Carlos N.º 131 (costado Open Plaza)",
     city: "Huancayo",
   },
 
@@ -43,8 +43,8 @@ export const brand = {
   },
 
   legal: {
-    businessName: "",
-    ruc: "",
+    businessName: "PERLA DORADA",
+    ruc: "10751025560",
   },
 } as const;
 

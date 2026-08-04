@@ -55,8 +55,15 @@ type DashboardTicket = {
   id: string;
   raffle_id: string;
   purchase_request_id: string;
+  ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"];
 };
 
+/*
+ * Trae activos Y anulados (no congelados/reasignados: no ocurren en una
+ * rifa activa). Se necesitan ambos para saber si una solicitud aprobada ya
+ * está "completa" (activos + anulados == requested_quantity) o si todavía
+ * está en preparación.
+ */
 async function loadApprovedDashboardTickets(
   adminClient: ReturnType<typeof createAdminClient>,
   purchaseRequestIds: string[],
@@ -67,9 +74,9 @@ async function loadApprovedDashboardTickets(
   while (true) {
     const { data, error } = await adminClient
       .from("tickets")
-      .select("id, raffle_id, purchase_request_id")
+      .select("id, raffle_id, purchase_request_id, ticket_status")
       .in("purchase_request_id", purchaseRequestIds)
-      .eq("ticket_status", "active")
+      .in("ticket_status", ["active", "voided"])
       .order("id", { ascending: true })
       .range(rangeStart, rangeStart + ADMIN_QUERY_PAGE_SIZE - 1);
 
@@ -256,6 +263,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
     string,
     Array<{ id: string; raffleId: string; previousPrints: number }>
   >();
+  const voidedCountByRequestId = new Map<string, number>();
   if (approvedRequestIds.length > 0) {
     try {
       const [tickets, printCountByTicketId] = await Promise.all([
@@ -264,6 +272,14 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
       ]);
 
       for (const ticket of tickets) {
+        if (ticket.ticket_status === "voided") {
+          voidedCountByRequestId.set(
+            ticket.purchase_request_id,
+            (voidedCountByRequestId.get(ticket.purchase_request_id) ?? 0) + 1,
+          );
+          continue;
+        }
+
         const current = approvedTicketsByRequestId.get(
           ticket.purchase_request_id,
         ) ?? [];
@@ -361,6 +377,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
               approvedTickets={
                 approvedTicketsByRequestId.get(request.id) ?? []
               }
+              voidedTicketCount={voidedCountByRequestId.get(request.id) ?? 0}
             />
           ))}
         </div>
@@ -478,6 +495,9 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
                       approvedTickets={
                         approvedTicketsByRequestId.get(request.id) ?? []
                       }
+                      voidedTicketCount={
+                        voidedCountByRequestId.get(request.id) ?? 0
+                      }
                     />
                   </td>
                 </tr>
@@ -531,6 +551,7 @@ function RequestCard({
   index,
   reviewerName,
   approvedTickets,
+  voidedTicketCount,
 }: {
   request: RequestRow;
   index: number;
@@ -540,6 +561,7 @@ function RequestCard({
     raffleId: string;
     previousPrints: number;
   }>;
+  voidedTicketCount: number;
 }) {
   return (
     <article
@@ -617,6 +639,7 @@ function RequestCard({
         requestedQuantity={request.requested_quantity}
         status={request.status}
         approvedTickets={approvedTickets}
+        voidedTicketCount={voidedTicketCount}
       />
     </article>
   );

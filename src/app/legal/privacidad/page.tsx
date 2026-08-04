@@ -17,7 +17,7 @@ export default function PrivacidadPage() {
   return (
     <LegalDocument
       title="Política de privacidad"
-      updatedAt="23 de julio de 2026"
+      updatedAt="04 de agosto de 2026"
       intro={`En ${brand.name} tratamos los datos personales conforme a la Ley N.º 29733, Ley de Protección de Datos Personales, y su reglamento. Aquí explicamos qué recogemos, para qué y por cuánto tiempo.`}
     >
       <LegalSection title="1. Responsable del tratamiento">
@@ -59,6 +59,14 @@ export default function PrivacidadPage() {
         />
         <p>
           No vendemos ni cedemos tus datos con fines comerciales a terceros.
+        </p>
+        <p>
+          Si resultas ganador, autorizas expresamente el uso de tu nombre en la
+          publicación de resultados en nuestras redes oficiales, sin derecho a
+          compensación económica adicional. Hoy publicamos ese nombre de forma
+          parcial (primer nombre e inicial del apellido); no publicamos tu
+          número de documento ni imágenes tuyas salvo que las compartas o
+          autorices puntualmente para ese fin.
         </p>
       </LegalSection>
 

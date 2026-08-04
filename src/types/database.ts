@@ -456,6 +456,9 @@ export type Database = {
           reassigned_by: string | null
           ticket_number: number
           ticket_status: Database["public"]["Enums"]["ticket_lifecycle_status"]
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           assigned_at?: string
@@ -468,6 +471,9 @@ export type Database = {
           reassigned_by?: string | null
           ticket_number: number
           ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           assigned_at?: string
@@ -480,6 +486,9 @@ export type Database = {
           reassigned_by?: string | null
           ticket_number?: number
           ticket_status?: Database["public"]["Enums"]["ticket_lifecycle_status"]
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -567,6 +576,7 @@ export type Database = {
           request_status: Database["public"]["Enums"]["purchase_request_status"]
           ticket_count: number
           total_count: number
+          voided_count: number
         }[]
       }
       approve_purchase_request: {
@@ -1013,13 +1023,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      void_purchase_request_tickets: {
+        Args: {
+          p_admin_user_id: string
+          p_purchase_request_id: string
+          p_reason: string
+        }
+        Returns: {
+          ticket_id: string
+          ticket_number: number
+        }[]
+      }
     }
     Enums: {
       participant_document_type: "dni" | "cui"
       promotion_cta_kind: "raffle" | "url"
       purchase_request_status: "pending" | "approved" | "rejected" | "expired"
       raffle_status: "draft" | "active" | "closed" | "cancelled"
-      ticket_lifecycle_status: "active" | "frozen" | "reassigned"
+      ticket_lifecycle_status: "active" | "frozen" | "reassigned" | "voided"
       ticket_print_type: "original" | "reprint"
     }
     CompositeTypes: {
@@ -1155,7 +1176,7 @@ export const Constants = {
       promotion_cta_kind: ["raffle", "url"],
       purchase_request_status: ["pending", "approved", "rejected", "expired"],
       raffle_status: ["draft", "active", "closed", "cancelled"],
-      ticket_lifecycle_status: ["active", "frozen", "reassigned"],
+      ticket_lifecycle_status: ["active", "frozen", "reassigned", "voided"],
       ticket_print_type: ["original", "reprint"],
     },
   },

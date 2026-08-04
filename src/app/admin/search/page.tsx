@@ -30,7 +30,7 @@ type TicketResult = {
   raffle_id: string;
   purchase_request_id: string;
   ticket_number: number;
-  ticket_status: "active" | "frozen" | "reassigned";
+  ticket_status: "active" | "frozen" | "reassigned" | "voided";
   assigned_at: string;
 };
 
@@ -648,7 +648,9 @@ export default async function AdminSearchPage({
                                     <p className="max-w-52 text-xs text-red-400">
                                       {ticket.ticket_status === "active"
                                         ? "Solo se imprimen tickets de solicitudes aprobadas."
-                                        : "Este ticket está congelado o ya fue reasignado."}
+                                        : ticket.ticket_status === "voided"
+                                          ? "Este ticket fue anulado."
+                                          : "Este ticket está congelado o ya fue reasignado."}
                                     </p>
                                   )}
                                 </div>

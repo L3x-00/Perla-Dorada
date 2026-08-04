@@ -27,6 +27,7 @@ export type ActivePublicRaffle = {
   name: string;
   description: string | null;
   ticketPrice: number;
+  startsAt: string | null;
   drawAt: string | null;
   closesAt: string | null;
   available: number;
@@ -58,7 +59,7 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
   const { data: raffle, error: raffleError } = await supabase
     .from("raffles")
     .select(
-      "id, name, description, ticket_price, total_tickets, draw_at, closes_at, image_path, prizes",
+      "id, name, description, ticket_price, total_tickets, starts_at, draw_at, closes_at, image_path, prizes",
     )
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -116,6 +117,7 @@ export async function getActivePublicRaffle(): Promise<ActivePublicRaffle | null
     name: raffle.name,
     description: raffle.description,
     ticketPrice: raffle.ticket_price,
+    startsAt: raffle.starts_at,
     drawAt: raffle.draw_at,
     closesAt: raffle.closes_at,
     available,
