@@ -545,7 +545,7 @@ html[data-theme="light"] .raffle-festive-wash {
     border: 0;
     padding: 0;
     font-family: "Courier New", Courier, monospace;
-    line-height: 3.75mm;
+    line-height: 3mm;
   }
 
   [data-print-profile="thermal-72"][data-thermal-font="font-a"]
@@ -576,8 +576,8 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__number-value {
-    font-size: 11mm;
-    line-height: 11mm;
+    font-size: 9mm;
+    line-height: 9mm;
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__details {
