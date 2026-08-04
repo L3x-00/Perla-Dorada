@@ -1,0 +1,472 @@
+-- ============================================================
+-- Carga única de ventas manuales previas al sistema (clientes.md)
+--
+-- 330 tickets ya vendidos y cobrados fuera del panel (numeración física
+-- 000001-000345, con 15 huecos que quedan fuera de esta carga a propósito:
+-- 037-047, 049, 066, 106, 109 — se venden más adelante, uno por uno, con
+-- una migración puntual igual a esta cuando corresponda). Se agrupan por
+-- nombre + fecha/hora de compra en 84 solicitudes ya aprobadas.
+--
+-- No hay comprobante de pago (venta ya cobrada y confirmada manualmente):
+-- se guarda un path no funcional y se marca payment_proof_deleted_at de
+-- inmediato para que el panel muestre "Eliminado" en vez de un botón roto.
+--
+-- No hay DNI real en el origen de datos. Se genera uno provisional por
+-- cliente único (90000001, 90000002, ...) solo para satisfacer el CHECK de
+-- la columna. El seguimiento público (/seguimiento) NO funcionará para
+-- estas solicitudes hasta reemplazar el DNI provisional por el real.
+--
+-- El grupo sin fecha (AIORI JOSE SIERRALTA RODRIGUEZ, boletos 015-029) usa
+-- la fecha/hora en que se aplica esta migración. Ese mismo cliente tampoco
+-- tiene teléfono: se guarda el marcador "SIN-TELEFONO".
+-- ============================================================
+
+do $$
+declare
+  v_raffle_id uuid;
+  v_admin_id uuid;
+  v_group record;
+  v_purchase_request_id uuid;
+  v_created_at timestamptz;
+  v_purchase_request_count integer := 0;
+  v_ticket_count integer := 0;
+  v_source jsonb := '[
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:40", "numero_boleto": "000001", "telefono": "956 748 664"},
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:40", "numero_boleto": "000002", "telefono": "956 748 664"},
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:56", "numero_boleto": "000003", "telefono": "956 748 664"},
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:56", "numero_boleto": "000004", "telefono": "956 748 664"},
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:56", "numero_boleto": "000005", "telefono": "956 748 664"},
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:56", "numero_boleto": "000006", "telefono": "956 748 664"},
+  {"nombre_cliente": "SARA STEFANI ESQUIVEL PUENTE", "fecha_compra": "2026-07-20 18:56", "numero_boleto": "000007", "telefono": "956 748 664"},
+  {"nombre_cliente": "KORAL CALIXTO VARILLAS", "fecha_compra": "2026-07-20 18:40", "numero_boleto": "000008", "telefono": "938 542 558"},
+  {"nombre_cliente": "SUSAN LISETH ISUIZA DOSANTOS", "fecha_compra": "2026-07-26 08:37", "numero_boleto": "000010", "telefono": "916 559 557"},
+  {"nombre_cliente": "SUSAN LISETH ISUIZA DOSANTOS", "fecha_compra": "2026-07-26 08:37", "numero_boleto": "000011", "telefono": "916 559 557"},
+  {"nombre_cliente": "WILSON GASTON SIANCAS SEMINARIO", "fecha_compra": "2026-07-26 12:34", "numero_boleto": "000009", "telefono": "970 013 266"},
+  {"nombre_cliente": "JESUS DE LA CRUZ ASTO", "fecha_compra": "2026-07-27 11:41", "numero_boleto": "000012", "telefono": "902 697 187"},
+  {"nombre_cliente": "JESUS DE LA CRUZ ASTO", "fecha_compra": "2026-07-27 11:41", "numero_boleto": "000013", "telefono": "902 697 187"},
+  {"nombre_cliente": "JESUS DE LA CRUZ ASTO", "fecha_compra": "2026-07-27 11:41", "numero_boleto": "000014", "telefono": "902 697 187"},
+  {"nombre_cliente": "MARDELI JAUREGUI OSORES", "fecha_compra": "2026-07-27 03:52", "numero_boleto": "000030", "telefono": "941 308 307"},
+  {"nombre_cliente": "MARDELI JAUREGUI OSORES", "fecha_compra": "2026-07-27 03:52", "numero_boleto": "000031", "telefono": "941 308 307"},
+  {"nombre_cliente": "MARDELI JAUREGUI OSORES", "fecha_compra": "2026-07-27 03:52", "numero_boleto": "000032", "telefono": "941 308 307"},
+  {"nombre_cliente": "MARDELI JAUREGUI OSORES", "fecha_compra": "2026-07-27 03:52", "numero_boleto": "000033", "telefono": "941 308 307"},
+  {"nombre_cliente": "MARDELI JAUREGUI OSORES", "fecha_compra": "2026-07-27 03:52", "numero_boleto": "000034", "telefono": "941 308 307"},
+  {"nombre_cliente": "LUIS EDSON MACETAS CASTRO", "fecha_compra": "2026-07-29 05:06", "numero_boleto": "000035", "telefono": "942 229 171"},
+  {"nombre_cliente": "LUIS EDSON MACETAS CASTRO", "fecha_compra": "2026-07-29 05:06", "numero_boleto": "000036", "telefono": "942 229 171"},
+  {"nombre_cliente": "ALISON CLAUDIA MILINA AUQUI", "fecha_compra": "2026-07-29 18:34", "numero_boleto": "000048", "telefono": "990888728"},
+  {"nombre_cliente": "SANDRO SUSANIBAR SANTOS", "fecha_compra": "2026-07-29 20:58", "numero_boleto": "000050", "telefono": "964559686"},
+  {"nombre_cliente": "SEBASTIAN BASTIDAS ACCILIO", "fecha_compra": "2026-07-31 12:20", "numero_boleto": "000067", "telefono": "998349966"},
+  {"nombre_cliente": "HERLINDA GUZMAN", "fecha_compra": "2026-07-31 20:28", "numero_boleto": "000061", "telefono": "999263164"},
+  {"nombre_cliente": "HERLINDA GUZMAN", "fecha_compra": "2026-07-31 20:28", "numero_boleto": "000062", "telefono": "999263164"},
+  {"nombre_cliente": "HERLINDA GUZMAN", "fecha_compra": "2026-07-31 20:28", "numero_boleto": "000063", "telefono": "999263164"},
+  {"nombre_cliente": "HERLINDA GUZMAN", "fecha_compra": "2026-07-31 20:28", "numero_boleto": "000064", "telefono": "999263164"},
+  {"nombre_cliente": "HERLINDA GUZMAN", "fecha_compra": "2026-07-31 20:28", "numero_boleto": "000065", "telefono": "999263164"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000051", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000052", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000053", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000054", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000055", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000056", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000057", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000058", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000059", "telefono": "932809190"},
+  {"nombre_cliente": "ABRAHAN CRUZ CORDOVA", "fecha_compra": "2026-07-31 20:43", "numero_boleto": "000060", "telefono": "932809190"},
+  {"nombre_cliente": "BOJAN NOE CANTARO HINOSTROZA", "fecha_compra": "2026-08-01 13:23", "numero_boleto": "000068", "telefono": "914462677"},
+  {"nombre_cliente": "XIOMARA SEMINARIO SECLEN", "fecha_compra": "2026-08-01 14:40", "numero_boleto": "000069", "telefono": "934336238"},
+  {"nombre_cliente": "XIOMARA SEMINARIO SECLEN", "fecha_compra": "2026-08-01 14:40", "numero_boleto": "000070", "telefono": "934336238"},
+  {"nombre_cliente": "XIOMARA SEMINARIO SECLEN", "fecha_compra": "2026-08-01 14:40", "numero_boleto": "000071", "telefono": "934336238"},
+  {"nombre_cliente": "ZELMIRA DAVILA BOBADILLA", "fecha_compra": "2026-08-01 15:14", "numero_boleto": "000077", "telefono": "975 769 758"},
+  {"nombre_cliente": "ZELMIRA DAVILA BOBADILLA", "fecha_compra": "2026-08-01 15:14", "numero_boleto": "000078", "telefono": "975 769 758"},
+  {"nombre_cliente": "LUIS ADRIAN RUIZ SANTA CRUZ", "fecha_compra": "2026-08-01 15:21", "numero_boleto": "000075", "telefono": "988 898 150"},
+  {"nombre_cliente": "LUIS ADRIAN RUIZ SANTA CRUZ", "fecha_compra": "2026-08-01 15:21", "numero_boleto": "000076", "telefono": "988 898 150"},
+  {"nombre_cliente": "DANILO JUAN PRADO RIOS", "fecha_compra": "2026-08-01 15:54", "numero_boleto": "000079", "telefono": "970 689 098"},
+  {"nombre_cliente": "LUIS EDSON MACETAS CASTRO", "fecha_compra": "2026-08-01 16:35", "numero_boleto": "000072", "telefono": "942 229 171"},
+  {"nombre_cliente": "LUIS EDSON MACETAS CASTRO", "fecha_compra": "2026-08-01 16:35", "numero_boleto": "000073", "telefono": "942 229 171"},
+  {"nombre_cliente": "ANIBAL VILLAYZAN SHULLCA", "fecha_compra": "2026-08-01 16:36", "numero_boleto": "000074", "telefono": "966 487 763"},
+  {"nombre_cliente": "JOSE ANTONIO IGNACIO MOSCOSO", "fecha_compra": "2026-08-01 17:01", "numero_boleto": "000086", "telefono": "971 822 893"},
+  {"nombre_cliente": "JOSE ANTONIO IGNACIO MOSCOSO", "fecha_compra": "2026-08-01 17:01", "numero_boleto": "000087", "telefono": "971 822 893"},
+  {"nombre_cliente": "JOSE ANTONIO IGNACIO MOSCOSO", "fecha_compra": "2026-08-01 17:01", "numero_boleto": "000088", "telefono": "971 822 893"},
+  {"nombre_cliente": "JOSE ANTONIO IGNACIO MOSCOSO", "fecha_compra": "2026-08-01 17:01", "numero_boleto": "000089", "telefono": "971 822 893"},
+  {"nombre_cliente": "NURIT SELENE AMBROSIO PORRAS", "fecha_compra": "2026-08-01 17:28", "numero_boleto": "000080", "telefono": "924 304 692"},
+  {"nombre_cliente": "NURIT SELENE AMBROSIO PORRAS", "fecha_compra": "2026-08-01 17:28", "numero_boleto": "000081", "telefono": "924 304 692"},
+  {"nombre_cliente": "NURIT SELENE AMBROSIO PORRAS", "fecha_compra": "2026-08-01 17:28", "numero_boleto": "000082", "telefono": "924 304 692"},
+  {"nombre_cliente": "MARIA FERNANDA ALVARO PAITAN", "fecha_compra": "2026-08-01 18:00", "numero_boleto": "000083", "telefono": "917 565 542"},
+  {"nombre_cliente": "GABRIELA VENTURA ALFARO", "fecha_compra": "2026-08-01 19:00", "numero_boleto": "000084", "telefono": "941 374 942"},
+  {"nombre_cliente": "GABRIELA VENTURA ALFARO", "fecha_compra": "2026-08-01 19:00", "numero_boleto": "000085", "telefono": "941 374 942"},
+  {"nombre_cliente": "PAMELA MARIELA HUAMAN MAYTA", "fecha_compra": "2026-08-01 19:06", "numero_boleto": "000090", "telefono": "921 951 430"},
+  {"nombre_cliente": "PAMELA MARIELA HUAMAN MAYTA", "fecha_compra": "2026-08-01 19:06", "numero_boleto": "000091", "telefono": "921 951 430"},
+  {"nombre_cliente": "PAMELA MARIELA HUAMAN MAYTA", "fecha_compra": "2026-08-01 19:06", "numero_boleto": "000092", "telefono": "921 951 430"},
+  {"nombre_cliente": "NURIT SELENE AMBROSIO PORRAS", "fecha_compra": "2026-08-01 19:08", "numero_boleto": "000093", "telefono": "924 304 692"},
+  {"nombre_cliente": "NURIT SELENE AMBROSIO PORRAS", "fecha_compra": "2026-08-01 19:08", "numero_boleto": "000094", "telefono": "924 304 692"},
+  {"nombre_cliente": "ELOWYN DHAFTNE CONDORI HUAYLLANI", "fecha_compra": "2026-08-01 19:28", "numero_boleto": "000095", "telefono": "985 658 682"},
+  {"nombre_cliente": "ELOWYN DHAFTNE CONDORI HUAYLLANI", "fecha_compra": "2026-08-01 19:28", "numero_boleto": "000096", "telefono": "985 658 682"},
+  {"nombre_cliente": "SHIRLEY EVELYN LOJA RENGIFO", "fecha_compra": "2026-08-01 21:34", "numero_boleto": "000097", "telefono": "953 697 094"},
+  {"nombre_cliente": "SHIRLEY EVELYN LOJA RENGIFO", "fecha_compra": "2026-08-01 21:34", "numero_boleto": "000098", "telefono": "953 697 094"},
+  {"nombre_cliente": "ALFREDO ADOLFO TORRES RAMIRES", "fecha_compra": "2026-08-31 21:42", "numero_boleto": "000099", "telefono": "991477271"},
+  {"nombre_cliente": "PATRICIA VALENTINA CAMACHO LAYA", "fecha_compra": "2026-08-01 21:48", "numero_boleto": "000100", "telefono": "977869107"},
+  {"nombre_cliente": "PATRICIA VALENTINA CAMACHO LAYA", "fecha_compra": "2026-08-01 21:48", "numero_boleto": "000101", "telefono": "977869107"},
+  {"nombre_cliente": "PATRICIA VALENTINA CAMACHO LAYA", "fecha_compra": "2026-08-01 21:48", "numero_boleto": "000102", "telefono": "977869107"},
+  {"nombre_cliente": "TOMAS PACHAMORA REQUEJO", "fecha_compra": "2026-08-02 12:22", "numero_boleto": "000103", "telefono": "985 387 797"},
+  {"nombre_cliente": "TOMAS PACHAMORA REQUEJO", "fecha_compra": "2026-08-02 12:22", "numero_boleto": "000104", "telefono": "985 387 797"},
+  {"nombre_cliente": "TOMAS PACHAMORA REQUEJO", "fecha_compra": "2026-08-02 12:22", "numero_boleto": "000105", "telefono": "985 387 797"},
+  {"nombre_cliente": "MARITZA CARDENAS RODRIGUES", "fecha_compra": "2026-08-02 13:13", "numero_boleto": "000107", "telefono": "923973813"},
+  {"nombre_cliente": "JUANA ISABEL CALDERON ROSALES", "fecha_compra": "2026-08-02 14:49", "numero_boleto": "000108", "telefono": "917 860 971"},
+  {"nombre_cliente": "ROSA BETY COLONIO PILCO", "fecha_compra": "2026-08-02 16:14", "numero_boleto": "000146", "telefono": "903 301 441"},
+  {"nombre_cliente": "ROSA BETY COLONIO PILCO", "fecha_compra": "2026-08-02 16:14", "numero_boleto": "000147", "telefono": "903 301 441"},
+  {"nombre_cliente": "ROSA BETY COLONIO PILCO", "fecha_compra": "2026-08-02 16:14", "numero_boleto": "000148", "telefono": "903 301 441"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000124", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000125", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000126", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000127", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000128", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000129", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000130", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000131", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000132", "telefono": "939080155"},
+  {"nombre_cliente": "JERSON HUAMAN YARASCA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000133", "telefono": "939080155"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000134", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000135", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000136", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000137", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000138", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000139", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000140", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "0000141", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000142", "telefono": "995 269 673"},
+  {"nombre_cliente": "NOELIA QUISPE HINOSTROZA", "fecha_compra": "2026-08-02 16:15", "numero_boleto": "000143", "telefono": "995 269 673"},
+  {"nombre_cliente": "EFRAIN ALARCON OSCCO", "fecha_compra": "2026-08-02 16:27", "numero_boleto": "000144", "telefono": "945886671"},
+  {"nombre_cliente": "EFRAIN ALARCON OSCCO", "fecha_compra": "2026-08-02 16:27", "numero_boleto": "000145", "telefono": "945886671"},
+  {"nombre_cliente": "MARIA ISABEL LAURA LAURA", "fecha_compra": "2026-08-02 15:30", "numero_boleto": "000112", "telefono": "987 945 680"},
+  {"nombre_cliente": "MARIA ISABEL LAURA LAURA", "fecha_compra": "2026-08-02 15:30", "numero_boleto": "000113", "telefono": "987 945 680"},
+  {"nombre_cliente": "RUBI BALDEON HUAYNALDEZ", "fecha_compra": "2026-08-02 15:29", "numero_boleto": "000110", "telefono": "915023730"},
+  {"nombre_cliente": "MARTIN CERRON BASTIDAS", "fecha_compra": "2026-08-02 15:36", "numero_boleto": "000111", "telefono": "956 149 681"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000114", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000115", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000116", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000117", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000118", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000119", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000120", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000121", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000122", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-02 16:17", "numero_boleto": "000123", "telefono": "953834185"},
+  {"nombre_cliente": "GUISSELA DELGADO LIÑAN", "fecha_compra": "2026-08-02 19:51", "numero_boleto": "000150", "telefono": "936 879 752"},
+  {"nombre_cliente": "SILVIA QUISPE GUTIERREZ", "fecha_compra": "2026-08-02 19:54", "numero_boleto": "000149", "telefono": "960 829 979"},
+  {"nombre_cliente": "SEBASTIAN SUASNABAR DELGADO", "fecha_compra": "2026-08-02 16:59", "numero_boleto": "000151", "telefono": "923521545"},
+  {"nombre_cliente": "SEBASTIAN SUASNABAR DELGADO", "fecha_compra": "2026-08-02 16:59", "numero_boleto": "000153", "telefono": "923521545"},
+  {"nombre_cliente": "JOSE SABRERA GREMYOS", "fecha_compra": "2026-08-02 17:57", "numero_boleto": "000152", "telefono": "940175597"},
+  {"nombre_cliente": "GHEYDI ROJAS DAVILA", "fecha_compra": "2026-08-02 20:12", "numero_boleto": "000154", "telefono": "964 420 400"},
+  {"nombre_cliente": "GHEYDI ROJAS DAVILA", "fecha_compra": "2026-08-02 20:12", "numero_boleto": "000155", "telefono": "964 420 400"},
+  {"nombre_cliente": "BRIGITH SHANTAL QUISPE HUAMAN", "fecha_compra": "2026-08-02 20:32", "numero_boleto": "000156", "telefono": "944 796 988"},
+  {"nombre_cliente": "MARISOL MENESES YANAMA", "fecha_compra": "2026-08-02 20:33", "numero_boleto": "000157", "telefono": "988 312 474"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 20:52", "numero_boleto": "000158", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 20:52", "numero_boleto": "000159", "telefono": "976222324"},
+  {"nombre_cliente": "THALIA MAYTA RODRIGUEZ", "fecha_compra": "2026-08-02 16:09", "numero_boleto": "000209", "telefono": "937 287 550"},
+  {"nombre_cliente": "THALIA MAYTA RODRIGUEZ", "fecha_compra": "2026-08-02 16:09", "numero_boleto": "000210", "telefono": "937 287 550"},
+  {"nombre_cliente": "KENNYO OROYA SANTOS", "fecha_compra": "2026-08-02 17:02", "numero_boleto": "000213", "telefono": "980517619"},
+  {"nombre_cliente": "LOIDA CUIZANO ROSARIO", "fecha_compra": "2026-08-02 21:35", "numero_boleto": "000191", "telefono": "935 217 549"},
+  {"nombre_cliente": "JUANA ISABEL CALDERON ROSALES", "fecha_compra": "2026-08-02 21:39", "numero_boleto": "000192", "telefono": "917 860 971"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000160", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000161", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000162", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000163", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000164", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000165", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000166", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000167", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000168", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000169", "telefono": "927 634 279"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000170", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000171", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000172", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000173", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000174", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000175", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000176", "telefono": "976222324"},
+  {"nombre_cliente": "MARIA PATRICIA SANTAMARIA PALOMINO", "fecha_compra": "2026-08-02 21:00", "numero_boleto": "000177", "telefono": "976222324"},
+  {"nombre_cliente": "ALEXIA CAVERO LATORRE", "fecha_compra": "2026-08-02 21:08", "numero_boleto": "000178", "telefono": "945962399"},
+  {"nombre_cliente": "ALEXIA CAVERO LATORRE", "fecha_compra": "2026-08-02 21:08", "numero_boleto": "000179", "telefono": "945962399"},
+  {"nombre_cliente": "MARLENI TICSIHUA QUISPE", "fecha_compra": "2026-08-02 21:11", "numero_boleto": "000180", "telefono": "973 189 173"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000181", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000182", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000183", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000184", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000185", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000186", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000187", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000188", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000189", "telefono": "920 100 238"},
+  {"nombre_cliente": "KATHERYN GARCIA COTERA", "fecha_compra": "2026-08-02 21:21", "numero_boleto": "000190", "telefono": "920 100 238"},
+  {"nombre_cliente": "RENAN PUEL CRUZ", "fecha_compra": "2026-08-02 20:49", "numero_boleto": "000301", "telefono": "931754307"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000260", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000261", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000262", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000263", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000264", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000265", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000266", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000267", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000268", "telefono": "995806393"},
+  {"nombre_cliente": "DANTAS BRUNNER LLEI FLORENCIA", "fecha_compra": "2026-08-02 19:39", "numero_boleto": "000269", "telefono": "995806393"},
+  {"nombre_cliente": "WILIAN RUIZ GUTIERREZ", "fecha_compra": "2026-08-03 06:49", "numero_boleto": "000193", "telefono": "995252661"},
+  {"nombre_cliente": "WILIAN RUIZ GUTIERREZ", "fecha_compra": "2026-08-03 06:49", "numero_boleto": "000194", "telefono": "995252661"},
+  {"nombre_cliente": "WILIAN RUIZ GUTIERREZ", "fecha_compra": "2026-08-03 06:49", "numero_boleto": "000195", "telefono": "995252661"},
+  {"nombre_cliente": "WILIAN RUIZ GUTIERREZ", "fecha_compra": "2026-08-03 06:49", "numero_boleto": "000196", "telefono": "995252661"},
+  {"nombre_cliente": "WILIAN RUIZ GUTIERREZ", "fecha_compra": "2026-08-03 06:49", "numero_boleto": "000197", "telefono": "995252661"},
+  {"nombre_cliente": "JAIME ALEXANDER LAZARO ALANYA", "fecha_compra": "2026-08-03 11:07", "numero_boleto": "000198", "telefono": "901617790"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000199", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000200", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000201", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000202", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000203", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000204", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000205", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000206", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000207", "telefono": "929440456"},
+  {"nombre_cliente": "ANGEL YALOPOMA PAITAN", "fecha_compra": "2026-08-03 15:08", "numero_boleto": "000208", "telefono": "929440456"},
+  {"nombre_cliente": "FREDDY AMAYA ALVAREZ", "fecha_compra": "2026-08-03 16:52", "numero_boleto": "000211", "telefono": "964972770"},
+  {"nombre_cliente": "FREDDY AMAYA ALVAREZ", "fecha_compra": "2026-08-03 16:52", "numero_boleto": "000212", "telefono": "964972770"},
+  {"nombre_cliente": "CELINDA JULY PALOMARES ROSAS", "fecha_compra": "2026-08-03 17:24", "numero_boleto": "000214", "telefono": "963 830 808"},
+  {"nombre_cliente": "CELINDA JULY PALOMARES ROSAS", "fecha_compra": "2026-08-03 17:24", "numero_boleto": "000215", "telefono": "963 830 808"},
+  {"nombre_cliente": "LOIDA CUIZANO ROSARIO", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000216", "telefono": "935 217 549"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000217", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000218", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000219", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000220", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000221", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000222", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000223", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000224", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000225", "telefono": "946 764 877"},
+  {"nombre_cliente": "EVER RAPREY CHINCHAY", "fecha_compra": "2026-08-03 18:35", "numero_boleto": "000302", "telefono": "946 764 877"},
+  {"nombre_cliente": "CYNTHIA MARGOT PEREZ SOTO", "fecha_compra": "2026-08-03 18:48", "numero_boleto": "000226", "telefono": "967 614 600"},
+  {"nombre_cliente": "NILDA RENOJO ALEJO", "fecha_compra": "2026-08-03 18:50", "numero_boleto": "000227", "telefono": "954 805 346"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000228", "telefono": "995 422 321"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000229", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000230", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000231", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000232", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000233", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000234", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000235", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000236", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000237", "telefono": "953834185"},
+  {"nombre_cliente": "MARIELA PAEZ APOLINARIO", "fecha_compra": "2026-08-03 19:24", "numero_boleto": "000238", "telefono": "953834185"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000239", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000240", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000241", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000242", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000243", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000244", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000245", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000246", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000247", "telefono": "927 634 279"},
+  {"nombre_cliente": "WILDER AYERVE SOEL", "fecha_compra": "2026-08-03 19:27", "numero_boleto": "000248", "telefono": "927 634 279"},
+  {"nombre_cliente": "YESENIA MAGALY GARACIA OCHOA", "fecha_compra": "2026-08-03 19:31", "numero_boleto": "000249", "telefono": "974 415 407"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000250", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000251", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000252", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000253", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000254", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000255", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000256", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000257", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000258", "telefono": "992 543 718"},
+  {"nombre_cliente": "JIMMY ROMAN ROQUE", "fecha_compra": "2026-08-03 19:48", "numero_boleto": "000259", "telefono": "992 543 718"},
+  {"nombre_cliente": "LEONEL IKER SANCHEZ RAMOS", "fecha_compra": "2026-08-03 20:02", "numero_boleto": "000270", "telefono": "927217082"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000271", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000272", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000273", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000274", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000275", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000276", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000277", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000278", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000279", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000280", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000281", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000282", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000283", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000284", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000285", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000286", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000287", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000288", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000289", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000290", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000291", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000292", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000293", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000294", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000295", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000296", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000297", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000298", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000299", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000300", "telefono": "960 961 995"},
+  {"nombre_cliente": "MAYRA BARZOLA ENCISO", "fecha_compra": "2026-08-03 20:15", "numero_boleto": "000303", "telefono": "960 961 995"},
+  {"nombre_cliente": "THANIA ORE LAURA", "fecha_compra": "2026-08-03 20:50", "numero_boleto": "000313", "telefono": "918 187 278"},
+  {"nombre_cliente": "HELIO ROJAS CHAMORRO", "fecha_compra": "2026-08-03 20:51", "numero_boleto": "000314", "telefono": "953928904"},
+  {"nombre_cliente": "GREICI HUAMAN TARDIO", "fecha_compra": "2026-08-03 20:52", "numero_boleto": "000315", "telefono": "921 597 981"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000336", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000337", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000338", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000339", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000340", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000341", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000342", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000343", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000344", "telefono": "938 712 611"},
+  {"nombre_cliente": "LUCERO CELESTE MEZA GUTIERREZ", "fecha_compra": "2026-08-03 21:05", "numero_boleto": "000345", "telefono": "938 712 611"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000326", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000327", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000328", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000329", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000330", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000331", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000332", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000333", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000334", "telefono": "935040746"},
+  {"nombre_cliente": "NIMIA ABIGAIL VALLE GUEVARA", "fecha_compra": "2026-08-03 21:00", "numero_boleto": "000335", "telefono": "935040746"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000304", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000305", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000306", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000307", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000308", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000309", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000310", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000311", "telefono": "995 422 321"},
+  {"nombre_cliente": "DORIS CAHUANA SALVADOR", "fecha_compra": "2026-08-03 20:29", "numero_boleto": "000312", "telefono": "995 422 321"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000316", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000317", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000318", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000319", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000320", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000321", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000322", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000323", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000324", "telefono": "964770208"},
+  {"nombre_cliente": "LISSET KAREN CAMAC MONTAÑEZ", "fecha_compra": "2026-08-03 20:56", "numero_boleto": "000325", "telefono": "964770208"},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000015", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000016", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000017", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000018", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000019", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000020", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000021", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000022", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000023", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000024", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000025", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000026", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000027", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000028", "telefono": null},
+  {"nombre_cliente": "AIORI JOSE SIERRALTA RODRIGUEZ", "fecha_compra": null, "numero_boleto": "000029", "telefono": null}
+]'::jsonb;
+begin
+  select r.id into v_raffle_id
+  from public.raffles r
+  where r.status = 'active'
+  order by r.created_at desc
+  limit 1;
+
+  if v_raffle_id is null then
+    raise exception 'No existe una rifa activa para importar las ventas manuales.';
+  end if;
+
+  select ap.user_id into v_admin_id
+  from public.admin_profiles ap
+  where ap.display_name = 'ronla.angarita31'
+    and ap.is_active = true;
+
+  if v_admin_id is null then
+    raise exception 'No se encontró la cuenta admin ronla.angarita31 activa.';
+  end if;
+
+  for v_group in
+    with source_rows as (
+      select
+        (elem->>'nombre_cliente') as full_name,
+        (elem->>'fecha_compra') as fecha_compra,
+        (elem->>'numero_boleto')::integer as ticket_number,
+        (elem->>'telefono') as phone
+      from jsonb_array_elements(v_source) as elem
+    ),
+    dni_map as (
+      select
+        full_name,
+        (90000000 + dense_rank() over (order by full_name))::text as dni
+      from (select distinct full_name from source_rows) distinct_names
+    )
+    select
+      sr.full_name as full_name,
+      sr.fecha_compra as fecha_compra,
+      dm.dni as dni,
+      coalesce(min(sr.phone), 'SIN-TELEFONO') as phone,
+      array_agg(sr.ticket_number order by sr.ticket_number) as ticket_numbers,
+      count(*)::integer as ticket_count
+    from source_rows sr
+    join dni_map dm on dm.full_name = sr.full_name
+    group by sr.full_name, sr.fecha_compra, dm.dni
+    order by min(sr.ticket_number)
+  loop
+    v_created_at := coalesce(
+      v_group.fecha_compra::timestamp at time zone 'America/Lima',
+      now()
+    );
+
+    insert into public.purchase_requests (
+      raffle_id,
+      tracking_code,
+      full_name,
+      dni,
+      phone,
+      whatsapp,
+      requested_quantity,
+      payment_proof_path,
+      payment_proof_deleted_at,
+      status,
+      expires_at,
+      reviewed_by,
+      reviewed_at,
+      created_at,
+      updated_at
+    ) values (
+      v_raffle_id,
+      upper(encode(extensions.gen_random_bytes(8), 'hex')),
+      v_group.full_name,
+      v_group.dni,
+      v_group.phone,
+      v_group.phone,
+      v_group.ticket_count,
+      'manual/sin-comprobante',
+      v_created_at,
+      'approved',
+      v_created_at + interval '6 hours',
+      v_admin_id,
+      v_created_at,
+      v_created_at,
+      v_created_at
+    )
+    returning id into v_purchase_request_id;
+
+    insert into public.tickets (
+      raffle_id,
+      purchase_request_id,
+      ticket_number,
+      assigned_at
+    )
+    select
+      v_raffle_id,
+      v_purchase_request_id,
+      tn,
+      v_created_at
+    from unnest(v_group.ticket_numbers) as tn;
+
+    v_purchase_request_count := v_purchase_request_count + 1;
+    v_ticket_count := v_ticket_count + v_group.ticket_count;
+  end loop;
+
+  raise notice 'Importación manual: % solicitudes, % tickets.',
+    v_purchase_request_count, v_ticket_count;
+end;
+$$;
