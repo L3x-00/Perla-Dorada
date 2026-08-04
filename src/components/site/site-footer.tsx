@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   FacebookIcon,
   InstagramIcon,
@@ -14,6 +16,13 @@ const SOCIAL_META = {
   tiktok: { label: "TikTok", Icon: TiktokIcon },
   facebook: { label: "Facebook", Icon: FacebookIcon },
 } as const;
+
+const LEGAL_LINKS = [
+  { label: "Términos y condiciones", href: "/legal/terminos" },
+  { label: "Bases del sorteo", href: "/legal/bases" },
+  { label: "Política de privacidad", href: "/legal/privacidad" },
+  { label: "Política de devoluciones", href: "/legal/devoluciones" },
+];
 
 export function SiteFooter() {
   const social = activeSocialLinks();
@@ -93,6 +102,30 @@ export function SiteFooter() {
                   </span>
                 </li>
               ) : null}
+            </ul>
+          </div>
+
+          <div>
+            <h2 className="eyebrow text-gold">Legal</h2>
+            <ul className="mt-5 space-y-3 text-sm text-muted">
+              {LEGAL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="transition-colors hover:text-cream"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link
+                  href="/seguimiento"
+                  className="transition-colors hover:text-cream"
+                >
+                  Consultar mi solicitud
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
