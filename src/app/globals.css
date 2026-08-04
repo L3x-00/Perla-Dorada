@@ -625,7 +625,7 @@ html[data-theme="light"] .raffle-festive-wash {
     width: 72mm;
     max-width: 100%;
     margin: 0 auto;
-    break-after: auto;
+    break-after: page;
     break-inside: avoid;
     break-inside: avoid-page;
   }

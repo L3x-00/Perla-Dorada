@@ -19,7 +19,7 @@ type PurchaseRequestStatus =
   Database["public"]["Enums"]["purchase_request_status"];
 
 type AdminPageProps = {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 };
 
 const allowedStatuses: PurchaseRequestStatus[] = [
@@ -44,6 +44,12 @@ const statusTones: Record<PurchaseRequestStatus, BadgeTone> = {
 };
 
 const ADMIN_QUERY_PAGE_SIZE = 1_000;
+const REQUESTS_PAGE_SIZE = 30;
+
+function parsePageParam(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
 
 type DashboardTicket = {
   id: string;
@@ -158,7 +164,31 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
     ? resolvedSearchParams.status
     : undefined;
 
+  const requestedPage = parsePageParam(resolvedSearchParams.page);
+
   const adminClient = createAdminClient();
+
+  let countQuery = adminClient
+    .from("purchase_requests")
+    .select("id", { count: "exact", head: true });
+
+  if (selectedStatus) {
+    countQuery = countQuery.eq("status", selectedStatus);
+  }
+
+  const { count: totalCount, error: countError } = await countQuery;
+
+  if (countError) {
+    console.error("Error contando solicitudes:", countError);
+  }
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil((totalCount ?? 0) / REQUESTS_PAGE_SIZE),
+  );
+  const currentPage = Math.min(requestedPage, totalPages);
+  const rangeStart = (currentPage - 1) * REQUESTS_PAGE_SIZE;
+  const rangeEnd = rangeStart + REQUESTS_PAGE_SIZE - 1;
 
   let query = adminClient
     .from("purchase_requests")
@@ -182,7 +212,7 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
       `,
     )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(rangeStart, rangeEnd);
 
   if (selectedStatus) {
     query = query.eq("status", selectedStatus);
@@ -256,7 +286,11 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
       <AdminPageHeader
         eyebrow="Panel"
         title="Solicitudes de compra"
-        description="Se muestran las 100 solicitudes más recientes."
+        description={
+          (totalCount ?? 0) > 0
+            ? `Página ${currentPage} de ${totalPages} · ${totalCount} solicitudes en total.`
+            : "No hay solicitudes que coincidan con este filtro."
+        }
       />
 
       <form
@@ -452,6 +486,14 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
           </table>
         </div>
       ) : null}
+
+      {requests.length > 0 ? (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          status={selectedStatus}
+        />
+      ) : null}
     </AdminPage>
   );
 }
@@ -616,6 +658,78 @@ function Cell({ label, value }: { label: string; value: string }) {
       </dt>
       <dd className="mt-1 text-cream">{value}</dd>
     </div>
+  );
+}
+
+function buildRequestsPageHref(
+  status: PurchaseRequestStatus | undefined,
+  page: number,
+): string {
+  const params = new URLSearchParams();
+
+  if (status) {
+    params.set("status", status);
+  }
+
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  const query = params.toString();
+  return query ? `/admin?${query}` : "/admin";
+}
+
+function PaginationControls({
+  currentPage,
+  totalPages,
+  status,
+}: {
+  currentPage: number;
+  totalPages: number;
+  status: PurchaseRequestStatus | undefined;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const hasPrevious = currentPage > 1;
+  const hasNext = currentPage < totalPages;
+
+  return (
+    <nav
+      aria-label="Paginación de solicitudes"
+      className="mt-6 flex items-center justify-between gap-4 print:hidden"
+    >
+      {hasPrevious ? (
+        <Link
+          href={buildRequestsPageHref(status, currentPage - 1)}
+          className="rounded-lg border border-line px-3.5 py-2 text-sm text-muted transition-colors duration-200 hover:border-gold hover:text-gold"
+        >
+          Anterior
+        </Link>
+      ) : (
+        <span className="rounded-lg border border-line px-3.5 py-2 text-sm text-muted/40">
+          Anterior
+        </span>
+      )}
+
+      <p className="text-xs text-muted">
+        Página {currentPage} de {totalPages}
+      </p>
+
+      {hasNext ? (
+        <Link
+          href={buildRequestsPageHref(status, currentPage + 1)}
+          className="rounded-lg border border-line px-3.5 py-2 text-sm text-muted transition-colors duration-200 hover:border-gold hover:text-gold"
+        >
+          Siguiente
+        </Link>
+      ) : (
+        <span className="rounded-lg border border-line px-3.5 py-2 text-sm text-muted/40">
+          Siguiente
+        </span>
+      )}
+    </nav>
   );
 }
 
