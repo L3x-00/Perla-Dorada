@@ -44,7 +44,7 @@ function mapDatabaseError(message: string) {
         status: 409,
         code: "TICKET_NOT_ACTIVE",
         error:
-          "Uno o más tickets de esta solicitud están congelados o fueron reasignados y no se pueden imprimir.",
+          "Uno o más tickets de esta solicitud ya no están vigentes (congelados, reasignados o anulados) y no se pueden imprimir.",
       };
     case "ACTIVE_TICKET_COUNT_MISMATCH":
       return {
@@ -65,6 +65,13 @@ function mapDatabaseError(message: string) {
         code: "TICKET_GROUP_NOT_PRINTABLE",
         error:
           "Solo se puede imprimir una tanda completa de una solicitud y una rifa. Finaliza cualquier reasignación pendiente.",
+      };
+    case "TICKET_GROUP_FULLY_VOIDED":
+      return {
+        status: 409,
+        code: "TICKET_GROUP_FULLY_VOIDED",
+        error:
+          "Esta participación fue anulada: ya no tiene tickets vigentes que imprimir. Actualiza la página.",
       };
     case "REPRINT_REASON_REQUIRED":
       return {

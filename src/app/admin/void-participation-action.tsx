@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { adminInput, btnSmall } from "@/components/admin/ui";
+import { adminInput } from "@/components/admin/ui";
 
 type VoidParticipationActionProps = {
   purchaseRequestId: string;
@@ -127,7 +127,7 @@ export function VoidParticipationAction({
             setError(null);
           }}
           disabled={submitting}
-          className={`rounded-lg border border-line px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${btnSmall}`}
+          className="rounded-lg border border-line px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancelar
         </button>

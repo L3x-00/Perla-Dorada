@@ -7,7 +7,15 @@ import {
 } from "../legal-document";
 import { brand } from "@/config/brand";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
-import { getActivePublicRaffle } from "@/lib/raffles/public-raffle";
+import {
+  getActivePublicRaffle,
+  type ActivePublicRaffle,
+} from "@/lib/raffles/public-raffle";
+import {
+  MAX_PENDING_REQUESTS_PER_DOCUMENT,
+  formatReservationWindow,
+  getReservationMinutes,
+} from "@/lib/settings/public-settings";
 
 export const metadata: Metadata = {
   title: "Bases del sorteo",
@@ -23,7 +31,23 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BasesPage() {
-  const activeRaffle = await getActivePublicRaffle();
+  /*
+   * Un documento legal no puede dejar de verse porque la base falle: el
+   * participante lo acepta al comprar y se enlaza desde el propio
+   * formulario. Si la consulta no responde, las secciones que dependen de
+   * datos vivos se degradan y el resto del texto se publica igual.
+   */
+  let activeRaffle: ActivePublicRaffle | null = null;
+  let reservationMinutes: number | null = null;
+
+  try {
+    [activeRaffle, reservationMinutes] = await Promise.all([
+      getActivePublicRaffle(),
+      getReservationMinutes(),
+    ]);
+  } catch (error) {
+    console.error("Error cargando datos vivos de las bases:", error);
+  }
 
   return (
     <LegalDocument
@@ -116,12 +140,18 @@ export default async function BasesPage() {
       <LegalSection title="5. Reserva y vigencia de la solicitud">
         <p>
           Al registrar una solicitud, los boletos quedan reservados por un
-          tiempo limitado (60 minutos, salvo que se indique otro plazo en el
-          sitio). Si la solicitud no es validada dentro de ese plazo, la reserva
+          tiempo limitado
+          {reservationMinutes
+            ? ` de ${formatReservationWindow(reservationMinutes)}`
+            : ", indicado en el sitio al momento de registrarla"}
+          . Si la solicitud no es validada dentro de ese plazo, la reserva
           vence automáticamente y los boletos vuelven a estar disponibles.
         </p>
         <p>
-          Solo puede existir una solicitud pendiente por DNI y sorteo a la vez.
+          Un mismo documento puede tener hasta{" "}
+          {MAX_PENDING_REQUESTS_PER_DOCUMENT} solicitudes pendientes de
+          revisión a la vez en un mismo sorteo; a partir de ahí debe esperar a
+          que se revisen las anteriores para registrar una nueva.
         </p>
       </LegalSection>
 

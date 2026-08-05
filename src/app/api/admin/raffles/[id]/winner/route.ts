@@ -70,7 +70,8 @@ function mapWinnerError(message: string): {
   if (normalized.includes("TICKET_NOT_ACTIVE")) {
     return {
       status: 409,
-      error: "Ese ticket no está vigente (congelado o reasignado) y no puede ser ganador.",
+      error:
+        "Ese ticket no está vigente (congelado, reasignado o anulado) y no puede ser ganador.",
     };
   }
   if (normalized.includes("TICKET_NOT_FOUND")) {

@@ -541,11 +541,17 @@ function RaffleTicketView({
                 </span>
               ) : null}
             </div>
+            {/*
+              Sin tickets vigentes no hay chips que tocar ni botón de
+              imprimir: repetir la instrucción ahí contradice lo que el
+              cliente ve. El aviso de por qué no los tiene va más abajo.
+            */}
             <p className="mt-1 text-sm text-muted">
-              {printableTickets.length === 1
-                ? "Tu ticket vigente"
-                : `Tus ${printableTickets.length} tickets vigentes`}
-              . Toca uno para imprimirlo, o usa &quot;Imprimir todos&quot;.
+              {printableTickets.length === 0
+                ? "No tienes tickets vigentes en este sorteo."
+                : printableTickets.length === 1
+                  ? "Tu ticket vigente. Tócalo para imprimirlo, o usa “Imprimir todos”."
+                  : `Tus ${printableTickets.length} tickets vigentes. Toca uno para imprimirlo, o usa “Imprimir todos”.`}
             </p>
           </div>
 

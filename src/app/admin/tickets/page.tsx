@@ -884,6 +884,11 @@ function TicketCard({
             Ticket histórico. Su reemplazo vigente se conserva como un registro
             independiente y trazable.
           </p>
+        ) : ticket.ticket_status === "voided" ? (
+          <p className="text-xs leading-relaxed text-red-300">
+            Participación anulada por devolución de compra. El número no
+            participa en el sorteo y no vuelve a asignarse.
+          </p>
         ) : (
           <p className="text-xs text-red-300">
             La solicitud no está aprobada para impresión.

@@ -24,6 +24,8 @@ type TrackingResult = {
   requestedAt: string;
   expiresAt: string;
   reviewedAt: string | null;
+  /** Vigentes hoy: 0 si la participación fue anulada o congelada. */
+  activeTicketCount: number;
   rejectionReason: string | null;
 };
 
@@ -263,13 +265,26 @@ function TrackingResultCard({ result }: { result: TrackingResult }) {
           </div>
         ) : null}
 
+        {/*
+          Una solicitud aprobada puede quedarse sin tickets vigentes si la
+          participación se anuló por devolución de compra, o si sus tickets
+          se congelaron al cancelarse la rifa. Prometer una descarga en ese
+          caso contradice lo que el cliente encuentra después.
+        */}
         {result.status === "approved" ? (
           <div>
             <dt className="text-sm text-muted">Tickets</dt>
-            <dd className="mt-1 text-sm text-emerald-200">
-              Tu compra fue aprobada. Selecciona el sorteo al final para ver,
-              descargar o imprimir tus tickets.
-            </dd>
+            {result.activeTicketCount > 0 ? (
+              <dd className="mt-1 text-sm text-emerald-200">
+                Tu compra fue aprobada. Selecciona el sorteo al final para ver,
+                descargar o imprimir tus tickets.
+              </dd>
+            ) : (
+              <dd className="mt-1 text-sm text-amber-200">
+                Esta compra ya no tiene tickets vigentes en este sorteo.
+                Selecciona el sorteo al final para ver el estado de cada uno.
+              </dd>
+            )}
           </div>
         ) : null}
 

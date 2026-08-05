@@ -107,6 +107,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  /*
+   * Se expone solo la CANTIDAD de tickets vigentes, no sus números: aquí la
+   * consulta es de estado. El RPC ya filtra por ticket_status = 'active', así
+   * que una solicitud aprobada cuyos tickets fueron anulados (o congelados)
+   * llega con 0 y la pantalla deja de prometer una descarga que no existe.
+   */
   const requests = data.map((result) => ({
     requestId: result.request_id,
     raffleName: result.raffle_name,
@@ -114,6 +120,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     requestedAt: result.requested_at,
     expiresAt: result.expires_at,
     reviewedAt: result.reviewed_at,
+    activeTicketCount: Array.isArray(result.ticket_numbers)
+      ? result.ticket_numbers.length
+      : 0,
     rejectionReason:
       result.request_status === "rejected" ? result.rejection_reason : null,
   }));

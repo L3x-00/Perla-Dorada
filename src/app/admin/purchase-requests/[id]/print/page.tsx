@@ -76,10 +76,19 @@ export default async function PurchaseRequestPrintPage({
   const batchPrints = prints ?? [];
   const ticketIds = batchPrints.map((print) => print.ticket_id);
 
+  /*
+   * La tanda puede tener MENOS tickets que los comprados cuando parte de la
+   * participación fue anulada: register_ticket_group_prints solo imprime los
+   * que siguen vigentes. Exigir la igualdad exacta devolvía 404 después de
+   * haber registrado las impresiones, gastando el contador de original y
+   * obligando a justificar una reimpresión que nunca se llegó a ver. Lo que
+   * sí debe seguir sin excepción es no imprimir más de lo comprado; que cada
+   * ticket pertenezca a esta solicitud y esté vigente se valida abajo.
+   */
   if (
     batchPrints.length === 0 ||
     batchPrints.length > MAX_BATCH_TICKETS ||
-    batchPrints.length !== purchaseRequest.requested_quantity ||
+    batchPrints.length > purchaseRequest.requested_quantity ||
     new Set(ticketIds).size !== batchPrints.length
   ) {
     notFound();

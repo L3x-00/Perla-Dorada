@@ -156,6 +156,14 @@ export async function POST(
 
   const voided = data ?? [];
 
+  /*
+   * El motivo NO se copia aquí: es texto libre del admin y suele traer datos
+   * del cliente. Ya queda guardado y auditado en tickets.void_reason junto al
+   * actor y la fecha; duplicarlo en audit_log.metadata crearía una segunda
+   * copia de PII que ningún proceso de retención purga, y contradiría tanto
+   * el contrato de este módulo como al logger, que trata `reason` como clave
+   * sensible.
+   */
   await recordAuditEvent({
     actorUserId: adminUserId,
     action: "void_purchase_request_tickets",
@@ -163,7 +171,6 @@ export async function POST(
     entityId: purchaseRequestId,
     metadata: {
       voided_ticket_count: voided.length,
-      reason,
     },
   });
 
