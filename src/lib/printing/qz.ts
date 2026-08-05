@@ -74,18 +74,22 @@ const GS = "\x1D";
 
 function buildCommands(data: UrnTicketPrintData): string[] {
   return [
-    ESC + "@",
+    ESC + "@",                 // reset total
 
-    ESC + "a\x01",
-    ESC + "E\x01",
-    GS + "!\x11",
+    // ===== CÓDIGO GRANDE CENTRADO =====
+    ESC + "a\x01",             // center
+    ESC + "E\x01",             // bold ON
+    GS + "!\x11",              // doble tamaño
 
     data.ticketCode + "\n",
 
-    GS + "!\x00",
-    ESC + "E\x00",
+    // ===== RESET COMPLETO (CLAVE) =====
+    ESC + "@",                 // 🔥 reset otra vez (ESTO SOLUCIONA EL CORRIMIENTO)
 
-    ESC + "a\x00",
+    // ===== TEXTO NORMAL =====
+    ESC + "a\x01",             // center (mantén todo centrado para consistencia)
+    ESC + "E\x00",             // bold OFF
+    GS + "!\x00",              // tamaño normal
 
     data.purchasedAt + "\n",
     data.fullName.toUpperCase() + "\n",
@@ -93,10 +97,9 @@ function buildCommands(data: UrnTicketPrintData): string[] {
 
     "\n",
 
-    GS + "V\x41\x00"
+    GS + "V\x41\x00"           // corte
   ];
 }
-
 export async function printUrnTickets(
   tickets: UrnTicketPrintData[]
 ): Promise<void> {
