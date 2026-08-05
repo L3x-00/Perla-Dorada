@@ -4,13 +4,10 @@ import Script from "next/script";
 import { useState } from "react";
 
 import { PrintProfileSelector } from "@/components/printing/print-profile";
-import { printUrnTicket, type UrnTicketPrintData } from "@/lib/printing/qz";
+import { printUrnTickets, type UrnTicketPrintData } from "@/lib/printing/qz";
 
 /*
- * Lee los tickets ya renderizados en la página (tanto la de un solo ticket
- * como la tanda de una solicitud completa usan este mismo control) en vez
- * de recibirlos por props: así "Imprimir PRO" funciona en las dos pantallas
- * sin tocar cómo cada una arma sus datos.
+ * Lee los tickets ya renderizados en la página
  */
 function readRenderedTickets(): UrnTicketPrintData[] {
   const nodes = document.querySelectorAll<HTMLElement>(".urn-ticket-print");
@@ -19,12 +16,15 @@ function readRenderedTickets(): UrnTicketPrintData[] {
     const ticketCode = node
       .querySelector(".urn-ticket-receipt__code")
       ?.textContent?.trim();
+
     const purchasedAt = node
       .querySelector(".urn-ticket-receipt__date")
       ?.textContent?.trim();
+
     const fullName = node
       .querySelector(".urn-ticket-receipt__name")
       ?.textContent?.trim();
+
     const phone = node
       .querySelector(".urn-ticket-receipt__phone")
       ?.textContent?.trim();
@@ -38,9 +38,7 @@ function readRenderedTickets(): UrnTicketPrintData[] {
 }
 
 export function PrintControls() {
-  const [qzStatus, setQzStatus] = useState<
-    "idle" | "printing" | "error"
-  >("idle");
+  const [qzStatus, setQzStatus] = useState<"idle" | "printing" | "error">("idle");
   const [qzError, setQzError] = useState<string | null>(null);
 
   async function printWithQZ() {
@@ -56,27 +54,22 @@ export function PrintControls() {
     setQzError(null);
 
     try {
-      for (const ticket of tickets) {
-        await printUrnTicket(ticket);
-      }
+      // 🔥 CLAVE: UNA SOLA LLAMADA
+      await printUrnTickets(tickets);
+
       setQzStatus("idle");
     } catch (error) {
       setQzStatus("error");
       setQzError(
         error instanceof Error
           ? error.message
-          : "No se pudo imprimir con QZ Tray.",
+          : "No se pudo imprimir con QZ Tray."
       );
     }
   }
 
   return (
     <div className="mx-auto mb-6 max-w-xl space-y-3 print:hidden">
-      {/*
-        Solo en las páginas de impresión administrativa: qz-tray.js no hace
-        falta en el resto del sitio. lazyOnload la difiere hasta que la
-        página esté inactiva, para no competir con la carga de los tickets.
-      */}
       <Script
         src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.6/qz-tray.js"
         strategy="lazyOnload"
@@ -118,9 +111,9 @@ export function PrintControls() {
       </p>
 
       <p className="text-xs leading-relaxed text-neutral-600">
-        &quot;Imprimir PRO&quot; envía cada ticket directo a la impresora
-        térmica por QZ Tray (ESC/POS), sin el diálogo ni los márgenes del
-        navegador. Requiere tener QZ Tray abierto en este equipo.
+        "Imprimir PRO" envía cada ticket directo a la impresora térmica por
+        QZ Tray (ESC/POS), sin el diálogo ni los márgenes del navegador.
+        Requiere tener QZ Tray abierto en este equipo.
       </p>
 
       {qzStatus === "error" && qzError ? (
