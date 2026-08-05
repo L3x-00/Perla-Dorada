@@ -77,31 +77,31 @@ function buildCommands(data: UrnTicketPrintData): string[] {
     ESC + "@",             // reset total
     ESC + "d\x00",         // 🔥 elimina espacio superior
 
-    // ===== CÓDIGO =====
+    // ===== TODO CENTRADO =====
     ESC + "a\x01",         // center
-    ESC + "E\x01",         // bold ON
-    GS + "!\x11",          // doble tamaño
+    ESC + "E\x01",         // bold ON SOLO para código
+    GS + "!\x11",          // tamaño doble SOLO código
 
     data.ticketCode + "\n",
 
-    // ===== RESET =====
+    // ===== RESET LIMPIO =====
     ESC + "@",
-    ESC + "d\x00",         // 🔥 elimina espacio otra vez
+    ESC + "d\x00",         // 🔥 vuelve a eliminar espacio superior
 
-    // ===== TEXTO NORMAL MEJORADO =====
+    // ===== TEXTO NORMAL (TAMAÑO ORIGINAL) =====
     ESC + "a\x01",         // center
     ESC + "E\x00",         // bold OFF
-    GS + "!\x01",          // 🔥 tamaño ligeramente mayor
+    GS + "!\x00",          // 🔥 tamaño original (CLAVE)
 
     data.purchasedAt + "\n",
     data.fullName.toUpperCase() + "\n",
     data.phone + "\n",
 
-    "\n",
-
+    // 🔥 SIN SALTO EXTRA ARRIBA
     GS + "V\x41\x00"       // corte
   ];
 }
+
 export async function printUrnTickets(
   tickets: UrnTicketPrintData[]
 ): Promise<void> {
