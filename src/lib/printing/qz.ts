@@ -96,7 +96,7 @@ function buildCommands(data: UrnTicketPrintData): string[] {
     data.purchasedAt + "\n",
     data.fullName.toUpperCase() + "\n",
     data.phone + "\n",
-
+    "\n", 
     // 🔥 SIN SALTO EXTRA ARRIBA
     GS + "V\x41\x00"       // corte
   ];
