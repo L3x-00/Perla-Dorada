@@ -49,7 +49,7 @@ declare global {
   }
 }
 
-const DEFAULT_PRINTER_NAME = "BIENEX";
+const DEFAULT_PRINTER_NAME = "POS-80-Series";
 
 function getQZ(): QZTray {
   if (typeof window === "undefined" || !window.qz) {
