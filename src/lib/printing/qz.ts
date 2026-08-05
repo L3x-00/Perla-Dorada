@@ -74,17 +74,18 @@ const GS = "\x1D";
 
 function buildCommands(data: UrnTicketPrintData): string[] {
   return [
-    ESC + "@",             // init
-    ESC + "a\x01",         // center
-    ESC + "E\x01",         // bold ON
-    GS + "!\x11",          // doble tamaño
+    ESC + "@",
+
+    ESC + "a\x01",
+    ESC + "E\x01",
+    GS + "!\x11",
 
     data.ticketCode + "\n",
 
-    GS + "!\x00",          // tamaño normal
-    ESC + "E\x00",         // bold OFF
+    GS + "!\x00",
+    ESC + "E\x00",
 
-    ESC + "a\x00",         // left
+    ESC + "a\x00",
 
     data.purchasedAt + "\n",
     data.fullName.toUpperCase() + "\n",
@@ -92,7 +93,7 @@ function buildCommands(data: UrnTicketPrintData): string[] {
 
     "\n",
 
-    GS + "V\x41\x00"       // corte por ticket
+    GS + "V\x41\x00"
   ];
 }
 
