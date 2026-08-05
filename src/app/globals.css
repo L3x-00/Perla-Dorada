@@ -18,6 +18,17 @@
   --color-gold-soft: #e3ce8e;
   --color-gold-deep: #8a6d1c;
 
+  /*
+   * Peligro / advertencia. Igual que el oro: se recalculan por tema para
+   * que el texto siga cumpliendo contraste mínimo AA (4.5:1) sobre
+   * --color-ink-2 en ambos. Un red-300/amber-200 fijo de Tailwind es
+   * ilegible en tema claro (~1.2:1) aunque se vea perfecto en oscuro.
+   */
+  --color-danger: #fca5a5;
+  --color-danger-surface: rgb(127 29 29 / 0.35);
+  --color-danger-line: rgb(153 27 27 / 0.6);
+  --color-warning: #fde68a;
+
   /* Texto */
   --color-cream: #f6f3ed;
   --color-muted: #9c968c;
@@ -58,6 +69,11 @@ html[data-theme="light"] {
   --color-gold: #856317;
   --color-gold-soft: #a77b20;
   --color-gold-deep: #63480e;
+
+  --color-danger: #b91c1c;
+  --color-danger-surface: #fee2e2;
+  --color-danger-line: #f87171;
+  --color-warning: #92400e;
 
   --color-cream: #251e14;
   --color-muted: #6b6256;

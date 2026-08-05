@@ -78,7 +78,7 @@ export function VoidParticipationAction({
       <button
         type="button"
         onClick={() => setShowForm(true)}
-        className="inline-flex items-center justify-center rounded-lg border border-red-900/60 bg-red-950/20 px-3 py-2 text-xs font-medium text-red-300 transition-colors duration-200 hover:bg-red-950/40"
+        className="inline-flex items-center justify-center rounded-lg border border-danger-line bg-danger-surface px-3 py-2 text-xs font-medium text-danger transition-opacity duration-200 hover:opacity-80"
       >
         Anular participación
       </button>
@@ -86,7 +86,7 @@ export function VoidParticipationAction({
   }
 
   return (
-    <div className="min-w-64 space-y-2">
+    <div className="min-w-56 space-y-2">
       <label
         htmlFor={`void-reason-${purchaseRequestId}`}
         className="block text-xs font-medium text-muted"
@@ -114,7 +114,7 @@ export function VoidParticipationAction({
           type="button"
           onClick={voidParticipation}
           disabled={submitting || reason.trim().length < 5}
-          className={`inline-flex items-center justify-center rounded-lg border border-red-800/70 bg-red-900/40 px-3 py-2 text-xs font-medium text-red-100 transition-colors duration-200 hover:bg-red-900/70 disabled:cursor-not-allowed disabled:opacity-50`}
+          className="inline-flex items-center justify-center rounded-lg border border-danger-line bg-danger-surface px-3 py-2 text-xs font-semibold text-danger transition-opacity duration-200 hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Anulando..." : "Confirmar anulación"}
         </button>
@@ -134,7 +134,7 @@ export function VoidParticipationAction({
       </div>
 
       {error ? (
-        <p role="alert" className="max-w-xs text-xs text-red-400">
+        <p role="alert" className="max-w-xs text-xs text-danger">
           {error}
         </p>
       ) : null}

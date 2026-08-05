@@ -280,7 +280,7 @@ function TrackingResultCard({ result }: { result: TrackingResult }) {
                 descargar o imprimir tus tickets.
               </dd>
             ) : (
-              <dd className="mt-1 text-sm text-amber-200">
+              <dd className="mt-1 text-sm text-warning">
                 Esta compra ya no tiene tickets vigentes en este sorteo.
                 Selecciona el sorteo al final para ver el estado de cada uno.
               </dd>

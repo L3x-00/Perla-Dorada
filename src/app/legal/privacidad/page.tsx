@@ -104,7 +104,8 @@ export default function PrivacidadPage() {
           Puedes ejercer tus derechos de información, acceso, actualización,
           rectificación, inclusión, oposición y supresión (derechos ARCO)
           escribiéndonos por los canales publicados en este sitio, adjuntando
-          copia de tu DNI para acreditar identidad.
+          copia de tu documento de identidad (DNI o Carné de Extranjería)
+          para acreditar identidad.
         </p>
         <p>
           Ten en cuenta que la supresión de datos vinculados a un sorteo en

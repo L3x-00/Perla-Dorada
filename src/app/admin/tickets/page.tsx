@@ -93,6 +93,7 @@ const STATUS_OPTIONS: Array<{ value: TicketStatusFilter; label: string }> = [
   { value: "active", label: "Vigentes" },
   { value: "frozen", label: "Congelados" },
   { value: "reassigned", label: "Reasignados" },
+  { value: "voided", label: "Anulados" },
 ];
 
 const RAFFLE_STATUS_LABELS: Record<RaffleStatus, string> = {
@@ -885,7 +886,7 @@ function TicketCard({
             independiente y trazable.
           </p>
         ) : ticket.ticket_status === "voided" ? (
-          <p className="text-xs leading-relaxed text-red-300">
+          <p className="text-xs leading-relaxed text-danger">
             Participación anulada por devolución de compra. El número no
             participa en el sorteo y no vuelve a asignarse.
           </p>
@@ -912,7 +913,7 @@ function CountCell({
     neutral: "border-line bg-ink-2 text-cream",
     approved: "border-emerald-900/60 bg-emerald-950/20 text-emerald-200",
     gold: "border-amber-900/60 bg-amber-950/20 text-amber-200",
-    rejected: "border-red-900/60 bg-red-950/20 text-red-200",
+    rejected: "border-danger-line bg-danger-surface text-danger",
   };
 
   return (

@@ -61,7 +61,7 @@ export function PurchaseRequestActions({
 
     if (approvedTickets.length === 0) {
       return (
-        <p className="max-w-56 text-xs text-red-300">
+        <p className="max-w-56 text-xs text-danger">
           Participación anulada ({voidedTicketCount}{" "}
           {voidedTicketCount === 1 ? "ticket" : "tickets"}).
         </p>

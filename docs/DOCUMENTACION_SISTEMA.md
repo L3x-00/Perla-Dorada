@@ -61,6 +61,7 @@ El panel requiere una cuenta activa en `admin_profiles` y permite:
 - Consultar tickets agrupados por solicitud de compra y rifa, con conteo de tickets, filtros por sorteo, fecha, ciclo y sorteo actual/pasado, además de paginación de 20 grupos.
 - Imprimir un ticket vigente o todos los tickets vigentes de una misma solicitud y rifa. Las impresiones administrativas son ilimitadas; cada reimpresión exige un motivo y conserva administrador, fecha, secuencia y tanda para auditoría.
 - Reasignar de forma trazable los tickets congelados de una rifa cancelada.
+- Anular la participación completa de una solicitud aprobada (devolución de compra antes del sorteo, mientras la rifa donde viven sus tickets siga activa). Exige motivo; no se revierte.
 - Crear y administrar promociones, imágenes, vigencias y enlaces.
 - Configurar mantenimiento y duración de reservas.
 - Usar el menú Perfil para volver al sitio, cambiar tema y cerrar sesión.
@@ -85,6 +86,7 @@ La selección queda guardada en el navegador para las siguientes ventanas de imp
 | Ticket | Se crea tras la aprobación, es correlativo por rifa, se muestra como `PD-####` y no se reutiliza. |
 | Rifa cancelada | Sus tickets se congelan; no se imprimen ni participan como ganadores. |
 | Reasignación | Crea un ticket nuevo trazable en una rifa activa y conserva el original. |
+| Anulación | Devolución de compra antes del sorteo: los tickets activos de la solicitud pasan a `voided` (con actor, fecha y motivo), no se reutilizan ni participan. No cancela la rifa ni otras solicitudes. |
 | Ganador | Manual, inmutable y único por fila de premio. |
 | Comprobante | Privado; se elimina por retención 15 días después del cierre o cancelación. |
 

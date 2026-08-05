@@ -71,8 +71,9 @@ export default function DevolucionesPage() {
       <LegalSection title="5. Cómo solicitar una devolución o anulación">
         <p>
           Escríbenos por los canales publicados en este sitio indicando tu
-          número de DNI, tu código de seguimiento y el motivo, adjuntando el
-          comprobante de la transferencia.
+          número de documento de identidad (DNI o Carné de Extranjería), tu
+          código de seguimiento y el motivo, adjuntando el comprobante de la
+          transferencia.
         </p>
         <p>
           Revisaremos el caso y te daremos una respuesta en un plazo máximo de

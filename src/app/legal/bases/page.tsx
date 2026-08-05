@@ -5,7 +5,7 @@ import {
   LegalList,
   LegalSection,
 } from "../legal-document";
-import { brand } from "@/config/brand";
+import { activeSocialLinks, brand, whatsappLink } from "@/config/brand";
 import { formatCurrencyPEN, formatDateTime } from "@/lib/format";
 import {
   getActivePublicRaffle,
@@ -16,6 +16,39 @@ import {
   formatReservationWindow,
   getReservationMinutes,
 } from "@/lib/settings/public-settings";
+
+const SOCIAL_LABELS: Record<string, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+};
+
+/*
+ * Antes esta lista estaba escrita a mano ("TikTok, Instagram, Facebook,
+ * WhatsApp, YouTube") y afirmaba canales que hoy no existen (Instagram y
+ * YouTube nunca se configuraron: brand.ts no tiene esa cuenta ni ese
+ * campo). Un documento legal no puede prometer canales oficiales falsos
+ * — se genera siempre a partir de lo realmente configurado.
+ */
+function officialChannelsLabel(): string {
+  const channels = activeSocialLinks().map(
+    ({ network }) => SOCIAL_LABELS[network] ?? network,
+  );
+
+  if (whatsappLink()) {
+    channels.push("WhatsApp");
+  }
+
+  if (channels.length === 0) {
+    return "el sitio web";
+  }
+
+  if (channels.length === 1) {
+    return channels[0];
+  }
+
+  return `${channels.slice(0, -1).join(", ")} y ${channels[channels.length - 1]}`;
+}
 
 export const metadata: Metadata = {
   title: "Bases del sorteo",
@@ -82,8 +115,8 @@ export default async function BasesPage() {
       <LegalSection title="3. Cómo participar">
         <p>
           La convocatoria se difunde de forma física y virtual, incluyendo
-          nuestras redes sociales oficiales (TikTok, Instagram, Facebook,
-          WhatsApp, YouTube). Para participar:
+          nuestros canales oficiales ({officialChannelsLabel()}). Para
+          participar:
         </p>
         <LegalList
           items={[
