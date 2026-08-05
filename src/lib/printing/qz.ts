@@ -74,19 +74,24 @@ const GS = "\x1D";
 
 function buildCommands(data: UrnTicketPrintData): string[] {
   return [
-    ESC + "@",
-
-    // ===== TODO MÁS GRANDE (CLAVE) =====
-    ESC + "a\x01",          // center
-    ESC + "E\x01",          // bold ON
-    GS + "!\x01",           // 🔥 SOLO DOBLE ALTURA (no ancho)
+    ESC + "@",             // reset total
+    ESC + "d\x00",         // 🔥 elimina espacio superior
 
     // ===== CÓDIGO =====
-    GS + "!\x11",           // código grande (alto + ancho)
+    ESC + "a\x01",         // center
+    ESC + "E\x01",         // bold ON
+    GS + "!\x11",          // doble tamaño
+
     data.ticketCode + "\n",
 
-    // ===== VOLVER A DOBLE ALTURA NORMAL =====
-    GS + "!\x01",
+    // ===== RESET =====
+    ESC + "@",
+    ESC + "d\x00",         // 🔥 elimina espacio otra vez
+
+    // ===== TEXTO NORMAL MEJORADO =====
+    ESC + "a\x01",         // center
+    ESC + "E\x00",         // bold OFF
+    GS + "!\x01",          // 🔥 tamaño ligeramente mayor
 
     data.purchasedAt + "\n",
     data.fullName.toUpperCase() + "\n",
@@ -94,7 +99,7 @@ function buildCommands(data: UrnTicketPrintData): string[] {
 
     "\n",
 
-    GS + "V\x41\x00"
+    GS + "V\x41\x00"       // corte
   ];
 }
 export async function printUrnTickets(
