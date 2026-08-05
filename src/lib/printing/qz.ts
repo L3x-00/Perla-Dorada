@@ -1,22 +1,9 @@
 "use client";
 
-type QZCertificatePromiseExecutor = (
-  resolve: (value: string | null) => void,
-  reject: (reason?: unknown) => void,
-) => void;
-
-type QZSignaturePromiseFactory = (
-  toSign: string,
-) => (resolve: (value: string | null) => void, reject: (reason?: unknown) => void) => void;
-
 type QZTray = {
   websocket: {
     isActive: () => boolean;
     connect: () => Promise<void>;
-  };
-  security: {
-    setCertificatePromise: (executor: QZCertificatePromiseExecutor) => void;
-    setSignaturePromise: (factory: QZSignaturePromiseFactory) => void;
   };
   printers: {
     find: (name?: string) => Promise<string | string[]>;
@@ -33,70 +20,53 @@ declare global {
   }
 }
 
-const DEFAULT_PRINTER_NAME = "POS-80-Series";
+const DEFAULT_PRINTER_KEYWORD = "pos-80";
 
 function getQZ(): QZTray {
   if (typeof window === "undefined" || !window.qz) {
-    throw new Error("QZ Tray no está disponible.");
+    throw new Error("QZ Tray no está disponible o no está cargado.");
   }
   return window.qz;
 }
 
-let securityConfigured = false;
-
-function configureSecurity(qz: QZTray) {
-  if (securityConfigured) return;
-
-  console.log("SECURITY: configurando seguridad QZ");
-
-  qz.security.setCertificatePromise((resolve) => resolve(null));
-
-  qz.security.setSignaturePromise((toSign) => {
-    return (resolve) => resolve(null);
-  });
-
-  securityConfigured = true;
-}
-
 export async function connectQZ(): Promise<QZTray> {
-  console.log("STEP 1: obteniendo QZ");
-
   const qz = getQZ();
-  configureSecurity(qz);
 
-  if (!qz.websocket.isActive()) {
-    console.log("STEP 2: conectando websocket QZ");
-    await qz.websocket.connect();
-  } else {
-    console.log("STEP 2: websocket ya activo");
+  try {
+    if (!qz.websocket.isActive()) {
+      console.log("Conectando a QZ Tray...");
+      await qz.websocket.connect();
+      console.log("QZ conectado");
+    } else {
+      console.log("QZ ya estaba conectado");
+    }
+  } catch (error) {
+    console.error("Error conectando QZ:", error);
+    throw new Error("No se pudo conectar con QZ Tray");
   }
 
   return qz;
 }
 
-export async function findPrinter(
-  name: string = DEFAULT_PRINTER_NAME,
-): Promise<string> {
-  console.log("STEP 3: buscando impresora...");
-
+export async function findPrinter(): Promise<string> {
   const qz = await connectQZ();
 
   const printers = await qz.printers.find();
-  console.log("IMPRESORAS DISPONIBLES:", printers);
+  console.log("Impresoras disponibles:", printers);
 
   const list = Array.isArray(printers) ? printers : [printers];
 
-  const printerName = list.find((p) =>
-    p.toLowerCase().includes("pos-80")
+  const printer = list.find((p) =>
+    p.toLowerCase().includes(DEFAULT_PRINTER_KEYWORD)
   );
 
-  if (!printerName) {
-    throw new Error("No se encontró la impresora POS-80");
+  if (!printer) {
+    throw new Error("No se encontró impresora POS-80");
   }
 
-  console.log("STEP 4: impresora encontrada:", printerName);
+  console.log("Impresora seleccionada:", printer);
 
-  return printerName;
+  return printer;
 }
 
 export type UrnTicketPrintData = {
@@ -109,49 +79,53 @@ export type UrnTicketPrintData = {
 const ESC = "\x1B";
 const GS = "\x1D";
 
-function buildEscPosCommands(data: UrnTicketPrintData): string[] {
-  console.log("STEP 5: construyendo comandos ESC/POS");
-
+function buildCommands(data: UrnTicketPrintData): string[] {
   return [
-    `${ESC}@`,
-    `${ESC}a\x01`,
-    `${ESC}E\x01${GS}!\x11`,
-    `${data.ticketCode}\n`,
-    `${GS}!\x00${ESC}E\x00`,
-    `${data.purchasedAt}\n`,
-    `${data.fullName.toUpperCase()}\n`,
-    `${data.phone}\n`,
+    ESC + "@",            // init
+    ESC + "a\x01",        // center
+    ESC + "E\x01",        // bold ON
+    GS + "!\x11",         // doble tamaño
+
+    data.ticketCode + "\n",
+
+    GS + "!\x00",         // tamaño normal
+    ESC + "E\x00",        // bold OFF
+
+    ESC + "a\x00",        // left
+
+    data.purchasedAt + "\n",
+    data.fullName.toUpperCase() + "\n",
+    data.phone + "\n",
+
     "\n",
-    `${GS}V\x41\x00`,
+
+    GS + "V\x41\x00"      // corte sin feed
   ];
 }
 
 export async function printUrnTicket(
-  data: UrnTicketPrintData,
-  printerName?: string,
+  data: UrnTicketPrintData
 ): Promise<void> {
   try {
-    console.log("STEP 0: iniciando impresión");
+    console.log("Iniciando impresión PRO");
 
     const qz = await connectQZ();
 
-    const resolvedPrinterName = await findPrinter(printerName);
+    const printer = await findPrinter();
 
-    console.log("STEP 6: creando configuración");
-
-    const config = qz.configs.create(resolvedPrinterName, {
+    const config = qz.configs.create(printer, {
       encoding: "CP437",
     });
 
-    const commands = buildEscPosCommands(data);
+    const commands = buildCommands(data);
 
-    console.log("STEP 7: enviando a imprimir", commands);
+    console.log("Enviando comandos:", commands);
 
     await qz.print(config, commands);
 
-    console.log("STEP 8: impresión enviada correctamente");
+    console.log("Impresión enviada correctamente");
   } catch (error) {
-    console.error("ERROR EN IMPRESIÓN QZ:", error);
+    console.error("Error impresión QZ:", error);
     throw error;
   }
 }
