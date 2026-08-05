@@ -32,17 +32,10 @@ function getQZ(): QZTray {
 export async function connectQZ(): Promise<QZTray> {
   const qz = getQZ();
 
-  try {
-    if (!qz.websocket.isActive()) {
-      console.log("Conectando a QZ Tray...");
-      await qz.websocket.connect();
-      console.log("QZ conectado");
-    } else {
-      console.log("QZ ya estaba conectado");
-    }
-  } catch (error) {
-    console.error("Error conectando QZ:", error);
-    throw new Error("No se pudo conectar con QZ Tray");
+  if (!qz.websocket.isActive()) {
+    console.log("Conectando a QZ Tray...");
+    await qz.websocket.connect();
+    console.log("QZ conectado");
   }
 
   return qz;
@@ -81,17 +74,17 @@ const GS = "\x1D";
 
 function buildCommands(data: UrnTicketPrintData): string[] {
   return [
-    ESC + "@",            // init
-    ESC + "a\x01",        // center
-    ESC + "E\x01",        // bold ON
-    GS + "!\x11",         // doble tamaño
+    ESC + "@",             // init
+    ESC + "a\x01",         // center
+    ESC + "E\x01",         // bold ON
+    GS + "!\x11",          // doble tamaño
 
     data.ticketCode + "\n",
 
-    GS + "!\x00",         // tamaño normal
-    ESC + "E\x00",        // bold OFF
+    GS + "!\x00",          // tamaño normal
+    ESC + "E\x00",         // bold OFF
 
-    ESC + "a\x00",        // left
+    ESC + "a\x00",         // left
 
     data.purchasedAt + "\n",
     data.fullName.toUpperCase() + "\n",
@@ -99,31 +92,39 @@ function buildCommands(data: UrnTicketPrintData): string[] {
 
     "\n",
 
-    GS + "V\x41\x00"      // corte sin feed
+    GS + "V\x41\x00"       // corte por ticket
   ];
 }
 
-export async function printUrnTicket(
-  data: UrnTicketPrintData
+export async function printUrnTickets(
+  tickets: UrnTicketPrintData[]
 ): Promise<void> {
   try {
-    console.log("Iniciando impresión PRO");
+    console.log("Iniciando impresión PRO en lote");
 
     const qz = await connectQZ();
-
     const printer = await findPrinter();
 
     const config = qz.configs.create(printer, {
       encoding: "CP437",
     });
 
-    const commands = buildCommands(data);
+    // 🔥 CLAVE: acumulamos TODOS los tickets
+    const allCommands: string[] = [];
 
-    console.log("Enviando comandos:", commands);
+    for (const ticket of tickets) {
+      const commands = buildCommands(ticket);
 
-    await qz.print(config, commands);
+      // cada ticket se agrega con su corte
+      allCommands.push(...commands);
+    }
 
-    console.log("Impresión enviada correctamente");
+    console.log("Enviando lote completo:", allCommands.length, "comandos");
+
+    // 🔥 UNA SOLA LLAMADA → UN SOLO PERMISO
+    await qz.print(config, allCommands);
+
+    console.log("Impresión completa enviada");
   } catch (error) {
     console.error("Error impresión QZ:", error);
     throw error;
