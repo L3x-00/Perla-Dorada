@@ -519,10 +519,6 @@ html[data-theme="light"] .raffle-festive-wash {
     height: auto !important;
   }
 
-  body {
-    display: inline-block;
-  }
-
   html,
   body {
     background: white !important;
@@ -551,19 +547,26 @@ html[data-theme="light"] .raffle-festive-wash {
     margin-block-end: 0;
     margin-inline: auto;
   }
+  /*
+   * display: block (no inline-block): break-after solo crea una página
+   * nueva en cajas de nivel bloque. Con inline-block los navegadores lo
+   * ignoran y los tickets de una tanda quedan fluyendo en una sola hoja
+   * en vez de uno por hoja/corte.
+   */
   .urn-ticket-print {
-  display: inline-block !important;
-  height: auto !important;
-  margin: 0 !important;
-}
-  .ticket-receipt p {
-  margin: 0;
-  padding: 0;
+    display: block;
+    height: auto;
   }
-.urn-ticket-receipt {
-  display: inline-block !important;
-  height: auto !important;
-}
+
+  .ticket-receipt p {
+    margin: 0;
+    padding: 0;
+  }
+
+  .urn-ticket-receipt {
+    display: block;
+    height: auto;
+  }
   .ticket-receipt {
     border-radius: 0;
     background: #fff !important;

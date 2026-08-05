@@ -44,14 +44,20 @@ const imgSrc = ["'self'", "data:", "blob:", supabaseUrl]
  * Next.js inyecta scripts y estilos en línea para la hidratación, por eso
  * se permite 'unsafe-inline'. En desarrollo, Fast Refresh necesita además
  * 'unsafe-eval'; en producción no se concede.
+ *
+ * cdn.jsdelivr.net: sirve qz-tray.js para la impresión ESC/POS directa
+ * (solo se carga en las páginas de impresión administrativa). El propio
+ * QZ Tray corre como aplicación local del equipo del admin y expone un
+ * WebSocket en localhost; sin esos orígenes en connect-src el navegador
+ * bloquea tanto el script como la conexión.
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src ${imgSrc}`,
   "font-src 'self' data:",
-  `connect-src ${connectSrc}`,
+  `connect-src ${connectSrc} ws://localhost:* wss://localhost:*`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
