@@ -556,7 +556,10 @@ html[data-theme="light"] .raffle-festive-wash {
   height: auto !important;
   margin: 0 !important;
 }
-
+  .ticket-receipt p {
+  margin: 0;
+  padding: 0;
+  }
 .urn-ticket-receipt {
   display: inline-block !important;
   height: auto !important;
@@ -580,7 +583,7 @@ html[data-theme="light"] .raffle-festive-wash {
     border: 0;
     padding: 0;
     font-family: "Courier New", Courier, monospace;
-    line-height: 3mm;
+    line-height: 2.2mm;
   }
 
   [data-print-profile="thermal-72"][data-thermal-font="font-a"]
@@ -603,16 +606,16 @@ html[data-theme="light"] .raffle-festive-wash {
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__separator {
-    margin-block: 2mm;
+    margin-block: 1mm;
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__number {
-    margin-block: 2mm;
+    margin-block: 1mm;
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__number-value {
-    font-size: 9mm;
-    line-height: 9mm;
+    font-size: 7mm;
+    line-height: 7mm;
   }
 
   [data-print-profile="thermal-72"] .ticket-receipt__details {

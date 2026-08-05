@@ -27,7 +27,7 @@ export function PrintControls() {
 
       <p className="text-xs leading-relaxed text-neutral-600">
         Elige la impresora en el diálogo del navegador. Cada ticket conserva
-        su propia página o corte y cambiar el formato no registra otra
+        su propia página, corte y cambiar el formato no registra otra
         reimpresión.
       </p>
     </div>
