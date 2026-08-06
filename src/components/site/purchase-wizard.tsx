@@ -449,72 +449,25 @@ export function PurchaseWizard({
 
               <form onSubmit={submit} noValidate className="mt-6 md:mt-7">
                 <fieldset disabled={submitting} className="space-y-6 md:space-y-7">
+                  {/*
+                    La cantidad es lo primero y más visible del paso: el cliente
+                    reportó que muchos no notaban que podían elegir más de un
+                    boleto y compraban solo 1. Accesos rápidos + stepper grande.
+                  */}
+                  <QuantityPicker
+                    quantity={quantity}
+                    maxQuantity={maxQuantity}
+                    total={total}
+                    reduceMotion={reduceMotion}
+                    onChange={(next) => setQuantity(clampQuantity(next))}
+                  />
+
                   <div className="grid gap-6 md:gap-7 md:grid-cols-2 md:items-start">
                     {/* Datos de pago Yape */}
                     <YapePanel />
 
-                    {/* Cantidad + total + comprobante */}
+                    {/* Comprobante */}
                     <div className="space-y-5 md:space-y-6">
-                      <div>
-                        <p className={siteLabelClass}>Cantidad de boletos</p>
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setQuantity((current) =>
-                                clampQuantity(current - 1),
-                              )
-                            }
-                            disabled={quantity <= 1}
-                            aria-label="Disminuir cantidad"
-                            className="h-11 w-11 rounded-full border border-line text-xl text-cream transition-colors duration-300 hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            max={maxQuantity}
-                            value={quantity}
-                            onChange={(event) =>
-                              setQuantity(clampQuantity(Number(event.target.value)))
-                            }
-                            aria-label="Cantidad de boletos"
-                            className="h-11 w-16 rounded-lg border border-line bg-ink text-center font-display text-xl font-light tabular-nums text-cream outline-none focus:border-gold"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setQuantity((current) =>
-                                clampQuantity(current + 1),
-                              )
-                            }
-                            disabled={quantity >= maxQuantity}
-                            aria-label="Aumentar cantidad"
-                            className="h-11 w-11 rounded-full border border-line text-xl text-cream transition-colors duration-300 hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            +
-                          </button>
-                          <span className="ml-auto text-xs text-muted">
-                            {available} disp.
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-baseline justify-between border-y border-line py-4">
-                        <span className="eyebrow text-muted">Total</span>
-                        <motion.span
-                          key={total}
-                          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.25 }}
-                          className="font-display text-2xl sm:text-3xl font-light tabular-nums text-gold"
-                        >
-                          {total}
-                        </motion.span>
-                      </div>
-
                       <ProofUpload
                         file={file}
                         onFileChange={onFileChange}
@@ -653,6 +606,134 @@ function StepHeader({
       <p className="mt-2 sm:mt-2.5 text-xs sm:text-sm leading-relaxed text-muted">
         {description}
       </p>
+    </div>
+  );
+}
+
+/* Atajos de cantidad más comunes; se filtran a los que caben en el stock. */
+const QUICK_PICKS = [1, 2, 3, 5, 10];
+
+/*
+ * Selector de cantidad destacado y animado. Nace de un problema real: los
+ * usuarios no notaban que podían llevar más de un boleto y compraban solo 1.
+ * Es solo presentación — clampea contra el stock y el máximo por solicitud,
+ * pero el backend sigue siendo la autoridad sobre disponibilidad y total.
+ */
+function QuantityPicker({
+  quantity,
+  maxQuantity,
+  total,
+  reduceMotion,
+  onChange,
+}: {
+  quantity: number;
+  maxQuantity: number;
+  total: string;
+  reduceMotion: boolean | null;
+  onChange: (next: number) => void;
+}) {
+  const presets = QUICK_PICKS.filter((n) => n <= maxQuantity);
+  const showMax = maxQuantity > 1 && !presets.includes(maxQuantity);
+  const tap = reduceMotion ? {} : { whileTap: { scale: 0.9 } };
+
+  const chipClass = (active: boolean) =>
+    `min-w-[3rem] rounded-full border px-4 py-2 text-sm font-medium tabular-nums transition-colors duration-200 ${
+      active
+        ? "border-gold bg-gold text-ink"
+        : "border-line text-cream hover:border-gold hover:text-gold"
+    }`;
+
+  return (
+    <div className="rounded-2xl border border-gold-deep/40 bg-ink p-5 sm:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="eyebrow text-gold text-xs sm:text-sm">
+          ¿Cuántos boletos quieres?
+        </p>
+        <span className="text-xs tabular-nums text-muted">
+          {maxQuantity} disponibles
+        </span>
+      </div>
+      <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-muted">
+        Cada boleto suma una oportunidad más de ganar. Elige cuántos llevas.
+      </p>
+
+      {presets.length > 1 || showMax ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {presets.map((n) => (
+            <motion.button
+              key={n}
+              type="button"
+              {...tap}
+              onClick={() => onChange(n)}
+              aria-pressed={quantity === n}
+              className={chipClass(quantity === n)}
+            >
+              {n}
+            </motion.button>
+          ))}
+          {showMax ? (
+            <motion.button
+              type="button"
+              {...tap}
+              onClick={() => onChange(maxQuantity)}
+              aria-pressed={quantity === maxQuantity}
+              className={chipClass(quantity === maxQuantity)}
+            >
+              Máx {maxQuantity}
+            </motion.button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="mt-5 flex items-center justify-center gap-4 sm:gap-5">
+        <motion.button
+          type="button"
+          {...tap}
+          onClick={() => onChange(quantity - 1)}
+          disabled={quantity <= 1}
+          aria-label="Disminuir cantidad"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-line text-2xl text-cream transition-colors duration-200 hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          −
+        </motion.button>
+
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={maxQuantity}
+          value={quantity}
+          onChange={(event) => onChange(Number(event.target.value))}
+          aria-label="Cantidad de boletos"
+          className="h-16 w-24 rounded-2xl border border-line bg-ink-2 text-center font-display text-4xl font-light tabular-nums text-gold outline-none focus:border-gold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+
+        <motion.button
+          type="button"
+          {...tap}
+          onClick={() => onChange(quantity + 1)}
+          disabled={quantity >= maxQuantity}
+          aria-label="Aumentar cantidad"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-line text-2xl text-cream transition-colors duration-200 hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          +
+        </motion.button>
+      </div>
+
+      <div className="mt-5 flex items-baseline justify-between border-t border-line pt-4">
+        <span className="eyebrow text-xs text-muted sm:text-sm">
+          Total a pagar
+        </span>
+        <motion.span
+          key={total}
+          initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="font-display text-3xl font-light tabular-nums text-gold sm:text-4xl"
+        >
+          {total}
+        </motion.span>
+      </div>
     </div>
   );
 }
