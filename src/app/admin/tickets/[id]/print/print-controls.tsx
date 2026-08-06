@@ -111,9 +111,9 @@ export function PrintControls() {
       </p>
 
       <p className="text-xs leading-relaxed text-neutral-600">
-        "Imprimir PRO" envía cada ticket directo a la impresora térmica por
-        QZ Tray (ESC/POS), sin el diálogo ni los márgenes del navegador.
-        Requiere tener QZ Tray abierto en este equipo.
+        &quot;Imprimir PRO&quot; envía cada ticket directo a la impresora
+        térmica por QZ Tray (ESC/POS), sin el diálogo ni los márgenes del
+        navegador. Requiere tener QZ Tray abierto en este equipo.
       </p>
 
       {qzStatus === "error" && qzError ? (
