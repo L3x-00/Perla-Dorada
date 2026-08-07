@@ -218,6 +218,14 @@ export default async function AdminHomePage({ searchParams }: AdminPageProps) {
         payment_proof_deleted_at
       `,
     )
+    /*
+     * Orden por recencia de aprobación: lo recién aprobado aparece primero,
+     * aunque el cliente se haya registrado hace días (útil para imprimir para
+     * las ánforas). Las solicitudes aún sin revisar (reviewed_at nulo:
+     * pendientes) quedan arriba por su fecha de registro, para no perder de
+     * vista lo que entra y necesita acción.
+     */
+    .order("reviewed_at", { ascending: false, nullsFirst: true })
     .order("created_at", { ascending: false })
     .range(rangeStart, rangeEnd);
 
